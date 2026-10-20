@@ -1,0 +1,73 @@
+{
+  "name": "sdd-kit",
+  "owner": {
+    "name": "Stas Markov",
+    "url": "https://github.com/stasmarkov"
+  },
+  "metadata": {
+    "description": "SDD Kit: spec-driven development for Claude Code. A core plugin (/sdd front door, workflows, agents, skills, hooks) plus optional ops, ios, drupal, and design add-ons. Laravel and Next.js support ships in core today.",
+    "version": "2.1.0"
+  },
+  "plugins": [
+    {
+      "name": "sdd-kit",
+      "description": "SDD Kit: spec-driven development for Claude Code. A single /sdd front door, six background multi-agent workflows with stack detection and cross-repo support, specialized agents and skills, and guardrail hooks. Ships Laravel and Next.js support today; optional add-ons: ops, ios, drupal, design.",
+      "category": "development",
+      "source": "./plugins/sdd-kit",
+      "keywords": [
+        "laravel",
+        "nextjs",
+        "php",
+        "typescript",
+        "full-stack",
+        "tdd",
+        "agents",
+        "hooks",
+        "skills"
+      ]
+    },
+    {
+      "name": "sdd-kit-design",
+      "description": "UI design add-on: ui-ux-advisor agent and design-ui skill. Third-party design skills are listed in docs/third-party.md.",
+      "category": "development",
+      "source": "./plugins/sdd-kit-design",
+      "keywords": [
+        "design",
+        "ui",
+        "ux"
+      ]
+    },
+    {
+      "name": "sdd-kit-drupal",
+      "description": "Drupal 11 add-on: drupal-11 skill with module scaffolding.",
+      "category": "development",
+      "source": "./plugins/sdd-kit-drupal",
+      "keywords": [
+        "drupal",
+        "php"
+      ]
+    },
+    {
+      "name": "sdd-kit-ios",
+      "description": "iOS/Swift add-on: ios-mobile-dev agent, ios-native (with SwiftUI code templates in its assets) and swift-testing skills.",
+      "category": "development",
+      "source": "./plugins/sdd-kit-ios",
+      "keywords": [
+        "ios",
+        "swift",
+        "swiftui"
+      ]
+    },
+    {
+      "name": "sdd-kit-ops",
+      "description": "Operations add-on: deploy, rollback, feature flags, health checks, incident response, and ops analysis agents.",
+      "category": "development",
+      "source": "./plugins/sdd-kit-ops",
+      "keywords": [
+        "deployment",
+        "incident",
+        "operations"
+      ]
+    }
+  ]
+}

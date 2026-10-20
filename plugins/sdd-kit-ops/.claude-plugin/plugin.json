@@ -1,0 +1,16 @@
+{
+  "name": "sdd-kit-ops",
+  "version": "2.1.0",
+  "description": "Operations add-on: deploy, rollback, feature flags, health checks, incident response, and ops analysis agents.",
+  "author": {
+    "name": "Stas Markov"
+  },
+  "license": "MIT",
+  "keywords": [
+    "deployment",
+    "incident",
+    "operations"
+  ],
+  "homepage": "https://stasmarkov.github.io/sdd-kit/",
+  "repository": "https://github.com/stasmarkov/sdd-kit"
+}

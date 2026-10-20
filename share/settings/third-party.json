@@ -1,0 +1,289 @@
+{
+  "$comment": "Third-party skills and plugins the framework recommends but does not vendor. Only entries with status 'pinned' are installable; see docs/third-party.md for the review policy.",
+  "reviewed": "2026-10-19",
+  "skills": [
+    {
+      "name": "impeccable",
+      "purpose": "Frontend design, critique, audit, and polish suite",
+      "status": "pinned",
+      "source": "https://github.com/pbakaus/impeccable",
+      "ref": "8a0e198da34ebc5b936a9d5975fb7a3b1cf353b7",
+      "tag": "skill-v4.6.0",
+      "path": ".claude/skills/impeccable",
+      "license": "Apache-2.0",
+      "risk": "high",
+      "notes": [
+        "Ships Node scripts and pre-approves Bash(node .claude/skills/impeccable/scripts/*) and Bash(npx impeccable *) in allowed-tools.",
+        "Network: version check against impeccable.style that tells the agent to run an unpinned `npx impeccable update`; concept picker sends your choice to impeccable.style/api/chosen; image generation sends prompts to api.openai.com with OPENAI_API_KEY.",
+        "Previously installed copy matched no tagged release (updated in place). Install from the pinned ref and decline in-skill update prompts."
+      ]
+    },
+    {
+      "name": "design-taste-frontend",
+      "dir": "taste-skill",
+      "purpose": "Anti-generic frontend design direction (v2)",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "medium",
+      "notes": [
+        "No license or author in the files; cannot be redistributed. 1,206-line SKILL.md (context cost)."
+      ]
+    },
+    {
+      "name": "design-taste-frontend-v1",
+      "dir": "taste-skill-v1",
+      "purpose": "taste-skill v1 kept for compatibility",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "low",
+      "notes": [
+        "Superseded by design-taste-frontend; remove unless a project depends on it."
+      ]
+    },
+    {
+      "name": "high-end-visual-design",
+      "dir": "soft-skill",
+      "purpose": "Agency-style visual design rules",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "low",
+      "notes": []
+    },
+    {
+      "name": "minimalist-ui",
+      "dir": "minimalist-skill",
+      "purpose": "Warm monochrome editorial UI",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "low",
+      "notes": []
+    },
+    {
+      "name": "industrial-brutalist-ui",
+      "dir": "brutalist-skill",
+      "purpose": "Swiss/terminal brutalist UI",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "low",
+      "notes": []
+    },
+    {
+      "name": "redesign-existing-projects",
+      "dir": "redesign-skill",
+      "purpose": "Audit and upgrade existing UI",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "low",
+      "notes": []
+    },
+    {
+      "name": "full-output-enforcement",
+      "dir": "output-skill",
+      "purpose": "Prevent truncated or placeholder output",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "low",
+      "notes": []
+    },
+    {
+      "name": "gpt-taste",
+      "dir": "gpt-tasteskill",
+      "purpose": "GSAP motion and AIDA landing-page layout",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "low",
+      "notes": []
+    },
+    {
+      "name": "stitch-design-taste",
+      "dir": "stitch-skill",
+      "purpose": "DESIGN.md generation for Google Stitch",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "low",
+      "notes": []
+    },
+    {
+      "name": "brandkit",
+      "dir": "brandkit",
+      "purpose": "Brand-guidelines and logo image generation",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "low",
+      "notes": [
+        "798-line SKILL.md."
+      ]
+    },
+    {
+      "name": "imagegen-frontend-web",
+      "dir": "imagegen-frontend-web",
+      "purpose": "Per-section website design images",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "low",
+      "notes": [
+        "987-line SKILL.md."
+      ]
+    },
+    {
+      "name": "imagegen-frontend-mobile",
+      "dir": "imagegen-frontend-mobile",
+      "purpose": "Mobile app screen concepts",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "low",
+      "notes": [
+        "1,465-line SKILL.md."
+      ]
+    },
+    {
+      "name": "image-to-code",
+      "dir": "image-to-code-skill",
+      "purpose": "Generate design images, then implement them",
+      "status": "unverified",
+      "source": null,
+      "license": null,
+      "risk": "low",
+      "notes": [
+        "Written for Codex; behavior in Claude Code untested. 1,228-line SKILL.md."
+      ]
+    },
+    {
+      "name": "stripe-best-practices",
+      "purpose": "Stripe integration decisions: Checkout Sessions vs PaymentIntents, Connect, Billing, Tax, webhooks, key handling",
+      "status": "pinned",
+      "source": "https://github.com/stripe/ai",
+      "ref": "a8813a705651eaa68fab38943527a786ea5b411a",
+      "path": "providers/claude/plugin/skills/stripe-best-practices",
+      "license": "MIT",
+      "risk": "low",
+      "notes": [
+        "Published by Stripe. Previously vendored in src/skills; removed because src/skills holds only framework-owned skills.",
+        "Reviewed 2026-10-19: SKILL.md plus six reference files, no allowed-tools, no scripts, no fetch-and-run instructions."
+      ]
+    },
+    {
+      "name": "upgrade-stripe",
+      "purpose": "Upgrading Stripe API versions and SDKs (server, Stripe.js, mobile)",
+      "status": "pinned",
+      "source": "https://github.com/stripe/ai",
+      "ref": "a8813a705651eaa68fab38943527a786ea5b411a",
+      "path": "providers/claude/plugin/skills/upgrade-stripe",
+      "license": "MIT",
+      "risk": "low",
+      "notes": [
+        "Published by Stripe. Previously vendored; removed for the same reason as stripe-best-practices.",
+        "Reviewed 2026-10-19: one SKILL.md, no allowed-tools, no scripts. It looks up the current API version on docs.stripe.com and only falls back to its bundled one offline."
+      ]
+    },
+    {
+      "name": "stripe-projects",
+      "purpose": "Stripe Projects CLI for provisioning a software stack",
+      "status": "manual",
+      "source": "https://github.com/stripe/ai",
+      "ref": "a8813a705651eaa68fab38943527a786ea5b411a",
+      "path": "providers/claude/plugin/skills/stripe-projects",
+      "license": "MIT",
+      "risk": "medium",
+      "notes": [
+        "Reviewed but not installed by --third-party: it pre-approves Bash(stripe *) and Bash(brew install stripe/stripe-cli/stripe) in allowed-tools, and provisioning a stack overlaps greenfield-build. Optional.",
+        "Install by hand if a project wants it: copy providers/claude/plugin/skills/stripe-projects from the pinned ref into .claude/skills/stripe-projects with the repo's LICENSE."
+      ]
+    }
+  ],
+  "plugins": [
+    {
+      "name": "figma",
+      "marketplace": "claude-plugins-official",
+      "version": "2.1.30",
+      "ref": "500e8738438ed1204eaf23e61280d872f47534fd",
+      "purpose": "Design-to-code with Figma tokens and screenshots"
+    },
+    {
+      "name": "frontend-design",
+      "marketplace": "claude-plugins-official",
+      "version": null,
+      "ref": null,
+      "purpose": "Production-grade frontend design guidance"
+    },
+    {
+      "name": "postman",
+      "marketplace": "claude-plugins-official",
+      "version": "2.0.1",
+      "ref": "67cff8f385d88608f427af01e152969065ddb1d8",
+      "purpose": "API collections, mocks, tests, monitors"
+    },
+    {
+      "name": "context7",
+      "marketplace": "claude-plugins-official",
+      "version": null,
+      "ref": null,
+      "purpose": "Current library documentation"
+    },
+    {
+      "name": "phpstorm-plugin",
+      "marketplace": "phpstorm-marketplace",
+      "marketplaceSource": "jetbrains/phpstorm-claude-marketplace",
+      "version": "1.0.0",
+      "ref": "16b213985078afa1095fdaf65f7b750ce4965ff6",
+      "purpose": "PHP code review and project guide via the IDE"
+    },
+    {
+      "name": "caveman",
+      "marketplace": "caveman",
+      "marketplaceSource": "JuliusBrussee/caveman",
+      "version": null,
+      "ref": "84cc3c14fa1e10182adaced856e003406ccd250d",
+      "license": "MIT",
+      "purpose": "Compressed output style; ships hooks and a status line"
+    },
+    {
+      "name": "php-lsp",
+      "marketplace": "claude-plugins-official",
+      "version": null,
+      "ref": null,
+      "purpose": "Intelephense language server \u2014 Claude sees PHP type errors and missing imports automatically after each edit, no manual compile."
+    },
+    {
+      "name": "typescript-lsp",
+      "marketplace": "claude-plugins-official",
+      "version": null,
+      "ref": null,
+      "purpose": "typescript-language-server \u2014 automatic post-edit TS diagnostics and precise navigation for the Next.js side."
+    },
+    {
+      "name": "security-guidance",
+      "marketplace": "claude-plugins-official",
+      "version": null,
+      "ref": null,
+      "purpose": "Reviews each change for common vulnerabilities and fixes in-session \u2014 complements this framework's scan-secrets/scan-injection hooks."
+    },
+    {
+      "name": "pr-review-toolkit",
+      "marketplace": "claude-plugins-official",
+      "version": null,
+      "ref": null,
+      "purpose": "Specialized PR-review agents that align with /deep-review."
+    },
+    {
+      "name": "skill-creator",
+      "marketplace": "claude-plugins-official",
+      "version": null,
+      "ref": null,
+      "license": "Apache-2.0",
+      "purpose": "Anthropic's skill authoring and eval tooling (create, test, benchmark skills). For maintaining skills, not for building products; previously vendored in src/skills without a LICENSE."
+    }
+  ]
+}

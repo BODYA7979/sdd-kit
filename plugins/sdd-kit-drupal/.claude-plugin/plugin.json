@@ -1,0 +1,15 @@
+{
+  "name": "sdd-kit-drupal",
+  "version": "2.1.0",
+  "description": "Drupal 11 add-on: drupal-11 skill with module scaffolding.",
+  "author": {
+    "name": "Stas Markov"
+  },
+  "license": "MIT",
+  "keywords": [
+    "drupal",
+    "php"
+  ],
+  "homepage": "https://stasmarkov.github.io/sdd-kit/",
+  "repository": "https://github.com/stasmarkov/sdd-kit"
+}

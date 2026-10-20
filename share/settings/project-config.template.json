@@ -1,0 +1,52 @@
+{
+  "_comment": "Project metadata for the Claude Laravel + Next.js framework. This file is NOT a Claude Code settings file. It stores project-specific configuration used by framework agents and commands.",
+  "project": "my-project",
+  "version": "1.0",
+
+  "quality_gates": {
+    "thresholds": {
+      "test_coverage": 80,
+      "phpstan_level": 5,
+      "documentation_coverage": 80
+    },
+    "enforcement": {
+      "block_on_failure": true,
+      "require_manual_override": true
+    }
+  },
+
+  "context_management": {
+    "golden_triangle": {
+      "description": "Core context files always included in AI sessions",
+      "files": [
+        "docs/context/business-rules.md",
+        "docs/context/architecture.md",
+        "docs/api/api-contracts.md"
+      ]
+    },
+    "conditional_loading": {
+      "database_task": ["docs/schemas/"],
+      "api_task": ["docs/api/"],
+      "security_task": ["docs/security/"],
+      "frontend_task": ["docs/frontend/"]
+    }
+  },
+
+  "project_patterns": {
+    "backend": {
+      "framework": "laravel",
+      "version": "12.x",
+      "patterns": ["dto-first", "service-repository", "schema-first"]
+    },
+    "frontend": {
+      "framework": "nextjs",
+      "version": "15.x",
+      "patterns": ["app-router", "server-components", "server-actions"]
+    },
+    "testing": {
+      "backend": "pest",
+      "frontend": "vitest",
+      "e2e": "playwright"
+    }
+  }
+}

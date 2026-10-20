@@ -1,0 +1,26 @@
+{
+  "name": "sdd-kit",
+  "version": "2.1.0",
+  "private": true,
+  "description": "SDD Kit: spec board, installer and guide launcher for spec-driven development with Claude Code",
+  "license": "MIT",
+  "repository": "github:stasmarkov/sdd-kit",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "sdd-kit": "cli/sdd-kit.mjs",
+    "spec-board": "cli/spec-board.mjs",
+    "sdd-kit-board": "cli/spec-board.mjs"
+  },
+  "files": [
+    "cli/",
+    "install.sh",
+    "VERSION",
+    "share/",
+    "plugins/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "spec_id": "spec-HIRE-5-candidate-profiles",
+  "spec_folder": "spec-HIRE-5-candidate-profiles",
+  "spec_path": ".ai/specs/spec-HIRE-5-candidate-profiles",
+  "current_task": 3,
+  "total_tasks": 4,
+  "completed_tasks": [1, 2],
+  "last_updated": "2026-10-23T15:52:00Z",
+  "verification_reports": [
+    ".ai/verification/spec-HIRE-5-candidate-profiles/task-1-20261023-1210.md",
+    ".ai/verification/spec-HIRE-5-candidate-profiles/task-2-20261023-1745.md"
+  ],
+  "failures": [],
+  "resume_hint": "Tasks 1-2 done in api/ (profile API green). Next: task 3 in web/ - types/api/profiles.ts, lib/api/profiles.ts, saveProfileAction"
+}

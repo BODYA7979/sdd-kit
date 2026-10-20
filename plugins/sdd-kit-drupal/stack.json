@@ -1,0 +1,38 @@
+{
+  "$schema": "../../workflows/lib/stack.schema.json",
+  "name": "drupal",
+  "order": 20,
+  "role": "backend",
+  "detect": "composer.json requiring drupal/core (often web/index.php)",
+  "agent": {
+    "name": "general-purpose"
+  },
+  "conventions": [
+    "module structure",
+    "services + dependency injection",
+    "plugins",
+    "hooks",
+    "config schema"
+  ],
+  "gates": [
+    {
+      "name": "PHPCS",
+      "command": "./vendor/bin/phpcs --standard=Drupal,DrupalPractice"
+    },
+    {
+      "name": "PHPStan",
+      "command": "./vendor/bin/phpstan analyse"
+    },
+    {
+      "name": "PHPUnit",
+      "command": "./vendor/bin/phpunit"
+    }
+  ],
+  "debugPatterns": [
+    "dd(",
+    "dump(",
+    "kint(",
+    "var_dump("
+  ],
+  "acceptance": "exercise the routes/controllers over HTTP"
+}

@@ -1,0 +1,84 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "description": "Current library and framework documentation. Default server."
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@0.0.83",
+        "--headless",
+        "--isolated"
+      ],
+      "description": "Default server. Browser automation for Reproduce, Visual and Acceptance phases in every workflow (Microsoft, Apache-2.0, pinned). Remove --headless to watch the browser; --isolated keeps no profile between runs."
+    },
+    "phpstorm": {
+      "type": "sse",
+      "url": "http://localhost:64342/sse",
+      "description": "JetBrains IDE MCP server (symbols, inspections, refactorings, DB). Copy the exact URL from Settings > Tools > MCP Server; JetBrains still serves SSE, which the MCP spec has deprecated in favour of HTTP."
+    },
+    "serena": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "claude-code",
+        "--project",
+        "."
+      ],
+      "description": "Optional. Semantic code navigation via LSP (requires uv)."
+    },
+    "laravel-boost": {
+      "command": "php",
+      "args": [
+        "artisan",
+        "boost:mcp"
+      ],
+      "description": "Optional. Laravel-aware tools (requires composer require laravel/boost --dev)."
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_TOKEN}"
+      },
+      "description": "Optional. GitHub PRs, issues, and releases over HTTP transport."
+    },
+    "ddev": {
+      "command": "ddev-mcp",
+      "args": [
+        "--single-project"
+      ],
+      "description": "Optional. DDEV environment control (npm install -g ddev-mcp)."
+    },
+    "obsidian": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cyanheads/obsidian-mcp-server"
+      ],
+      "env": {
+        "OBSIDIAN_API_KEY": "${OBSIDIAN_API_KEY}",
+        "OBSIDIAN_BASE_URL": "http://127.0.0.1:27123"
+      },
+      "description": "Optional. Obsidian vault via the Local REST API plugin."
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "description": "Optional. Structured multi-step reasoning; rarely needed with current models."
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "sdd-kit-ios",
+  "version": "2.1.0",
+  "description": "iOS/Swift add-on: ios-mobile-dev agent, ios-native (with SwiftUI code templates in its assets) and swift-testing skills.",
+  "author": {
+    "name": "Stas Markov"
+  },
+  "license": "MIT",
+  "keywords": [
+    "ios",
+    "swift",
+    "swiftui"
+  ],
+  "homepage": "https://stasmarkov.github.io/sdd-kit/",
+  "repository": "https://github.com/stasmarkov/sdd-kit"
+}

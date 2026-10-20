@@ -1,0 +1,18 @@
+{
+  "$schema": "./stack.schema.json",
+  "name": "other",
+  "order": 1000,
+  "role": "fullstack",
+  "detect": "no recognized manifest — infer from whatever build/lint/test tooling exists",
+  "agent": {
+    "name": "general-purpose"
+  },
+  "conventions": [],
+  "gates": [],
+  "debugPatterns": [
+    "console.log(",
+    "dd(",
+    "print("
+  ],
+  "acceptance": "run whatever entrypoint / tests the project provides"
+}

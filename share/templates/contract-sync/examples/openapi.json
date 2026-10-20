@@ -1,0 +1,9 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Invoices API", "version": "1.0.0" },
+  "paths": {
+    "/api/invoices": { "get": { "operationId": "listInvoices" } },
+    "/api/invoices/{id}": { "get": { "operationId": "showInvoice" }, "delete": { "operationId": "deleteInvoice" } },
+    "/api/invoices/{id}/status": { "patch": { "operationId": "updateInvoiceStatus" } }
+  }
+}

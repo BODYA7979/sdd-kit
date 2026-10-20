@@ -1,0 +1,36 @@
+name: Contract sync
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract-sync:
+    runs-on: ubuntu-latest
+    env:
+      CONTRACT_SYNC_REGISTRY: lib/api/endpoints.ts
+      CONTRACT_SYNC_ROUTES_FILE: route-list.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The token needs read access to hireboard/api's Actions artifacts.
+      - name: Download the route list from the latest green api main build
+        env:
+          GH_TOKEN: ${{ secrets.BACKEND_REPO_TOKEN }}
+        run: |
+          run_id=$(gh run list -R hireboard/api -w "Export API routes" -b main -s success -L 1 --json databaseId -q '.[0].databaseId')
+          if [ -z "$run_id" ]; then
+            echo "::error::No successful 'Export API routes' run on hireboard/api main. Push to api main or trigger the workflow there, then re-run this job."
+            exit 1
+          fi
+          gh run download "$run_id" -R hireboard/api -n route-list
+
+      - name: Compare lib/api/endpoints.ts with the API routes
+        run: node scripts/contract-sync.mjs

@@ -1,0 +1,7 @@
+[
+  {"domain": null, "method": "GET|HEAD", "uri": "api/invoices", "name": "invoices.index", "action": "App\\Http\\Controllers\\InvoiceController@index", "middleware": ["api", "auth:sanctum"]},
+  {"domain": null, "method": "GET|HEAD", "uri": "api/invoices/{invoice}", "name": "invoices.show", "action": "App\\Http\\Controllers\\InvoiceController@show", "middleware": ["api", "auth:sanctum"]},
+  {"domain": null, "method": "PATCH", "uri": "api/invoices/{invoice}/status", "name": "invoices.status", "action": "App\\Http\\Controllers\\InvoiceController@updateStatus", "middleware": ["api", "auth:sanctum"]},
+  {"domain": null, "method": "DELETE", "uri": "api/invoices/{invoice}", "name": "invoices.destroy", "action": "App\\Http\\Controllers\\InvoiceController@destroy", "middleware": ["api", "auth:sanctum"]},
+  {"domain": null, "method": "GET|HEAD", "uri": "sanctum/csrf-cookie", "name": "sanctum.csrf-cookie", "action": "Laravel\\Sanctum\\Http\\Controllers\\CsrfCookieController@show", "middleware": ["web"]}
+]

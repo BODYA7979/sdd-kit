@@ -1,0 +1,42 @@
+{
+  "$schema": "../../workflows/lib/stack.schema.json",
+  "name": "ios",
+  "order": 50,
+  "role": "mobile",
+  "detect": "a Package.swift, an *.xcodeproj / *.xcworkspace, or Sources/**/*.swift",
+  "agent": {
+    "name": "general-purpose"
+  },
+  "conventions": [
+    "SwiftUI + @Observable MVVM",
+    "async/await + Swift 6 strict concurrency",
+    "SwiftData persistence",
+    "URLSession networking"
+  ],
+  "gates": [
+    {
+      "name": "SwiftFormat",
+      "command": "swiftformat --lint ."
+    },
+    {
+      "name": "SwiftLint",
+      "command": "swiftlint --strict"
+    },
+    {
+      "name": "Build",
+      "command": "set -o pipefail && xcodebuild build -scheme \"$SCHEME\" -destination \"generic/platform=iOS Simulator\" | xcbeautify"
+    },
+    {
+      "name": "Test",
+      "command": "set -o pipefail && xcodebuild test -scheme \"$SCHEME\" -destination \"platform=iOS Simulator,name=iPhone 16\" | xcbeautify"
+    }
+  ],
+  "debugPatterns": [
+    "print(",
+    "debugPrint(",
+    "NSLog("
+  ],
+  "visual": "simulator",
+  "acceptance": "boot a simulator (xcrun simctl boot), install & launch the app, assert via a UI test or an xcrun simctl screenshot",
+  "notes": "The ios-native and swift-testing skills come from the optional ios plugin and auto-load on *.swift."
+}

@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "stack.json",
+  "description": "Per-stack manifest: the single hand-edited source of stack data for the workflow registry.",
+  "type": "object",
+  "required": [
+    "name",
+    "order",
+    "role",
+    "detect",
+    "agent",
+    "conventions",
+    "gates",
+    "debugPatterns",
+    "acceptance"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "order": {
+      "type": "integer"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "backend",
+        "frontend",
+        "fullstack",
+        "mobile"
+      ]
+    },
+    "detect": {
+      "type": "string"
+    },
+    "agent": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "plugin": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        }
+      }
+    },
+    "conventions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "command"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "skipWhenScaffolded": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        }
+      }
+    },
+    "debugPatterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "acceptance": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "devUrl": {
+      "type": "string"
+    },
+    "visual": {
+      "type": "string"
+    },
+    "buildGateGuard": {
+      "type": "string"
+    },
+    "contractSync": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "routeListCommand": {
+          "type": "string"
+        },
+        "consumer": {
+          "type": "boolean",
+          "enum": [
+            true
+          ]
+        }
+      }
+    }
+  }
+}
