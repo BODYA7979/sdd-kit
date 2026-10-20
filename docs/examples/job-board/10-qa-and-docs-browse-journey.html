@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 — Shipped code: a traceable QA plan and docs for the public browse journey (HIRE-10) · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/10-qa-and-docs-browse-journey.md</p>
+  <article class="doc-body">
+<h2 id="10--shipped-code-a-traceable-qa-plan-and-docs-for-the-public-browse-journey-hire-10">10 — Shipped code: a traceable QA plan and docs for the public browse journey (HIRE-10)</h2>
+<p><strong>Route:</strong> <code>shipped</code> → <code>qa-and-docs</code> workflow
+<strong>Date in the story:</strong> 2026-11-03
+<strong>Session:</strong> inside <code>web/</code>, with <code>api/</code> added
+<strong>Output:</strong> <a href="artifacts/web/docs/qa/qa-plan-2026-11-03.html"><code>web/docs/qa/qa-plan-2026-11-03.md</code></a>, <a href="artifacts/web/docs/user/finding-jobs.html"><code>web/docs/user/finding-jobs.md</code></a>, <a href="artifacts/web/docs/dev/browse-journey.html"><code>web/docs/dev/browse-journey.md</code></a></p>
+<p>Each earlier chapter changed code. This one doesn&#39;t. The anonymous browse journey is already live, and QA wants one regression plan for it before the next release. The <code>shipped</code> route reads the code that exists, works out acceptance criteria, links every test case and doc claim to a real file, and then grades the result against the implementation.</p>
+<h3 id="the-situation">The situation</h3>
+<p>Four separate pipelines built the anonymous journey, and no spec covers all of it:</p>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Shipped by</th><th>Chapter</th><th>Existing test notes</th></tr></thead><tbody><tr><td>Job search and filters</td><td>greenfield-build (HIRE-1)</td><td><a href="02-greenfield-first-slice.html">02</a></td><td><code>api/docs/manual-test.md</code> (slice handoff) plus Pest and Vitest tests</td></tr><tr><td>Job detail</td><td>greenfield-build (HIRE-1)</td><td><a href="02-greenfield-first-slice.html">02</a></td><td>same</td></tr><tr><td>Careers page</td><td>ship-feature, S spec (HIRE-7)</td><td><a href="08-careers-page-s-spec-and-trivial-change.html">08</a></td><td><code>web/.ai/specs/spec-HIRE-7-company-careers-page/manual-test.md</code></td></tr><tr><td>Salary on job cards</td><td>/simple-task, no spec (HIRE-8)</td><td><a href="08-careers-page-s-spec-and-trivial-change.html">08</a></td><td>none</td></tr><tr><td>Closed postings return 404</td><td>fix-bug (HIRE-9)</td><td><a href="09-bug-closed-jobs-fix-bug.html">09</a></td><td><code>ClosedJobPostingVisibilityTest.php</code> plus the manual steps in the fix-bug report</td></tr></tbody></table></div>
+<p>Running the pieces&#39; test notes one after another doesn&#39;t give QA a regression plan. Salary display has no notes at all, and nothing says which business rule each check protects. Rerunning ship-feature isn&#39;t the answer either, because nothing needs to be built.</p>
+<h3 id="step-1--start-in-the-repo-that-will-own-the-plan">Step 1 — Start in the repo that will own the plan</h3>
+<p>Single-file outputs from a workflow land relative to the session&#39;s working directory (kit friction F3). Without a spec, <code>qa-and-docs</code> writes its plan to <code>docs/qa/qa-plan-&lt;date&gt;.md</code>. If you start from the workspace root, the plan ends up in <code>~/work/hireboard/docs/qa/</code>. That folder has no git of its own, so the plan would never be committed.</p>
+<p>QA works in the frontend, so the plan belongs in <code>web/</code>. Start there and add <code>api/</code> so the agents can read the backend code and its <code>CLAUDE.md</code> (<a href="../../reference/multi-repo.html">docs/multi-repo.md</a>):</p>
+<pre><code class="language-bash">cd ~/work/hireboard/web
+git switch main &amp;&amp; git pull
+git switch -c chore/HIRE-10-browse-journey-qa
+CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ../api</code></pre>
+<h3 id="step-2--sdd-classifies-the-request-as-shipped">Step 2 — <code>/sdd</code> classifies the request as <code>shipped</code></h3>
+<pre><code>/sdd HIRE-10: QA plan and docs for the public job browsing journey</code></pre>
+<p>The input contains a ticket key, so <code>/sdd</code> first looks for an existing spec and then for a tracker. Neither exists (F8). Abridged session, simulated:</p>
+<pre><code>&gt; ls -d .ai/specs/*/ | grep -iE &quot;/spec-HIRE-10-&quot;
+  (no match)
+
+No Jira/Linear tool in this session. Paste the HIRE-10 ticket text, or reply &quot;use the line above&quot;.</code></pre>
+<p>Alex pastes the ticket:</p>
+<pre><code>HIRE-10: QA plan and docs for the public job browsing journey.
+QA needs one regression plan for the anonymous flow before the release: search, filters,
+job detail, company careers page, salary display, and closed postings returning not found.
+Shipped across HIRE-1, HIRE-7, HIRE-8 and HIRE-9. Also write a user guide and a dev
+overview. No code changes.</code></pre>
+<p><code>/sdd</code> picks a route and asks Alex to confirm it (simulated):</p>
+<pre><code>Route: shipped — the code already exists and needs a QA plan and docs, not changes.
+
+? Which route?
+  ❯ shipped → qa-and-docs (Recommended)
+    feature → write-spec → approval → ship-feature</code></pre>
+<p>Alex accepts. Background workflows can&#39;t stop to ask questions, so <code>/sdd</code> gathers the scope and the repos before it launches anything:</p>
+<pre><code>? Scope for qa-and-docs
+    spec      — no single spec covers this journey
+    gitRange  — one range can&#39;t span two repos with separate histories
+  ❯ paths     — list the files of the journey in both repos
+    feature name — &quot;public job browsing&quot; (search-based, may pull in reviews/auth code)
+
+? Repos (detected sibling ../api with an artisan file)
+  ❯ backend: ../api, frontend: .</code></pre>
+<p>Alex picks <code>paths</code> and lists the journey&#39;s files. Paths resolve from the session&#39;s directory, so the backend globs start with <code>../api/</code>. Before any <code>Workflow</code> call, <code>/sdd</code> shows the exact call it will make:</p>
+<pre><code class="language-js">Workflow({ name: &quot;qa-and-docs&quot;, args: {
+  paths: [
+    &quot;app/jobs/page.tsx&quot;,
+    &quot;app/jobs/[id]/page.tsx&quot;,
+    &quot;app/companies/[slug]/page.tsx&quot;,
+    &quot;components/job-card.tsx&quot;,
+    &quot;components/job-filters.tsx&quot;,
+    &quot;lib/api/jobs.ts&quot;,
+    &quot;lib/search-params.ts&quot;,
+    &quot;../api/app/Http/Controllers/Jobs/**&quot;,
+    &quot;../api/app/Http/Controllers/Companies/**&quot;,
+    &quot;../api/app/Services/JobPostingService.php&quot;,
+    &quot;../api/app/Repositories/JobPostingRepository.php&quot;
+  ],
+  repos: { backend: &quot;../api&quot;, frontend: &quot;.&quot; }
+} })</code></pre>
+<pre><code>This runs several agents in the background (Detect, Index ×2, Criteria, QAPlan ∥ Docs,
+Grade, Report). Launch? (yes / no)</code></pre>
+<p>After Alex answers yes, the hand-off looks like this (simulated):</p>
+<pre><code>Route:    shipped (confirmed)
+Ticket:   HIRE-10
+Scope:    paths (7 web, 4 api)
+Launched: qa-and-docs — runs in the background; watch with /workflows
+Done when: grader passes the coverage and phantom-link gates; a human reviews before publishing</code></pre>
+<p>The phases, the args table and the done-definition for this route are in <a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/sdd/references/qa-and-docs.md" target="_blank" rel="noopener noreferrer">references/qa-and-docs.md</a>. <a href="../../reference/usage-examples.html#4-qa-plan-and-docs-for-shipped-code">USAGE-EXAMPLES §4</a> shows the same route with other kinds of scope.</p>
+<h3 id="step-3--what-the-phases-do">Step 3 — What the phases do</h3>
+<pre><code>Detect         stack(s) + repo layout
+Index          files → methods/routes/components → features (bottom-up), one agent per repo
+Criteria       spec ACs, or criteria inferred from code
+QAPlan ∥ Docs  case → criterion → files  ∥  docs grounded in code
+Grade          completeness / helpfulness / truthfulness; coverage + phantom-link gate
+Report         coverage matrix + grade + artifact paths</code></pre>
+<p>Workflow log, abridged and simulated. The line formats match the <code>log()</code> calls in <code>src/workflows/qa-and-docs.js</code>:</p>
+<pre><code>[Detect]   Detect: frontend:nextjs, backend:laravel (cross-repo)
+[Index]    Index: 5 feature(s), 38 element(s)
+[Criteria] Criteria: 9 (inferred), 9 need validation
+[QAPlan]   QAPlan: 23 case(s) → docs/qa/qa-plan-2026-11-03.md | Docs: 0 updated, 2 new
+[Grade]    Grade: PASS (T:95)</code></pre>
+<p><strong>Detect</strong> probes both roots, matches the <code>laravel</code> and <code>nextjs</code> entries in the stack registry, and checks with <code>git ls-files</code> that both repos are tracked. That check produces no WIP warnings here. Two roots set <code>crossRepo</code>, so <strong>Index</strong> runs one code-explorer per repo in parallel.</p>
+<p><strong>Index</strong> works bottom-up. It reads leaf functions before their callers, which means repository and service methods first, then controllers, then <code>lib/api/jobs.ts</code> and <code>lib/search-params.ts</code>, and finally the pages. It clusters the results into five features: <em>job search with filters</em>, <em>job detail</em>, <em>closed/draft posting visibility</em>, <em>company careers page</em> and <em>salary display</em>. Each feature lists its files and its entry points (<code>/jobs</code>, <code>/jobs/[id]</code>, <code>/companies/[slug]</code>, <code>GET /api/v1/jobs</code>, …).</p>
+<p><strong>Criteria</strong> has no spec to read, so it infers testable statements from what the code does and sets <code>inferred: true</code> on each one. The prompt forbids inventing requirements that the code doesn&#39;t support. That is why salary validation (<code>salary_min &lt;= salary_max</code>, BR-12) is not a criterion: nothing in scope writes salaries. Through the <code>--add-dir</code> session the agent also reads <code>api/docs/context/business-rules.md</code> and anchors each criterion to the rule it protects, BR-10, BR-11 or BR-12. In the report, every inferred criterion appears under <em>needs validation</em>, with Maya Chen named as the validator:</p>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>Inferred criterion (abridged)</th><th>Anchor</th></tr></thead><tbody><tr><td>AC-1</td><td>Search returns only open postings, newest first</td><td>BR-10, BR-11</td></tr><tr><td>AC-2</td><td><code>q</code>, <code>location</code>, <code>remote</code>, <code>employment_type</code>, <code>company</code> narrow and combine</td><td>BR-11</td></tr><tr><td>AC-3</td><td><code>per_page</code> default 20, capped at 50, INV-01 <code>meta</code></td><td>BR-11</td></tr><tr><td>AC-4</td><td>The <code>/jobs</code> URL is the filter state</td><td>BR-11</td></tr><tr><td>AC-5</td><td>Detail shows an open posting and links its company</td><td>BR-10</td></tr><tr><td>AC-6</td><td>Unknown, closed or draft id → 404 <code>job_not_found</code>, not-found page</td><td>BR-10</td></tr><tr><td>AC-7</td><td>Careers page shows the profile and open postings; unknown slug → not-found</td><td>BR-10</td></tr><tr><td>AC-8</td><td>Careers page shows average rating + count, links to reviews</td><td>BR-42, BR-43</td></tr><tr><td>AC-9</td><td>Job card shows <code>€60,000 – €80,000 a year</code>; nothing when salary is null</td><td>BR-12</td></tr></tbody></table></div>
+<p><strong>QAPlan and Docs run in parallel.</strong> Both consume the criteria, and neither needs the other&#39;s output. The QA writer produces at least one case per criterion, with <code>coversCriterion</code>, <code>contributingFiles</code> and copy-paste steps that use real values. Because no spec was given, it writes the plan to <code>docs/qa/qa-plan-$(date +%Y-%m-%d).md</code>. The docs writer looks for existing docs to update first. <code>web/</code> has none for this area, so it creates two. It lists <code>api/docs/api/api-contracts.md</code> as <em>skipped</em> because the API contract is already accurate.</p>
+<p><strong>Grade</strong> is a strict verifier (the <code>outcomes-grader</code> agent, deep tier). It reads the code again instead of trusting the artifacts. It scores completeness, helpfulness and truthfulness from 0 to 100. Its verdict is <code>CHANGES_REQUIRED</code> if there is any phantom link, any uncovered criterion, or truthfulness below 80. Otherwise it is <code>PASS</code>.</p>
+<h3 id="step-4--the-artifacts">Step 4 — The artifacts</h3>
+<h4 id="the-qa-plan-criterion--case--files">The QA plan: criterion → case → files</h4>
+<p><a href="artifacts/web/docs/qa/qa-plan-2026-11-03.html"><code>web/docs/qa/qa-plan-2026-11-03.md</code></a> starts with setup commands that use the demo seed, including <code>tinker</code> one-liners that print the ids of the closed and draft postings. Then come the criteria table and the coverage matrix:</p>
+<pre><code class="language-markdown">| Criterion | Covered | Automated cases | Manual cases | Contributing files |
+|-----------|---------|-----------------|--------------|--------------------|
+| AC-1 | yes | QA-01, QA-02 | QA-M01 | `SearchJobPostingsController`, `JobPostingService::search`, … |
+| AC-6 | yes | QA-11, QA-12, QA-13, QA-14 | QA-M04 | `JobPostingService::findOpen`, `JobPostingRepository::findOpenById`, … |
+| AC-9 | yes | none | QA-M07 | `components/job-card.tsx` |</code></pre>
+<p>The 16 automated cases name existing tests by their exact description and link to the test file:</p>
+<ul><li><code>SearchJobPostingsTest.php</code>: AC-1 to AC-3</li><li><code>search-params.test.ts</code>: AC-4</li><li><code>ShowJobPostingTest.php</code> and <code>ShowCompanyTest.php</code>: AC-5 to AC-7</li><li>the HIRE-9 <code>ClosedJobPostingVisibilityTest.php</code>: AC-6, plus the guard cases for AC-1 and AC-5</li></ul>
+<p>The 7 manual cases cover what no test checks today: the filter form and the URL, the careers page and its rating summary, salary formatting, and the not-found page for closed and draft links. QA-M04 is the original HIRE-9 report, re-walked:</p>
+<pre><code class="language-markdown">| 1 | Open `http://localhost:3000/jobs/CLOSED_ID`. | The not-found page. No job detail and no Apply button. |
+| 2 | `curl -s http://localhost:8000/api/v1/jobs/CLOSED_ID` | HTTP 404 with `{&quot;success&quot;:false,…,&quot;code&quot;:&quot;job_not_found&quot;}`. |</code></pre>
+<p>The plan also names its own gaps. AC-8 and AC-9 are covered only by manual cases, and the salary formatter is suggested as a future Vitest case.</p>
+<h4 id="the-user-guide">The user guide</h4>
+<p><a href="artifacts/web/docs/user/finding-jobs.html"><code>web/docs/user/finding-jobs.md</code></a> is for job seekers, not developers. It covers searching, the four filters, bookmarkable searches, reading salaries, why a saved link to a closed job shows <em>not found</em>, and what the careers page shows. Every sentence describes behavior that exists in the indexed code.</p>
+<h4 id="the-dev-overview">The dev overview</h4>
+<p><a href="artifacts/web/docs/dev/browse-journey.html"><code>web/docs/dev/browse-journey.md</code></a> follows each request from page to database:</p>
+<pre><code>app/jobs/page.tsx → parseJobFilters → searchJobs (lib/api/jobs.ts)
+  → apiFetch(endpoints.searchJobs) → GET /api/v1/jobs
+  → SearchJobPostingsController → JobPostingService::search
+  → JobPostingRepositoryInterface::searchOpen → JobPostingRepository</code></pre>
+<p>The doc also covers the rule each layer enforces. It explains why the repository has two lookups (<code>findOpenById</code> for public reads, the unfiltered <code>findById</code> for applications) and records that the HIRE-9 bug was the first one being used where the second belonged. It ends with recipes for adding a search filter or a payload field, each listing the gates to run.</p>
+<h3 id="step-5--grade-pass-and-what-the-phantom-link-gate-catches">Step 5 — Grade PASS, and what the phantom-link gate catches</h3>
+<p>The Report phase output, abridged and simulated:</p>
+<pre><code class="language-markdown">## Summary
+QA plan and docs for the public browse journey across web/ and api/. 23 test cases
+(16 automated, 7 manual) cover all 9 criteria. Grade: PASS.
+
+## Acceptance criteria
+Source: inferred. All 9 need human validation (product owner: Maya Chen).
+Open questions: AND-combination of filters (AC-2); per_page capped rather than 422 (AC-3);
+display of single-bound salaries (AC-9).
+
+## Coverage matrix
+AC-1, AC-2, AC-4..AC-7: automated + manual; AC-3: automated only; AC-8, AC-9: manual only (no automated test exists).
+
+## QA plan location
+docs/qa/qa-plan-2026-11-03.md
+
+## Documentation
+New: docs/user/finding-jobs.md, docs/dev/browse-journey.md
+Skipped: ../api/docs/api/api-contracts.md (already accurate for these endpoints)
+Docs writer notes: dropped one draft claim, &quot;results can be sorted by salary&quot;: no sort
+parameter exists in JobSearchDTO, SearchJobPostingsController or searchOpen.
+
+## Grade
+completeness 92 · helpfulness 88 · truthfulness 95 · phantom links: none · uncovered: none
+
+## Recommendation
+PASS: ready for human review. AI output is a strong draft; the human is the final gate.</code></pre>
+<p>The <em>notes</em> line shows the trace rule at work. While drafting the user guide, the docs writer added &quot;results can be sorted by salary&quot;, a plausible sentence for a job board. It is told to trace every claim to a code element, and this claim had none. There is no <code>sort</code> property in <code>JobSearchDTO</code> and no <code>orderBy</code> other than <code>published_at</code> in <code>searchOpen</code>, so the writer dropped it. Had the claim survived into the doc, the grader would have listed it under <code>phantomLinks</code> and returned <code>CHANGES_REQUIRED</code>.</p>
+<p>The workflow has no automatic fix-and-regrade loop. On <code>CHANGES_REQUIRED</code>, you fix the listed items, or the code, and run the same <code>Workflow</code> call again. A missing feature found this way belongs on the product backlog, not in the docs.</p>
+<h3 id="step-6--human-review-commit-pr">Step 6 — Human review, commit, PR</h3>
+<p>Grade <code>PASS</code> means the artifacts are ready for human review. It does not mean they are approved. Alex sends the criteria table and its three open questions to Maya Chen. She confirms all nine criteria and answers the questions:</p>
+<ul><li><strong>AC-2:</strong> AND is intended. Keyword search should not match company names in v1.</li><li><strong>AC-3:</strong> capping is fine.</li><li><strong>AC-9:</strong> the <code>From …</code> / <code>Up to …</code> wording is approved as shipped. She notes that the HIRE-8 ticket only asked for the two-bound range, so the one-sided wording was a small product decision the trivial change should have asked about. Alex records that in the criteria table. Whether employers can enter one-sided salaries is a separate question, and it goes into HIRE-11, where they enter salaries.</li></ul>
+<p>Alex updates the criteria table&#39;s <em>Validate</em> column, runs QA-M04 and QA-M07 by hand against a fresh seed, and commits in <code>web/</code>:</p>
+<pre><code class="language-bash">cd ~/work/hireboard/web
+git add docs/qa/qa-plan-2026-11-03.md docs/user/finding-jobs.md docs/dev/browse-journey.md
+git commit -m &quot;docs: QA plan, user guide and dev overview for the public browse journey (HIRE-10)&quot;
+git push -u origin chore/HIRE-10-browse-journey-qa
+gh pr create --base main --title &quot;HIRE-10: QA plan and docs for the public browse journey&quot; \
+  --body &quot;Traceable QA plan (9 inferred criteria, validated by Maya Chen; 23 cases) plus user and dev docs. qa-and-docs grade: PASS. No code changes.&quot;</code></pre>
+<p>Nothing changed in <code>api/</code>, so there is only one PR.</p>
+<h3 id="variations">Variations</h3>
+<ul><li><strong>One spec covers the scope.</strong> From the same <code>web/</code> session, <code>Workflow({ name: &quot;qa-and-docs&quot;, args: { spec: &quot;HIRE-7&quot;, repos: { backend: &quot;../api&quot;, frontend: &quot;.&quot; } } })</code> uses the spec&#39;s acceptance criteria verbatim (<code>source: spec</code>, nothing to validate) and writes <code>qa-plan.md</code> <em>inside the spec folder</em> instead of <code>docs/qa/</code>. With a spec as scope, the plan stays with the spec it was traced from.</li><li><strong>Started from the workspace root.</strong> The workflow still runs, but <code>docs/qa/qa-plan-&lt;date&gt;.md</code> lands in <code>~/work/hireboard/docs/qa/</code>, which no repo tracks. Move the file into a repo, or start inside the owning repo as in Step 1.</li><li><strong>A single repo with one release window.</strong> <code>{ gitRange: &quot;v1.4.0..v1.5.0&quot; }</code> scopes the run to what changed in that range. Use <code>paths</code> when the journey spans repos.</li></ul>
+<h3 id="what-you-have-now">What you have now</h3>
+<ul><li>A committed regression plan in <code>web/docs/qa/qa-plan-2026-11-03.md</code>. Each of its 23 cases traces to a criterion that Maya Chen has validated, and to the files it exercises.</li><li>An end-user guide and a developer overview for the browse journey. Both were graded against the code, and neither contains a phantom claim.</li><li>A list of follow-ups that came from the run: automate AC-8 and AC-9, and decide in HIRE-11 whether employers may enter single-bound salaries (the display wording is already approved).</li></ul>
+<p>Next: <a href="11-running-it-as-a-team.html">11 — Running Hireboard as a team: contract-sync, routines, evals, pinned versions</a></p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/10-qa-and-docs-browse-journey.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

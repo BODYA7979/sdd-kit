@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plugin mode vs file-copy mode · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">reference/plugin-mode.md</p>
+  <article class="doc-body">
+<h2 id="plugin-mode-vs-file-copy-mode">Plugin mode vs file-copy mode</h2>
+<p>SDD Kit installs in two ways. Both ship the same agents, skills, workflows, and hook
+scripts, but Claude Code treats plugin components differently from project files. This page
+covers what changes and which guardrails need extra care.</p>
+<h3 id="choosing-a-mode">Choosing a mode</h3>
+<div class="table-wrap"><table><thead><tr><th></th><th>Plugin mode</th><th>File-copy mode</th></tr></thead><tbody><tr><td>Install</td><td><code>/plugin marketplace add &lt;repo&gt;</code> then <code>/plugin install &lt;name&gt;@sdd-kit</code>, or <code>claude --plugin-dir &lt;path&gt;</code></td><td><code>./install.sh --project</code> (or <code>--user</code>)</td></tr><tr><td>Updates</td><td><code>/plugin update</code>, same version for the whole team</td><td>Re-run the installer; <code>--dry-run</code> shows the diff</td></tr><tr><td>Hooks</td><td><code>hooks/hooks.json</code> with <code>${CLAUDE_PLUGIN_ROOT}</code></td><td><code>.claude/settings.json</code> with <code>$CLAUDE_PROJECT_DIR</code></td></tr><tr><td>Permissions and env</td><td>Not applied from the plugin (see below)</td><td><code>.claude/settings.json</code></td></tr><tr><td>MCP servers</td><td>The plugin&#39;s root <code>.mcp.json</code> starts <code>context7</code> and Playwright MCP</td><td>Project <code>.mcp.json</code> with the same two, merged, never overwritten</td></tr><tr><td>Names</td><td>Namespaced: <code>/sdd-kit:sdd</code></td><td>Bare: <code>/sdd</code></td></tr><tr><td>Project context</td><td><code>CLAUDE.md</code>, <code>AGENTS.md</code>, and <code>.claude/rules/</code> are <strong>not</strong> installed</td><td>Installer creates them from templates when absent</td></tr><tr><td>Best for</td><td>Teams that want one pinned version</td><td>Projects that customize agents, or need agent-level guardrails</td></tr></tbody></table></div>
+<p>You can combine them: install the plugin for components, then copy the project-context
+templates by hand (<code>src/CLAUDE.template.md</code>, <code>src/templates/AGENTS.template.md</code>,
+<code>src/templates/rules/</code>). Plugins never load a <code>CLAUDE.md</code> from the plugin itself, so
+project context always lives in the project.</p>
+<h3 id="add-on-plugins">Add-on plugins</h3>
+<p>The marketplace (<code>.claude-plugin/marketplace.json</code>) publishes a core plugin and four
+optional add-ons:</p>
+<div class="table-wrap"><table><thead><tr><th>Plugin</th><th>Source</th><th>Adds</th></tr></thead><tbody><tr><td><code>sdd-kit</code></td><td>repo root</td><td><code>/sdd</code>, workflows, core agents and skills, guardrail hooks, MCP defaults</td></tr><tr><td><code>sdd-kit-ops</code></td><td><code>src/plugins/ops</code></td><td>deploy, rollback, feature flags, incidents, ops agents</td></tr><tr><td><code>sdd-kit-ios</code></td><td><code>src/plugins/ios</code></td><td>iOS/Swift agent, skills, SwiftUI templates</td></tr><tr><td><code>sdd-kit-drupal</code></td><td><code>src/plugins/drupal</code></td><td>Drupal 11 skill</td></tr><tr><td><code>sdd-kit-design</code></td><td><code>src/plugins/design</code></td><td>UI/UX agent and design skill</td></tr></tbody></table></div>
+<p>In file-copy mode the same add-ons install with <code>./install.sh --with=ops,ios</code>.</p>
+<p>Every plugin component is namespaced under its plugin name:</p>
+<ul><li>Skills: <code>&lt;plugin&gt;:&lt;skill&gt;</code>, for example <code>/sdd-kit:sdd</code> or
+<code>/sdd-kit-ops:deploy</code>.</li><li>Agents: <code>&lt;plugin&gt;:&lt;agent&gt;</code>. Skills and agents are one level deep, so
+<code>src/agents/adversarial-reviewer.md</code> loads as <code>sdd-kit:adversarial-reviewer</code>. Workflows try
+the bare name first, then the namespaced one (the plugin comes from the stack manifest&#39;s <code>agent.plugin</code>), so they work in both modes.</li></ul>
+<p>Docs and prompts that use bare names (<code>/sdd</code>, <code>code-explorer</code>) are written for file-copy mode.
+In plugin mode, Claude usually resolves them from the description, but scripts that name an
+agent exactly must use the scoped name.</p>
+<h3 id="limitation-ignored-agent-frontmatter">Limitation: ignored agent frontmatter</h3>
+<p>Claude Code ignores these frontmatter fields on agents loaded from a plugin:</p>
+<ul><li><code>hooks</code></li><li><code>mcpServers</code></li><li><code>permissionMode</code></li><li><code>initialPrompt</code></li></ul>
+<p>The agent still loads; the field silently has no effect. Anything security-sensitive placed
+there (a Bash guard that blocks <code>migrate:fresh</code>, a read-only <code>permissionMode: plan</code> reviewer,
+an agent-only MCP server) is <strong>off</strong> in plugin mode.</p>
+<p><strong>Kit status.</strong> No agent in <code>src/agents/</code> or <code>src/plugins/*/agents/</code> currently uses
+these fields, so nothing breaks today. To re-check:</p>
+<pre><code class="language-bash">grep -rlE &#39;^(hooks|mcpServers|permissionMode|initialPrompt):&#39; src/agents src/plugins/*/agents</code></pre>
+<p><strong>Rule for new agents.</strong> Don&#39;t put guardrails in agent frontmatter. Put them in:</p>
+<ol><li><strong>Global hooks</strong> in <code>hooks/hooks.json</code> (plugin) / <code>.claude/settings.json</code> (file-copy).
+Plugin hooks work in plugin mode and apply to the whole session, including subagents.</li><li><strong><code>tools</code> / <code>disallowedTools</code></strong> in agent frontmatter. These are honored in plugin mode,
+so a read-only reviewer should drop <code>Write</code>/<code>Edit</code>/<code>Bash</code> instead of relying on <code>permissionMode</code>.</li><li><strong>File-copy install</strong> for the rare agent that truly needs its own hooks or MCP servers.
+Document that requirement in the agent&#39;s description.</li></ol>
+<h3 id="limitation-plugin-settingsjson">Limitation: plugin settings.json</h3>
+<p>A plugin&#39;s root <code>settings.json</code> only applies <code>agent</code> and <code>subagentStatusLine</code>. Other keys
+are dropped at load. In SDD Kit that means the root <code>settings.json</code>&#39;s
+<code>permissions.allow</code>/<code>permissions.deny</code> lists and <code>env.CLAUDE_BUDGET_THRESHOLD</code> <strong>do not
+apply in plugin mode</strong>.</p>
+<p>The global hooks still run, so command blocking goes through <code>scripts/block-dangerous.sh</code>
+in both modes. To get the deny list and env as well, copy them into the project&#39;s
+<code>.claude/settings.json</code> (shared with the team) or <code>~/.claude/settings.json</code> (personal).
+<code>src/settings/settings.template.json</code> is the reference.</p>
+<h3 id="hooks-that-run-in-both-modes">Hooks that run in both modes</h3>
+<p>All of the kit&#39;s hooks are global (<code>hooks/hooks.json</code>), so plugin mode keeps them:</p>
+<div class="table-wrap"><table><thead><tr><th>Event</th><th>Script</th><th>Purpose</th></tr></thead><tbody><tr><td>PreToolUse (Bash)</td><td><code>block-dangerous.sh</code>, <code>check-commit-msg.sh</code></td><td>Block destructive commands; enforce commit format</td></tr><tr><td>PreToolUse (Write/Edit)</td><td><code>test-first-check.sh</code></td><td>Block edits to controllers, models, services, middleware, and components until a matching test exists</td></tr><tr><td>PreToolUse (Read/Grep/Glob/Bash)</td><td><code>token-budget.sh</code></td><td>Block <code>find /</code>, and unbounded reads once context usage passes the threshold</td></tr><tr><td>PostToolUse (Write/Edit)</td><td><code>lint-check.sh</code>, <code>scan-secrets.sh</code></td><td>Lint changed files; catch secrets</td></tr><tr><td>PostToolUse (Bash/WebFetch/MCP)</td><td><code>scan-injection.sh</code></td><td>Flag prompt-injection patterns</td></tr><tr><td>SessionStart, UserPromptSubmit, PreCompact, SessionEnd, Stop, SubagentStop, Notification</td><td>various</td><td>Context load/save, prompt preflight, completion checks</td></tr></tbody></table></div>
+<p><code>hooks/hooks.json</code> is the source of truth. If this table and that file disagree, trust the file. Every hook, with how to tune or disable it, is in <a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/share/hooks/README.md" target="_blank" rel="noopener noreferrer">src/hooks/README.md</a>.</p>
+<h3 id="verifying-an-install">Verifying an install</h3>
+<ul><li><code>/plugin</code> → <strong>Errors</strong> tab shows components that failed to load.</li><li><code>claude plugin validate &lt;path&gt;</code> checks the manifest and agent frontmatter.</li><li><code>/hooks</code> lists active hooks; <code>/memory</code> lists loaded <code>CLAUDE.md</code>, <code>AGENTS.md</code>, and rules files.</li><li><code>/framework-doctor</code> (<code>/sdd-kit:framework-doctor</code> in plugin mode) checks that hooks fire and paths resolve.</li></ul>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/plugin-mode.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

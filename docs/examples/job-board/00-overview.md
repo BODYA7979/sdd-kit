@@ -59,7 +59,7 @@ chapter 03 as ADR-0001):
 
 ## Route map
 
-`/sdd` is the single front door ([src/skills/sdd/SKILL.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/plugins/sdd-kit/skills/sdd/SKILL.md)).
+`/sdd` is the single front door ([src/skills/sdd/SKILL.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/sdd/SKILL.md)).
 It sorts each request into one of six routes, confirms the route with you, collects the inputs,
 and launches exactly one fixed pipeline:
 
@@ -90,13 +90,13 @@ The walkthrough uses every route at least once:
 | [11](11-running-it-as-a-team.md) | HIRE-11 (exercise) | — | Contract-sync as a failing CI check, routines, a project eval case, a pinned team marketplace |
 
 Need a one-page scenario instead of a story? The scenario catalogue in
-[src/docs/USAGE-EXAMPLES.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/USAGE-EXAMPLES.md) covers each route in a few
+[src/docs/USAGE-EXAMPLES.md](../../reference/usage-examples.md) covers each route in a few
 lines. This walkthrough does not repeat it.
 
 ## Prerequisites
 
 The kit's own requirements are listed in
-[INSTALLATION.md#prerequisites](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/INSTALLATION.md#prerequisites). Hireboard
+[INSTALLATION.md#prerequisites](../../reference/installation.md#prerequisites). Hireboard
 adds the PHP and Node toolchains:
 
 | Tool | Why you need it here |
@@ -121,7 +121,7 @@ sqlite3 --version
 
 ### Plugin or file-copy?
 
-[INSTALLATION.md#choose-a-mode](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/INSTALLATION.md#choose-a-mode) compares the
+[INSTALLATION.md#choose-a-mode](../../reference/installation.md#choose-a-mode) compares the
 two modes. For this walkthrough the choice comes down to one constraint: **`api/` and `web/` must
 not exist before chapter 02.** `composer create-project` and `create-next-app` need a missing or
 empty target folder, and greenfield-build's Detect phase stops when it finds tracked files.
@@ -130,7 +130,7 @@ Chapter 01 shows both safe options:
 - **Plugin mode** (recommended here). Install once with `/plugin marketplace add stasmarkov/sdd-kit` and
   `/plugin install sdd-kit@sdd-kit` (chapter 01, step 2), and nothing is written into the repos. Plugins do not create `CLAUDE.md`, `AGENTS.md` or
   `.claude/rules/`, so chapter 02 copies them by hand
-  ([INSTALLATION.md#project-context-is-not-installed](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/INSTALLATION.md#project-context-is-not-installed)).
+  ([INSTALLATION.md#project-context-is-not-installed](../../reference/installation.md#project-context-is-not-installed)).
 - **File-copy mode.** Run `./install.sh --project` inside each repo *after* greenfield-build has
   scaffolded it, never before.
 
@@ -206,7 +206,7 @@ This walkthrough leaves the defaults alone and quotes no prices. Check current p
 No workflow starts on its own. `/sdd` shows the exact `Workflow({ ... })` call and waits for you
 to agree before launching it. You can also opt in yourself with a direct call or a plain-English
 request that names the workflow (see
-[USAGE-EXAMPLES.md#running-workflows-directly](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/USAGE-EXAMPLES.md#running-workflows-directly)).
+[USAGE-EXAMPLES.md#running-workflows-directly](../../reference/usage-examples.md#running-workflows-directly)).
 To watch running workflows, use `/workflows`. The cheaper options appear where they fit:
 `/execute-task` in chapter 06 and `/simple-task` in chapters 07 and 08.
 
@@ -215,7 +215,7 @@ To watch running workflows, use `/workflows`. The cheaper options appear where t
 > - **Bare skill names.** Commands appear as `/sdd`, `/write-spec`, `/execute-task`,
 >   `/deep-review`, `/simple-task`. In plugin mode, type them with the plugin prefix:
 >   `/sdd-kit:sdd`, `/sdd-kit:execute-task`, and so on
->   ([INSTALLATION.md#namespacing](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/INSTALLATION.md#namespacing)).
+>   ([INSTALLATION.md#namespacing](../../reference/installation.md#namespacing)).
 > - **No tracker.** No Jira or Linear MCP server or CLI is connected. `/sdd` asks for the ticket
 >   text, Alex pastes it, and the step that posts a link back to the ticket is skipped.
 > - **Session location matters.** Spec resolvers and single-file outputs (ADRs, review reports,
@@ -226,9 +226,9 @@ To watch running workflows, use `/workflows`. The cheaper options appear where t
 
 ## Further reading
 
-- [src/docs/GETTING-STARTED.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/GETTING-STARTED.md): your first session,
+- [src/docs/GETTING-STARTED.md](../../reference/getting-started.md): your first session,
   `/framework-doctor`, and where artifacts go.
-- [src/docs/USAGE-EXAMPLES.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/USAGE-EXAMPLES.md): a short scenario for each
+- [src/docs/USAGE-EXAMPLES.md](../../reference/usage-examples.md): a short scenario for each
   route.
 - [docs/multi-repo.md](../../reference/multi-repo.md): workspace layout, configuration traps, and
   contract sensors for split repos.

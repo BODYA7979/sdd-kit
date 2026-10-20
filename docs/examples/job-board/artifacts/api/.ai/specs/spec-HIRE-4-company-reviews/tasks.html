@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Company reviews with moderation — Tasks · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/.ai/specs/spec-HIRE-4-company-reviews/tasks.md</p>
+  <article class="doc-body">
+<h2 id="company-reviews-with-moderation--tasks">Company reviews with moderation — Tasks</h2>
+<p><strong>Spec</strong>: spec-HIRE-4-company-reviews | <strong>Size</strong>: M | <strong>Tasks</strong>: 7</p>
+<h3 id="phase-1-backend-api">Phase 1: Backend (api/)</h3>
+<ul class="contains-task-list"><li class="task"><input type="checkbox" disabled checked> 1. Schema doc, migration, enum, model and factory (laravel)<ul class="contains-task-list"><li>Covers: scaffolding for AC-1..AC-10</li><li class="task"><input type="checkbox" disabled checked> 1.1 <code>docs/schemas/company-reviews.md</code> first (schema-first), then
+<code>database/migrations/2026_10_22_090000_create_company_reviews_table.php</code> with
+UNIQUE (company_id, candidate_id) and INDEX (company_id, status)</li><li class="task"><input type="checkbox" disabled checked> 1.2 <code>App\Enums\ReviewStatus</code>, <code>App\Models\CompanyReview</code> (HasUuids, status cast),
+<code>Company::reviews()</code>, <code>CompanyReviewFactory</code> with pending()/approved()/rejected()</li><li class="task"><input type="checkbox" disabled checked> 1.3 <strong>Verify</strong>: <code>php artisan migrate:fresh --seed</code> runs; gates green</li></ul></li><li class="task"><input type="checkbox" disabled checked> 2. Submit and &quot;mine&quot; endpoints (laravel)<ul class="contains-task-list"><li>Covers: AC-1, AC-2, AC-3, AC-4, AC-5, AC-9 (mine)</li><li class="task"><input type="checkbox" disabled checked> 2.1 Failing tests in <code>tests/Feature/Reviews/SubmitCompanyReviewTest.php</code></li><li class="task"><input type="checkbox" disabled checked> 2.2 <code>SubmitCompanyReviewDTO</code> (rules), <code>CompanyReviewRepositoryInterface</code> + repository,
+<code>CompanyReviewService::submit()</code> / <code>findMine()</code>, <code>CompanyReviewPolicy::create()</code>,
+<code>ReviewAlreadyExistsException</code>, <code>ReviewNotFoundException</code>, binding in <code>RepositoryServiceProvider</code></li><li class="task"><input type="checkbox" disabled checked> 2.3 <code>SubmitCompanyReviewController</code>, <code>ShowMyCompanyReviewController</code>, <code>routes/api/v1/reviews.php</code></li><li class="task"><input type="checkbox" disabled checked> 2.4 <strong>Verify</strong>: SubmitCompanyReviewTest green; gates green</li></ul></li><li class="task"><input type="checkbox" disabled checked> 3. Public list and average rating (laravel)<ul class="contains-task-list"><li>Covers: AC-6, AC-7, MNC-1</li><li class="task"><input type="checkbox" disabled checked> 3.1 Failing tests in <code>tests/Feature/Reviews/ListCompanyReviewsTest.php</code>, including the
+company show guard</li><li class="task"><input type="checkbox" disabled checked> 3.2 <code>CompanyReviewService::listApproved()</code> / <code>averageRating()</code> (half-up on integer
+totals), <code>ListCompanyReviewsController</code> with <code>meta.average_rating</code></li><li class="task"><input type="checkbox" disabled checked> 3.3 <strong>Verify</strong>: ListCompanyReviewsTest green; <code>tests/Feature/Companies/ShowCompanyTest.php</code>
+untouched and green; gates green</li></ul></li><li class="task"><input type="checkbox" disabled checked> 4. Moderation endpoints and policy (laravel)<ul class="contains-task-list"><li>Covers: AC-8, AC-9, AC-10</li><li class="task"><input type="checkbox" disabled checked> 4.1 Failing tests in <code>tests/Feature/Reviews/ModerateReviewTest.php</code></li><li class="task"><input type="checkbox" disabled checked> 4.2 <code>RejectReviewDTO</code>, <code>CompanyReviewPolicy::moderate()</code>, <code>listPending()</code> / <code>approve()</code> /
+<code>reject()</code> with a conditional update on <code>status = pending</code>, <code>ReviewAlreadyModeratedException</code></li><li class="task"><input type="checkbox" disabled checked> 4.3 <code>ListPendingReviewsController</code>, <code>ApproveReviewController</code>, <code>RejectReviewController</code>;
+document all six endpoints and the three error codes in <code>docs/api/api-contracts.md</code></li><li class="task"><input type="checkbox" disabled checked> 4.4 <strong>Verify</strong>: ModerateReviewTest green; full suite green; gates green</li></ul></li></ul>
+<h3 id="phase-2-frontend-web">Phase 2: Frontend (web/)</h3>
+<ul class="contains-task-list"><li class="task"><input type="checkbox" disabled checked> 5. Types, fetchers and the public reviews list (nextjs)<ul class="contains-task-list"><li>Covers: AC-6, AC-7</li><li class="task"><input type="checkbox" disabled checked> 5.1 <code>types/api/reviews.ts</code> mirroring the three API shapes; six entries in
+<code>lib/api/endpoints.ts</code>; <code>lib/api/reviews.ts</code></li><li class="task"><input type="checkbox" disabled checked> 5.2 <code>app/companies/[slug]/reviews/page.tsx</code> list with <code>StarRating</code>, average and
+pagination; <code>notFound()</code> for an unknown slug</li><li class="task"><input type="checkbox" disabled checked> 5.3 <strong>Verify</strong>: page renders for <code>acme-robotics</code>; gates green; <code>npm run build</code> passes</li></ul></li><li class="task"><input type="checkbox" disabled checked> 6. ReviewForm and submitReviewAction with error mapping (nextjs)<ul class="contains-task-list"><li>Covers: AC-1, AC-2, AC-3, AC-4, AC-11</li><li class="task"><input type="checkbox" disabled checked> 6.1 <code>components/review-form.tsx</code> (<code>useActionState</code>), <code>app/companies/[slug]/reviews/actions.ts</code>
+mapping <code>validation_failed</code> to field errors and <code>review_already_exists</code> / <code>forbidden</code> to messages</li><li class="task"><input type="checkbox" disabled checked> 6.2 Status card instead of the form when <code>getMyCompanyReview()</code> returns a review;
+sign-in link for guests; nothing for employers and admins</li><li class="task"><input type="checkbox" disabled checked> 6.3 <strong>Verify</strong>: gates green; <code>npm run build</code> passes; <code>/companies/acme-robotics/reviews</code> renders (server-rendered, no console errors). AC-11 is confirmed by a human in manual-test.md steps 3 and 4</li></ul></li><li class="task"><input type="checkbox" disabled checked> 7. Admin moderation page (nextjs)<ul class="contains-task-list"><li>Covers: AC-8, AC-9</li><li class="task"><input type="checkbox" disabled checked> 7.1 <code>app/(account)/admin/reviews/page.tsx</code> guarded by <code>requireUser([&#39;admin&#39;])</code></li><li class="task"><input type="checkbox" disabled checked> 7.2 <code>app/(account)/admin/reviews/actions.ts</code>: <code>approveReviewAction</code>, <code>rejectReviewAction</code>,
+<code>revalidatePath(&#39;/admin/reviews&#39;)</code>, error codes shown as a banner</li><li class="task"><input type="checkbox" disabled checked> 7.3 <strong>Verify</strong>: gates green; <code>npm run build</code> passes; <code>/admin/reviews</code> is registered as a dynamic route and redirects a guest to <code>/login</code>. AC-8 and AC-9 in the browser are confirmed by a human in manual-test.md steps 6 and 7</li></ul></li></ul>
+<h3 id="traceability">Traceability</h3>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>Criterion (short)</th><th>Verified by</th><th>Kind</th><th>Task</th></tr></thead><tbody><tr><td>AC-1</td><td>candidate review stored as pending, 201</td><td><code>tests/Feature/Reviews/SubmitCompanyReviewTest.php::stores a pending review for a candidate</code></td><td>test</td><td>2, 6</td></tr><tr><td>AC-2</td><td>second review in any status → 409 review_already_exists</td><td><code>tests/Feature/Reviews/SubmitCompanyReviewTest.php::rejects a second review from the same candidate</code></td><td>test</td><td>2, 6</td></tr><tr><td>AC-3</td><td>employer or admin submit → 403</td><td><code>tests/Feature/Reviews/SubmitCompanyReviewTest.php::forbids employers and admins from reviewing</code></td><td>test</td><td>2, 6</td></tr><tr><td>AC-4</td><td>invalid rating/title/body → 422 field errors</td><td><code>tests/Feature/Reviews/SubmitCompanyReviewTest.php::validates rating, title and body</code></td><td>test</td><td>2, 6</td></tr><tr><td>AC-5</td><td>guest submit → 401</td><td><code>tests/Feature/Reviews/SubmitCompanyReviewTest.php::requires authentication</code></td><td>test</td><td>2</td></tr><tr><td>AC-6</td><td>approved only, newest first, anonymous author</td><td><code>tests/Feature/Reviews/ListCompanyReviewsTest.php::lists only approved reviews newest first without author identity</code></td><td>test</td><td>3, 5</td></tr><tr><td>AC-7</td><td>average of approved, half-up 1 decimal, null when none</td><td><code>tests/Feature/Reviews/ListCompanyReviewsTest.php::reports the average of approved ratings only</code></td><td>test</td><td>3, 5</td></tr><tr><td>AC-8</td><td>approve sets status, moderator, time; review becomes public</td><td><code>tests/Feature/Reviews/ModerateReviewTest.php::approves a pending review</code>, <code>manual-test.md#step-6</code> (human, after TestPlan)</td><td>test + manual</td><td>4, 7</td></tr><tr><td>AC-9</td><td>reject stores reason; never public; candidate sees it via mine</td><td><code>tests/Feature/Reviews/ModerateReviewTest.php::rejects a pending review with a reason</code>, <code>tests/Feature/Reviews/SubmitCompanyReviewTest.php::shows the candidate their own review status</code>, <code>manual-test.md#step-7</code> (human, after TestPlan)</td><td>test + manual</td><td>2, 4, 7</td></tr><tr><td>AC-10</td><td>not pending → 409; non-admin → 403</td><td><code>tests/Feature/Reviews/ModerateReviewTest.php::refuses to moderate a review twice</code>, <code>tests/Feature/Reviews/ModerateReviewTest.php::forbids non-admins from moderating</code></td><td>test</td><td>4</td></tr><tr><td>AC-11</td><td>form for candidates without a review, confirmation, status card</td><td><code>manual-test.md#step-3</code>, <code>manual-test.md#step-4</code> (run by a human after TestPlan)</td><td>manual</td><td>6</td></tr><tr><td>MNC-1</td><td>company show payload unchanged</td><td><code>tests/Feature/Reviews/ListCompanyReviewsTest.php::leaves the company profile response unchanged</code>, <code>manual-test.md#step-8</code></td><td>test + manual</td><td>3</td></tr><tr><td>MNC-2</td><td>job search API and /jobs unchanged</td><td><code>tests/Feature/Jobs/SearchJobPostingsTest.php</code> (unchanged, green), <code>manual-test.md#step-9</code></td><td>test + manual</td><td>—</td></tr><tr><td>MNC-3</td><td>/auth/me shape and roles unchanged</td><td><code>tests/Feature/Auth/LoginTest.php::returns the current user</code> (unchanged, green)</td><td>test</td><td>—</td></tr></tbody></table></div>
+<h3 id="verification-gates">Verification gates</h3>
+<p>Run after every task in the repo the task touches.</p>
+<ul><li>backend (<code>api/</code>, laravel): <code>./vendor/bin/pint --test</code>, <code>./vendor/bin/phpstan analyse --no-progress</code>, <code>php artisan test</code></li><li>frontend (<code>web/</code>, nextjs): <code>npm run lint</code>, <code>npx tsc --noEmit</code>, <code>npm test</code>, plus <code>npm run build</code> (this spec adds routes)</li></ul>
+<h3 id="done-when">Done when</h3>
+<ul class="contains-task-list"><li class="task"><input type="checkbox" disabled checked> All tasks checked</li><li class="task"><input type="checkbox" disabled checked> Every Traceability row has a passing test or a manual step that a human ran after TestPlan</li><li class="task"><input type="checkbox" disabled checked> Gates green</li></ul>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/.ai/specs/spec-HIRE-4-company-reviews/tasks.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

@@ -5,7 +5,7 @@
 // text: renderers set it with textContent.
 window.GUIDE = {
   product: 'SDD Kit',
-  version: '2.0.0',
+  version: '2.1.1',
   repo: 'https://github.com/stasmarkov/sdd-kit',
   tagline: 'One front door, fixed pipelines, verified outcomes.',
   promise: 'Write down what "done" means, let the agent build it through gates, and approve the result as a human.',
@@ -145,7 +145,7 @@ window.GUIDE = {
   stacks: {
     now: 'Laravel API + Next.js',
     roadmap: 'Drupal, Symfony, Swift, Java and a stack prompt at install time',
-    href: 'https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/README.md',
+    href: 'https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/README.md',
   },
 
   routes: [
@@ -310,15 +310,15 @@ window.GUIDE = {
   ],
 
   links: [
-    { label: 'Getting started', href: 'https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/GETTING-STARTED.md' },
-    { label: 'Installation & upgrade', href: 'https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/INSTALLATION.md' },
-    { label: 'Usage examples', href: 'https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/USAGE-EXAMPLES.md' },
-    { label: 'Worked example: Hireboard', href: 'examples/job-board/README.md' },
+    { label: 'Getting started', href: 'reference/getting-started.html' },
+    { label: 'Installation & upgrade', href: 'reference/installation.html' },
+    { label: 'Usage examples', href: 'reference/usage-examples.html' },
+    { label: 'Worked example: Hireboard', href: 'examples/job-board/README.html' },
     { label: 'Example spec board', href: 'example-board.html' },
-    { label: 'Spec board skill', href: 'https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/plugins/sdd-kit/skills/spec-board/SKILL.md' },
-    { label: 'Plugin mode', href: 'reference/plugin-mode.md' },
-    { label: 'Multi-repo', href: 'reference/multi-repo.md' },
-    { label: 'Model tiers', href: 'reference/effort-guidelines.md' },
-    { label: 'Third-party components', href: 'reference/third-party.md' },
+    { label: 'Spec board skill', href: 'https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/spec-board/SKILL.md' },
+    { label: 'Plugin mode', href: 'reference/plugin-mode.html' },
+    { label: 'Multi-repo', href: 'reference/multi-repo.html' },
+    { label: 'Model tiers', href: 'reference/effort-guidelines.html' },
+    { label: 'Third-party components', href: 'reference/third-party.html' },
   ],
 };

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual test — spec-HIRE-4-company-reviews · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/.ai/specs/spec-HIRE-4-company-reviews/manual-test.md</p>
+  <article class="doc-body">
+<h2 id="manual-test--spec-hire-4-company-reviews">Manual test — spec-HIRE-4-company-reviews</h2>
+<p>Verifies company reviews and moderation by hand. Every step lists the exact action and the exact
+expected result. Steps 3 and 4 are the only proof for AC-11; the rest back up the Pest suite.</p>
+<h3 id="preconditions">Preconditions</h3>
+<ol><li>Both repos on <code>feature/HIRE-4-company-reviews</code>.</li><li>Fresh local data (local only, this wipes the database):<pre><code class="language-bash">cd ~/work/hireboard/api &amp;&amp; php artisan migrate:fresh --seed</code></pre></li><li>API running: <code>php artisan serve --port=8000</code> in <code>api/</code>.</li><li>Web running: <code>npm run dev</code> in <code>web/</code>, with <code>API_BASE_URL=http://localhost:8000</code> in <code>web/.env.local</code>.</li><li>Demo accounts (password <code>password</code>): <code>candidate@hireboard.test</code>, <code>employer@acme.test</code>, <code>admin@hireboard.test</code>.</li><li>Use a private browser window so no earlier session cookie is present.</li></ol>
+<h4 id="step-1">Step 1</h4>
+<p>No public reviews yet.</p>
+<pre><code class="language-bash">curl -s http://localhost:8000/api/v1/companies/acme-robotics/reviews | jq &#39;{data, meta}&#39;</code></pre>
+<p>Expected: <code>&quot;data&quot;: []</code>, <code>meta.total</code> is <code>0</code>, <code>meta.average_rating</code> is <code>null</code>.</p>
+<h4 id="step-2">Step 2</h4>
+<p>Guests see a sign-in prompt.</p>
+<p>Open http://localhost:3000/companies/acme-robotics/reviews.
+Expected: heading &quot;Reviews&quot;, the text &quot;No published reviews yet.&quot; and a &quot;Sign in as a candidate&quot;
+link to <code>/login?next=%2Fcompanies%2Facme-robotics%2Freviews</code>. No form.</p>
+<h4 id="step-3">Step 3</h4>
+<p>A candidate submits a review (AC-11, AC-1).</p>
+<ol><li>Sign in at http://localhost:3000/login as <code>candidate@hireboard.test</code> / <code>password</code>.</li><li>Open http://localhost:3000/companies/acme-robotics/reviews.</li><li>Expected: the form &quot;Review Acme Robotics&quot; with Rating (1-5), Title and Your review.</li><li>Pick rating 4, title <code>Clear goals, kind team</code>, review
+<code>Interviews were well organised and the feedback arrived within a week.</code> and press &quot;Submit review&quot;.</li><li>Expected: the form is replaced by &quot;Thanks - your review is awaiting moderation.&quot;</li></ol>
+<h4 id="step-4">Step 4</h4>
+<p>The status card replaces the form (AC-11, AC-2).</p>
+<p>Reload http://localhost:3000/companies/acme-robotics/reviews.
+Expected: a &quot;Your review&quot; card with &quot;Your review is awaiting moderation.&quot; and the title
+<code>Clear goals, kind team</code>. No form. The public list is still empty.</p>
+<h4 id="step-5">Step 5</h4>
+<p>Validation messages (AC-4).</p>
+<p>Sign in as a new candidate: register at http://localhost:3000/register with role Candidate,
+name <code>Riley Reviewer</code>, email <code>riley@hireboard.test</code>, password <code>password123</code>. Open
+http://localhost:3000/companies/northwind-health/reviews, enter title <code>Meh</code> and review <code>Too short.</code>, submit.
+Expected: &quot;Please fix the highlighted fields.&quot; plus a message under Title and under Your review.
+Nothing is stored.</p>
+<h4 id="step-6">Step 6</h4>
+<p>An admin approves (AC-8, AC-7, AC-6).</p>
+<ol><li>Sign out (account menu, &quot;Sign out&quot;), sign in as <code>admin@hireboard.test</code>.</li><li>Open http://localhost:3000/admin/reviews.</li><li>Expected: &quot;1 pending, oldest first.&quot; and the review by <code>Casey Candidate</code> for Acme Robotics.</li><li>Press &quot;Approve&quot;. Expected: the queue shows &quot;Nothing to moderate.&quot;</li><li>Open http://localhost:3000/companies/acme-robotics/reviews.
+Expected: the review is listed with &quot;Verified candidate&quot;, the average shows <code>4.0</code> from 1 review,
+and the name &quot;Casey Candidate&quot; appears nowhere on the page.</li></ol>
+<h4 id="step-7">Step 7</h4>
+<p>An admin rejects; the candidate sees the reason (AC-9, AC-10).</p>
+<ol><li>As <code>riley@hireboard.test</code>, submit a valid review for Northwind Health
+(rating 2, title <code>Slow hiring process</code>, review <code>Three weeks between interviews and no feedback at all.</code>).</li><li>As <code>admin@hireboard.test</code> on http://localhost:3000/admin/reviews, type the reason
+<code>Please remove the recruiter&#39;s name.</code> and press &quot;Reject&quot;.
+Expected: the review leaves the queue.</li><li>As <code>riley@hireboard.test</code>, open http://localhost:3000/companies/northwind-health/reviews.
+Expected: &quot;Your review was not published.&quot; and &quot;Reason: Please remove the recruiter&#39;s name.&quot;.
+The public list is empty.</li><li>Try to decide it again:<pre><code class="language-bash">TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login -H &#39;Accept: application/json&#39; \
+  -H &#39;Content-Type: application/json&#39; -d &#39;{&quot;email&quot;:&quot;admin@hireboard.test&quot;,&quot;password&quot;:&quot;password&quot;}&#39; | jq -r .data.token)
+ID=$(sqlite3 database/database.sqlite &quot;select id from company_reviews where status=&#39;rejected&#39; limit 1&quot;)
+curl -s -X POST &quot;http://localhost:8000/api/v1/admin/reviews/$ID/approve&quot; \
+  -H &quot;Authorization: Bearer $TOKEN&quot; -H &#39;Accept: application/json&#39; | jq &#39;{status, code}&#39;</code></pre>
+<p>Run from <code>api/</code>. Expected: <code>{&quot;status&quot;: 409, &quot;code&quot;: &quot;review_already_moderated&quot;}</code>.</p></li></ol>
+<h4 id="step-8">Step 8</h4>
+<p>Company show payload unchanged (MNC-1).</p>
+<pre><code class="language-bash">curl -s http://localhost:8000/api/v1/companies/acme-robotics | jq &#39;.data | keys&#39;</code></pre>
+<p>Expected exactly: <code>[&quot;description&quot;, &quot;id&quot;, &quot;location&quot;, &quot;name&quot;, &quot;open_jobs_count&quot;, &quot;slug&quot;, &quot;website&quot;]</code>.</p>
+<h4 id="step-9">Step 9</h4>
+<p>Job search unchanged (MNC-2).</p>
+<p>Open http://localhost:3000/jobs as a guest and filter by Remote.
+Expected: the same open postings, order and filters as before this branch; no review data on job cards.</p>
+<h4 id="step-10">Step 10</h4>
+<p>Employers and admins get no form (AC-3).</p>
+<p>Sign in as <code>employer@acme.test</code> and open http://localhost:3000/companies/acme-robotics/reviews.
+Expected: the public list only. No form, no status card.</p>
+<h3 id="rollback">Rollback</h3>
+<p>The change adds one table and no data migration. To back it out locally:
+<code>php artisan migrate:rollback --step=1</code> in <code>api/</code> drops <code>company_reviews</code>; then revert the two branches.</p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/.ai/specs/spec-HIRE-4-company-reviews/manual-test.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

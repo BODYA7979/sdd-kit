@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>02 — New app: greenfield-build scaffolds both repos and ships the first slice (HIRE-1) · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/02-greenfield-first-slice.md</p>
+  <article class="doc-body">
+<h2 id="02--new-app-greenfield-build-scaffolds-both-repos-and-ships-the-first-slice-hire-1">02 — New app: greenfield-build scaffolds both repos and ships the first slice (HIRE-1)</h2>
+<p><strong>Date in the story:</strong> 2026-10-19. <strong>Who:</strong> Alex Rivera (developer), Maya Chen (product owner,
+validates the business rules at the end). <strong>Route:</strong> <code>new app</code> → <code>greenfield-build</code>.
+<strong>Ticket:</strong> HIRE-1, &quot;New Hireboard app with first slice: visitor searches open jobs and opens one&quot;.</p>
+<p>The workspace from <a href="01-workspace-and-install.html">chapter 01</a> is ready: <code>~/work/hireboard/</code> holds
+<code>CLAUDE.md</code> and <code>product-brief.md</code>, and <code>api/</code> and <code>web/</code> don&#39;t exist yet. This chapter runs
+one workflow that creates both repos, wires CI, and builds one vertical slice through both of
+them. After that, Alex gives each repo its own project context and moves the validated rules
+into the API repo.</p>
+<p>What you get at the end:</p>
+<div class="table-wrap"><table><thead><tr><th>Repo</th><th>Contents</th></tr></thead><tbody><tr><td><code>api/</code></td><td>Laravel 12 + Sanctum + Laravel Data + Pest 3 + Larastan, CI, three public endpoints (<code>GET /api/v1/jobs</code>, <code>/jobs/{id}</code>, <code>/companies/{slug}</code>), seeded demo data, 8 feature tests</td></tr><tr><td><code>web/</code></td><td>Next.js 15 App Router + Tailwind 4 + Vitest, CI, <code>/jobs</code> with filters, <code>/jobs/[id]</code>, a typed server-only API client</td></tr></tbody></table></div>
+<p>Finished files for this chapter are under <a href="https://github.com/stasmarkov/sdd-kit/tree/v2.1.1/docs/examples/job-board/artifacts/api" target="_blank" rel="noopener noreferrer"><code>artifacts/api/</code></a> and
+<a href="https://github.com/stasmarkov/sdd-kit/tree/v2.1.1/docs/examples/job-board/artifacts/web" target="_blank" rel="noopener noreferrer"><code>artifacts/web/</code></a>. The full list is at the end of
+<a href="#step-8-read-the-artifacts-as-final-state" data-anchor="step-8-read-the-artifacts-as-final-state">Step 8</a>.</p>
+<hr>
+<h3 id="step-1-start-sdd-from-the-workspace-root">Step 1: Start <code>/sdd</code> from the workspace root</h3>
+<pre><code class="language-bash">cd ~/work/hireboard
+claude                     # add --plugin-dir ~/tools/sdd-kit/plugins/sdd-kit for a local checkout</code></pre>
+<p>In plugin mode the skill is <code>/sdd-kit:sdd</code> (friction F5, see chapter 01). The walkthrough
+writes <code>/sdd</code>.</p>
+<pre><code>/sdd HIRE-1: New Hireboard app — Laravel API + Next.js frontend; first slice: visitor searches open jobs with filters and opens one</code></pre>
+<p><code>/sdd</code> resolves the input first (Step 1 of <code>src/skills/sdd/SKILL.md</code>). <code>HIRE-1</code> is a
+ticket key, so it looks for an existing spec folder and then for a tracker. Neither exists
+(friction F8), so it uses the text you typed as the ticket text and skips link-back. Then it
+classifies.</p>
+<p>Simulated output (abridged):</p>
+<pre><code>No spec matches HIRE-1 (.ai/specs/ does not exist).
+No Jira/Linear MCP server or CLI in this session. Using the text you gave as the ticket text;
+tracker link-back will be skipped.
+
+Route: new app
+Reason: no application code exists yet: api/ and web/ are absent; the workspace holds only
+        CLAUDE.md and product-brief.md.
+
+? Which route should HIRE-1 take?
+  ❯ new app (recommended): greenfield-build scaffolds the repos and ships one vertical slice
+    feature: write-spec → approval → ship-feature (needs an existing codebase)</code></pre>
+<p>Alex picks <strong>new app</strong>. Background workflows can&#39;t stop to ask questions, so <code>/sdd</code> collects
+every input now. The <code>new app</code> reference (<code>references/greenfield-build.md</code>) says to ask for
+the stack, single vs split repos, the first slice and hard constraints, and to have the user
+approve the architecture direction. Alex answers:</p>
+<div class="table-wrap"><table><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody><tr><td>Stack</td><td>Laravel 12 API + Next.js 15 App Router</td></tr><tr><td>Single or split repos</td><td>Split: <code>api/</code> and <code>web/</code>, siblings in this workspace (the layout in <code>CLAUDE.md</code>)</td></tr><tr><td>Dev URL for browser acceptance</td><td><code>http://localhost:3000</code></td></tr><tr><td>First slice</td><td>A visitor searches open postings by keyword, location, remote and employment type, can filter by company, and opens a job detail page that shows the hiring company</td></tr><tr><td>Hard constraints</td><td>SQLite; no auth in this slice (ADR-0001 decides it next); API under <code>/api/v1</code> with the <code>{success, status, message, data}</code> envelope</td></tr></tbody></table></div>
+<p><code>/sdd</code> then plays the direction back, built from the answers plus the workspace <code>CLAUDE.md</code>
+it already has loaded:</p>
+<pre><code>Architecture direction (approve before launch):
+- Two repos: api/ = Laravel 12 JSON API, web/ = Next.js 15 App Router acting as a BFF
+  (the browser never calls :8000, INV-05)
+- api layers: invokable controller → service (Laravel Data DTOs) → repository interface → Eloquent (INV-02)
+- Domain tables with UUID keys, users stays bigint (INV-03)
+- First slice touches both repos: backend first, then frontend
+- Auth is out of scope for this slice
+
+? Approve this direction?  ❯ Approve   Change something</code></pre>
+<p>Alex approves.</p>
+<hr>
+<h3 id="step-2-launch-greenfield-build">Step 2: Launch <code>greenfield-build</code></h3>
+<p>Before any <code>Workflow</code> call, <code>/sdd</code> shows the exact call and warns that it runs many agents in
+the background:</p>
+<pre><code class="language-js">Workflow({ name: &quot;greenfield-build&quot;, args: {
+  idea: &quot;HIRE-1: Hireboard job board. Laravel 12 API in api/ and Next.js 15 App Router frontend in web/. First slice: a visitor searches open job postings by keyword, location, remote and employment type, filters by company, and opens a job detail page that shows the hiring company. Seed demo companies and postings. No auth in this slice. SQLite. API under /api/v1 with the { success, status, message, data } envelope. Conventions from CLAUDE.md and product-brief.md.&quot;,
+  stack: &quot;laravel&quot;,
+  repos: { backend: &quot;api&quot;, frontend: &quot;web&quot; },
+  url: &quot;http://localhost:3000&quot;
+} })</code></pre>
+<p>The arguments come from the top of <code>src/workflows/greenfield-build.js</code>: <code>idea</code>, <code>stack</code>,
+<code>repos</code>, <code>url</code>, plus <code>force</code> and <code>models</code>, which this run doesn&#39;t need.</p>
+<blockquote><p><strong>Friction F4: <code>stack</code> takes one registry key.</strong> The value is a single key from the <code>STACKS</code>
+registry (<code>laravel</code>, <code>nextjs</code>, <code>drupal</code>, ...), not a list. You can&#39;t pass
+<code>&quot;laravel+nextjs&quot;</code>. The Detect phase works out the frontend stack itself: it gets
+<code>repos.frontend = &quot;web&quot;</code> and an idea that says &quot;Next.js 15 App Router&quot;, matches them against
+the registry catalog, and records <code>web</code> as <code>nextjs</code>. Put the backend key in <code>stack</code> and
+name the frontend framework in <code>idea</code>.</p></blockquote>
+<p>Alex agrees, and <code>/sdd</code> hands off:</p>
+<pre><code>Route:     new app (confirmed)
+Ticket:    HIRE-1
+Launched:  greenfield-build: runs in the background; watch with /workflows
+Done when: SHIP-SLICE: the slice passes gates and acceptance</code></pre>
+<p>Watch it with:</p>
+<pre><code>/workflows</code></pre>
+<p>The run takes a while: Scaffold installs Composer and npm dependencies, and Gates runs every
+gate in both repos, possibly more than once. Leave the session open. The phases log one line
+each as they finish.</p>
+<hr>
+<h3 id="step-3-what-each-phase-does">Step 3: What each phase does</h3>
+<p>The phases below are the <code>meta.phases</code> of <code>greenfield-build.js</code>. The log lines use the
+workflow&#39;s own <code>log()</code> formats. All output is <strong>simulated</strong> and abridged.</p>
+<h4 id="detect">Detect</h4>
+<p>A <code>code-explorer</code> agent probes both targets. Its prompt asks for <code>git -C &lt;path&gt; ls-files</code>, but
+the shipped <code>code-explorer</code> agent is read-only (Read, Grep, Glob), so it cannot run git
+unless your setup grants it Bash. Here both directories are missing, so there is nothing to
+find either way (Glob matches no files), and the target counts as greenfield.</p>
+<pre><code>Detect: backend:laravel@api, frontend:nextjs@web (split); greenfield=true</code></pre>
+<p>If <code>api/</code> or <code>web/</code> already contained source files, the run would stop here with <code>BLOCKED</code>.
+That is why chapter 01 never creates them (friction F1). Treat the git-tracked check as
+best effort: with the read-only agent the file-presence check is what actually protects you.</p>
+<h4 id="constitution">Constitution</h4>
+<p>A <code>deep</code>-tier agent turns the conventions into testable principles before any architecture is
+decided. It reads the workspace <code>CLAUDE.md</code>, which loads the invariants INV-01..INV-07 and
+points to <code>product-brief.md</code>. It also consults the kit skills for the detected stacks.</p>
+<pre><code>Constitution: 9 principle(s), skills: laravel-12, service-repository, dto-first, api-design, schema-first, nextjs-15, typescript, tailwind-4, architecture-patterns</code></pre>
+<p>Principles it returned (abridged): &quot;controllers are single-action and invokable; logic lives
+in services&quot;, &quot;DTOs at every layer boundary, repositories return DTOs&quot;, &quot;schema documented in
+<code>docs/schemas/</code> before the migration&quot;, &quot;one envelope for success and error (INV-01)&quot;, &quot;the
+browser never calls the API (INV-05)&quot;, &quot;every browser-facing endpoint is in one registry
+(INV-06)&quot;.</p>
+<h4 id="architecture-with-a-3-vote-verify">Architecture, with a 3-vote verify</h4>
+<p>One <code>deep</code> agent proposes the architecture, then three <code>standard</code> agents try to refute it
+through three lenses: <code>principle-adherence</code>, <code>simplicity</code> and <code>stack-fit</code>. A majority of
+&quot;holds up&quot; votes marks it sound.</p>
+<pre><code>Architecture: slice &quot;Visitor searches open jobs and opens one&quot; — sound (2/3)</code></pre>
+<p>What it decided, and what ended up in <a href="artifacts/api/docs/architecture.html"><code>api/docs/architecture.md</code></a>:</p>
+<ul><li><strong>Layout:</strong> <code>split</code>, <code>api/</code> and <code>web/</code>.</li><li><strong>Layers:</strong> <code>route → invokable controller → service (DTOs) → repository interface → Eloquent</code>,
+and <code>app router page (Server Component) → lib/api → API</code>.</li><li><strong>Data model sketch:</strong> <code>companies</code> (uuid, slug, owner_id nullable) and <code>job_postings</code> (uuid,
+status, published_at, salary_* integers).</li><li><strong>First slice:</strong> entry point <code>/jobs</code>, expected end state &quot;the visitor filters by Remote,
+opens a card and sees the job with its company&quot;.</li><li><strong>Decisions:</strong> domain tables use UUIDs while <code>users</code> keeps bigint ids, so Sanctum works
+unchanged (A3); auth is deferred to a separate decision, which becomes ADR-0001 in
+<a href="03-decision-spa-auth-adr.html">chapter 03</a> (A10).</li></ul>
+<p>The simplicity voter refuted it, with the reason that repository interfaces are more than one
+slice needs. Two of three still voted &quot;holds up&quot;, so the architecture stands and keeps the
+interfaces because INV-02 requires them. The workflow passes the reasons of refuting votes to
+the final report as concerns, so read them there.</p>
+<h4 id="scaffold">Scaffold</h4>
+<p>Two agents run in parallel, one per repo (<code>laravel-backend-dev</code> for <code>api</code>,
+<code>nextjs-frontend-dev</code> for <code>web</code>, from the registry&#39;s <code>agent</code> field). Each creates the
+skeleton, the layer folders and a CI workflow, then commits the scaffold as the first
+checkpoint. These are the commands the agents ran. If a scaffold fails, rerun them by hand
+from <code>~/work/hireboard</code>:</p>
+<pre><code class="language-bash">composer create-project laravel/laravel:^12.0 api
+cd api &amp;&amp; php artisan install:api --without-migration-prompt
+composer require spatie/laravel-data:^4.0
+composer require --dev pestphp/pest:^3.0 pestphp/pest-plugin-laravel:^3.0 larastan/larastan:^3.0 -W &amp;&amp; ./vendor/bin/pest --init
+git init &amp;&amp; git add -A &amp;&amp; git commit -m &quot;chore: scaffold Laravel 12 API&quot;
+cd ..
+
+npx create-next-app@15 web --ts --app --tailwind --eslint --no-src-dir --import-alias &quot;@/*&quot; --use-npm --no-turbopack
+cd web &amp;&amp; npm install server-only &amp;&amp; npm install -D vitest &amp;&amp; npm pkg set scripts.test=&quot;vitest run&quot;</code></pre>
+<blockquote><p><strong>Tip: vitest and <code>@types/node</code>.</strong> <code>create-next-app@15</code> pins <code>@types/node</code> to <code>^20</code>. A
+recent <code>vitest</code> major can declare a peer range that excludes it, and then
+<code>npm install -D vitest</code> fails with <code>ERESOLVE</code>. Install the previous major instead
+(<code>npm install -D vitest@^3</code>). Don&#39;t use <code>--legacy-peer-deps</code>.</p></blockquote>
+<pre><code>Scaffold: 63 path(s) created, CI configured</code></pre>
+<p>Each scaffold agent also writes a minimal <code>CLAUDE.md</code> and <code>.mcp.json</code> into its repo if none
+exists (step 2 of the Scaffold prompt). Step 5 below replaces those <code>CLAUDE.md</code> files with
+the kit templates.</p>
+<p>The CI files are <a href="artifacts/api/.github/workflows/ci.yml"><code>api/.github/workflows/ci.yml</code></a> and
+<a href="artifacts/web/.github/workflows/ci.yml"><code>web/.github/workflows/ci.yml</code></a>. Each one runs exactly
+that repo&#39;s gates from the kit&#39;s <code>STACKS</code> registry, which the Scaffold agents report back as
+<code>gateCommands</code>:</p>
+<div class="table-wrap"><table><thead><tr><th>Repo</th><th>Gates</th></tr></thead><tbody><tr><td><code>api</code></td><td><code>./vendor/bin/pint --test</code>, <code>./vendor/bin/phpstan analyse --no-progress</code>, <code>php artisan test</code></td></tr><tr><td><code>web</code></td><td><code>npm run lint</code>, <code>npx tsc --noEmit</code>, <code>npm test</code>, plus <code>npm run build</code> in CI</td></tr></tbody></table></div>
+<p><code>phpstan analyse</code> needs a config, so the API scaffold adds
+<a href="artifacts/api/phpstan.neon"><code>api/phpstan.neon</code></a> (Larastan, level 5).</p>
+<h4 id="slice-tdd-backend-before-frontend">Slice: TDD, backend before frontend</h4>
+<p>The workflow builds the repos one after another: every non-frontend target first, then the
+frontend, each with &quot;failing test first, then make it pass&quot;. The backend agent writes the
+Pest tests, sees them fail, then adds the schema docs, migrations, models, DTOs, repositories,
+services, controllers and the route file. The frontend agent starts from a Vitest test for the
+URL-to-filter parsing, then builds the client, the registry, the pages and the components.
+Step 4 walks through the code.</p>
+<pre><code>Slice: 2/2 part(s) built</code></pre>
+<h4 id="gates">Gates</h4>
+<p>Gates run per repo, in parallel. A failing gate triggers a fix round (at most three), and the
+fixer is told to fix the code, not suppress the error.</p>
+<pre><code>Gates round 1: fixing 1 failing gate(s)</code></pre>
+<p>Round 1 in this run: PHPStan reported that <code>JobPostingDTO::fromModel()</code> passed a <code>string</code>
+where <code>EmploymentType</code>, <code>JobPostingStatus</code> and <code>CarbonInterface</code> were expected. Larastan had
+resolved those attributes from the migration column types for these two models. The fixer didn&#39;t
+loosen the DTO types. It added <code>@property</code> docblocks to <code>Company</code> and <code>JobPosting</code> that state
+the cast types, and the second gate run was green in both repos. Whether a model needs such
+docblocks depends on the model and the Larastan version, so add them only where PHPStan
+reports the mismatch.</p>
+<h4 id="acceptance">Acceptance</h4>
+<p>A <code>deep</code> agent ignores the passing unit tests and walks the real journey. It boots
+<code>php artisan serve --port=8000</code> and <code>npm run dev</code>, then drives <code>http://localhost:3000</code>:</p>
+<pre><code>Acceptance: RESOLVED
+  ✓ /            → redirects to /jobs, &quot;8 jobs match your search.&quot;
+  ✓ Remote only  → /jobs?remote=1, 4 cards, each with a &quot;Remote&quot; badge
+  ✓ open card    → /jobs/9d3c…, title, company name, location, type, Apply button
+  ✓ unknown id   → /jobs/00000000-…, the not-found page</code></pre>
+<p>Acceptance follows each hop of the slice&#39;s journey from the entry point to the expected end
+state. A hop whose target doesn&#39;t resolve is recorded as a broken link and fails the slice.
+Links that aren&#39;t on the journey aren&#39;t followed. That shaped two choices on the day-one
+detail page:</p>
+<ul><li>The company name is plain text. The careers page <code>/companies/[slug]</code> and the link to it
+arrive with HIRE-7 (<a href="08-careers-page-s-spec-and-trivial-change.html">chapter 08</a>).</li><li>The <strong>Apply</strong> button links to <code>/jobs/[id]/apply</code>, which HIRE-6 builds
+(<a href="07-applications-and-deep-review.html">chapter 07</a>). It sits past the slice&#39;s end state, so
+the agent didn&#39;t follow it. It recorded the link in its notes, and the report repeats it.
+Read the acceptance notes, not just the verdict.</li></ul>
+<h4 id="handoff">Handoff</h4>
+<pre><code>Handoff: 3 doc(s) written</code></pre>
+<p>The docs go into the primary repo, <code>api/</code>:</p>
+<ul><li><a href="artifacts/api/docs/getting-started.html"><code>api/docs/getting-started.md</code></a>: install, run and gate commands for both repos</li><li><a href="artifacts/api/docs/architecture.html"><code>api/docs/architecture.md</code></a>: constitution, decisions A1-A10 with alternatives, request flow</li><li><a href="artifacts/api/docs/manual-test.html"><code>api/docs/manual-test.md</code></a>: eleven action → expected steps for the browse journey</li></ul>
+<h4 id="report">Report</h4>
+<p>The workflow returns the report (abridged):</p>
+<pre><code>## Recommendation: SHIP-SLICE
+Scaffold complete in both repos (CI configured, scaffold committed), slice complete,
+all gates green in both repos, acceptance resolved, architecture sound (2/3).
+
+Verify concern (simplicity): repository interfaces are heavier than the slice needs;
+kept for INV-02.
+
+## Next slices (run each through /sdd)
+1. HIRE-3 Accounts and roles: registration, login, logout, me (decide SPA auth first: HIRE-2)
+2. HIRE-4 Company reviews with moderation
+3. HIRE-5 Candidate profiles
+4. HIRE-6 Job applications
+5. HIRE-7 Company careers page (/companies/[slug])
+
+Acceptance note: the Apply button on /jobs/[id] points at /jobs/[id]/apply, which HIRE-6 builds.</code></pre>
+<p><code>SHIP-SLICE</code> is the <code>new app</code> route&#39;s definition of done. The remaining steps are Alex&#39;s.</p>
+<hr>
+<h3 id="step-4-read-the-slice-code">Step 4: Read the slice code</h3>
+<p>The finished code is in the artifacts. These excerpts show how a request moves through it.</p>
+<h4 id="api-one-request-four-layers">API: one request, four layers</h4>
+<p><code>routes/api.php</code> contains no routes. It prefixes <code>v1</code> and loads one file per feature, so later
+feature branches each add their own file and never touch a shared one
+(<a href="artifacts/api/routes/api.php"><a href="artifacts/api/routes/api.php"><code>artifacts/api/routes/api.php</code></a></a>):</p>
+<pre><code class="language-php">Route::prefix(&#39;v1&#39;)-&gt;group(function (): void {
+    foreach (glob(__DIR__.&#39;/api/v1/*.php&#39;) ?: [] as $routeFile) {
+        require $routeFile;
+    }
+});</code></pre>
+<p><a href="artifacts/api/routes/api/v1/jobs.php"><code>routes/api/v1/jobs.php</code></a> maps the three public
+endpoints to invokable controllers. The search controller builds the input DTO and calls one
+service method. <code>$request-&gt;boolean()</code> handles <code>remote=0</code>, which would otherwise be a truthy
+string (GOTCHA-03 in <code>api/CLAUDE.md</code>):</p>
+<pre><code class="language-php">// app/Http/Controllers/Jobs/SearchJobPostingsController.php
+public function __invoke(Request $request): JsonResponse
+{
+    $filters = JobSearchDTO::validateAndCreate([
+        ...$request-&gt;only([&#39;q&#39;, &#39;location&#39;, &#39;employment_type&#39;, &#39;company&#39;, &#39;page&#39;, &#39;per_page&#39;]),
+        &#39;remote&#39; =&gt; $request-&gt;filled(&#39;remote&#39;) ? $request-&gt;boolean(&#39;remote&#39;) : null,
+    ]);
+
+    return $this-&gt;paginated($this-&gt;jobs-&gt;search($filters));
+}</code></pre>
+<p><a href="artifacts/api/app/DTOs/JobSearchDTO.php"><code>JobSearchDTO</code></a> maps snake_case input to camelCase
+properties with <code>#[MapInputName(SnakeCaseMapper::class)]</code>. It also validates: an unknown
+<code>employment_type</code> or <code>per_page=0</code> produces a <code>ValidationException</code>, which <code>bootstrap/app.php</code>
+renders as 422 <code>validation_failed</code>.
+<a href="artifacts/api/app/Services/JobPostingService.php"><code>JobPostingService::search()</code></a> caps
+<code>per_page</code> at 50 (BR-11) and calls the repository through its interface.
+<a href="artifacts/api/app/Repositories/JobPostingRepository.php"><code>JobPostingRepository::searchOpen()</code></a>
+is the only place that knows about Eloquent. It filters on <code>status = open</code> (BR-10), sorts
+newest first, and maps every row to a <code>JobPostingDTO</code>. The binding lives in
+<a href="artifacts/api/app/Providers/RepositoryServiceProvider.php"><code>RepositoryServiceProvider::$bindings</code></a>,
+registered in <a href="artifacts/api/bootstrap/providers.php"><code>bootstrap/providers.php</code></a>.</p>
+<p>Responses go out through <a href="artifacts/api/app/Http/Traits/JsonResponseTrait.php"><code>JsonResponseTrait</code></a>,
+which the base <code>Controller</code> uses. <code>paginated()</code> serializes each DTO with <code>toApiArray()</code> and
+adds the INV-01 meta:</p>
+<pre><code class="language-json">{ &quot;success&quot;: true, &quot;status&quot;: 200, &quot;message&quot;: &quot;OK&quot;, &quot;data&quot;: [ { &quot;id&quot;: &quot;9d3c…&quot;, &quot;title&quot;: &quot;Senior Laravel Engineer&quot;, &quot;…&quot;: &quot;…&quot; } ],
+  &quot;meta&quot;: { &quot;current_page&quot;: 1, &quot;per_page&quot;: 20, &quot;total&quot;: 8, &quot;last_page&quot;: 1 } }</code></pre>
+<p>Errors take the other path. A service throws a <code>BusinessRuleException</code> subclass, such as
+<a href="artifacts/api/app/Exceptions/JobPostingNotFoundException.php"><code>JobPostingNotFoundException</code></a>
+(404, <code>job_not_found</code>). <a href="artifacts/api/bootstrap/app.php"><code>bootstrap/app.php</code></a> renders it, and
+also validation, 401, 403, 404 and 429 errors, in one error envelope for everything under
+<code>api/*</code>. No controller catches anything.</p>
+<p>The tests pin the behavior:
+<a href="artifacts/api/tests/Feature/Jobs/SearchJobPostingsTest.php"><code>SearchJobPostingsTest</code></a>
+(&#39;lists only open postings newest first&#39;, &#39;filters by keyword, location, remote, employment
+type and company&#39;, &#39;caps per_page at 50&#39;, &#39;returns the pagination meta&#39;),
+<a href="artifacts/api/tests/Feature/Jobs/ShowJobPostingTest.php"><code>ShowJobPostingTest</code></a> and
+<a href="artifacts/api/tests/Feature/Companies/ShowCompanyTest.php"><code>ShowCompanyTest</code></a>.
+<a href="artifacts/api/tests/Pest.php"><code>tests/Pest.php</code></a> applies <code>RefreshDatabase</code> to every feature
+test.</p>
+<h4 id="web-a-server-component-a-parser-one-client">Web: a Server Component, a parser, one client</h4>
+<p><a href="artifacts/web/app/jobs/page.tsx"><code>app/jobs/page.tsx</code></a> awaits the Next 15 <code>searchParams</code>
+promise, parses it, and fetches on the server. Reading <code>searchParams</code> makes the page
+dynamic, so <code>npm run build</code> never calls the API:</p>
+<pre><code class="language-tsx">export default async function JobsPage({ searchParams }: JobsPageProps) {
+  const filters = parseJobFilters(await searchParams);
+  const { data: jobs, meta } = await searchJobs(filters);
+  // ...JobFilters, a list of JobCard, Previous/Next links built with toQueryString()
+}</code></pre>
+<p><a href="artifacts/web/lib/search-params.ts"><code>lib/search-params.ts</code></a> drops empty and unknown values,
+so a hand-edited URL never turns into an API 422. It is the one piece of pure logic, and the
+Vitest test covers it (<a href="artifacts/web/lib/search-params.test.ts"><code>lib/search-params.test.ts</code></a>).</p>
+<p><a href="artifacts/web/lib/api/jobs.ts"><code>lib/api/jobs.ts</code></a> calls <code>apiFetch(&#39;searchJobs&#39;, { query })</code>.
+<a href="artifacts/web/lib/api/client.ts"><code>lib/api/client.ts</code></a> starts with <code>import &#39;server-only&#39;</code>,
+looks the endpoint up in the registry, and builds the URL from the server-only
+<code>API_BASE_URL</code>. It always fetches with <code>cache: &#39;no-store&#39;</code>, so a posting that closes
+disappears on the next request, and it throws <code>ApiError { status, code, errors }</code> on any
+non-2xx response. <code>getJob()</code> turns a 404 into <code>null</code>, and
+<a href="artifacts/web/app/jobs/%5Bid%5D/page.tsx"><code>app/jobs/[id]/page.tsx</code></a> turns <code>null</code> into <code>notFound()</code>.</p>
+<pre><code class="language-ts">// lib/api/endpoints.ts: the INV-06 registry (excerpt)
+export const endpoints = {
+  searchJobs: { method: &#39;GET&#39;, path: &#39;/api/v1/jobs&#39; },
+  showJob: { method: &#39;GET&#39;, path: &#39;/api/v1/jobs/{id}&#39; },
+  showCompany: { method: &#39;GET&#39;, path: &#39;/api/v1/companies/{slug}&#39; },
+  // ...
+} as const satisfies Record&lt;string, EndpointDefinition&gt;;</code></pre>
+<p><a href="artifacts/web/components/job-filters.tsx"><code>JobFilters</code></a> is a GET form (<code>next/form</code>), not a
+client component with state. Submitting it navigates to <code>/jobs?…</code>, so every search is a
+shareable URL. <a href="artifacts/web/components/job-card.tsx"><code>JobCard</code></a> renders one posting.
+<a href="artifacts/web/types/api/jobs.ts"><code>types/api/jobs.ts</code></a> mirrors the API shape field for field,
+with enum literal unions copied from <code>App\Enums</code>.</p>
+<hr>
+<h3 id="step-5-give-each-repo-its-own-context">Step 5: Give each repo its own context</h3>
+<p>The Constitution phase could only use the workspace context. From now on, sessions started
+inside <code>api/</code> or <code>web/</code> (chapters 03, 07, 10) need each repo&#39;s own conventions, and the root
+<code>@api/CLAUDE.md</code> / <code>@web/CLAUDE.md</code> imports need real files.</p>
+<blockquote><p><strong>Friction F5: plugin mode installs no project context.</strong> The kit&#39;s plugin ships agents,
+skills, workflows and hooks, but no <code>CLAUDE.md</code>, <code>AGENTS.md</code> or <code>.claude/rules/</code>. Copy the
+templates by hand, as
+<a href="../../reference/installation.html#project-context-is-not-installed">INSTALLATION.md, &quot;Project context is not installed&quot;</a>
+describes. <strong>File-copy users</strong> run <code>~/tools/sdd-kit/install.sh --project</code>
+inside <code>api/</code> and inside <code>web/</code> now instead. The installer creates <code>AGENTS.md</code> and
+<code>.claude/rules/</code> when they&#39;re missing, and a <code>CLAUDE.md</code> when none exists. Delete the
+scaffold&#39;s stub <code>CLAUDE.md</code> first if you want the template.</p></blockquote>
+<pre><code class="language-bash">KIT=~/tools/sdd-kit
+for repo in api web; do
+  cd ~/work/hireboard/$repo
+  cp $KIT/src/CLAUDE.template.md CLAUDE.md          # replaces the scaffold&#39;s stub
+  cp $KIT/src/templates/AGENTS.template.md AGENTS.md
+  mkdir -p .claude/rules &amp;&amp; cp $KIT/src/templates/rules/*.md .claude/rules/
+done</code></pre>
+<p>Then fill them in. The templates say to keep <code>CLAUDE.md</code> under 200 lines, put tool-neutral
+facts in <code>AGENTS.md</code> (imported with <code>@AGENTS.md</code>), and state each fact once.
+<a href="../../reference/getting-started.html#2-give-claude-your-project-context">GETTING-STARTED.md, section 2</a>
+explains the reasoning.</p>
+<p><strong><code>api/AGENTS.md</code></strong> (<a href="artifacts/api/AGENTS.html">artifact</a>): the stack table, the three gate
+commands exactly as CI runs them, and the red lines. The template&#39;s generic red lines become
+specific ones: never <code>migrate:fresh</code> outside the local SQLite file, never expose a draft or
+closed posting or a reviewer&#39;s identity (BR-10, BR-42), never return a model from a
+repository. The architecture section states the conventions from Step 4 as rules.</p>
+<p><strong><code>api/CLAUDE.md</code></strong> (<a href="artifacts/api/CLAUDE.html">artifact</a>): &quot;Always load&quot; points at business
+rules, architecture and the API contract, and a task-routing table sends each
+kind of work to the right doc and rule file. It also holds the invariants INV-01..INV-07 and
+the gotchas, starting with:</p>
+<pre><code class="language-markdown">- **GOTCHA-01** Tests use SQLite `:memory:` from `phpunit.xml`, not `.env`. A test that
+  passes locally against `database/database.sqlite` was not run through `php artisan test`.</code></pre>
+<p><strong><code>web/AGENTS.md</code></strong> and <strong><code>web/CLAUDE.md</code></strong> (<a href="artifacts/web/AGENTS.html">artifact</a>,
+<a href="artifacts/web/CLAUDE.html">artifact</a>) are the counterparts: the four web gates, red lines
+around the token and the registry (INV-05, INV-06), and gotchas such as &quot;a page that reads no
+request data is prerendered at build time&quot;.</p>
+<p>Two edits to the copied rules files, because the templates assume paths this project doesn&#39;t
+use:</p>
+<ul><li><code>api/.claude/rules/api-controllers.md</code>: add <code>&quot;routes/api/**&quot;</code> to <code>paths:</code>, so the rule loads
+for the per-feature route files.</li><li><code>web/.claude/rules/frontend-pages.md</code>: replace <code>src/components/**</code> and <code>src/lib/api/**</code> with
+<code>components/**</code> and <code>lib/api/**</code>. The app uses <code>--no-src-dir</code>.</li></ul>
+<p>The rule files are copies of the kit templates plus these edits, so they aren&#39;t artifacts.</p>
+<hr>
+<h3 id="step-6-validated-rules-the-contract-and-the-schemas-then-commit">Step 6: Validated rules, the contract and the schemas, then commit</h3>
+<p>The draft rules in <code>product-brief.md</code> (chapter 01) were assumptions until a human confirmed
+them. Maya Chen reads them on 2026-10-19 and confirms BR-01..BR-03 and BR-10..BR-43. BR-04 (token
+lifetime) stays pending: the brief leaves it open until the auth decision (HIRE-2, chapter 03). Alex moves them into
+<a href="artifacts/api/docs/context/business-rules.html"><code>api/docs/context/business-rules.md</code></a>, marked
+with Maya as validator. Each rule has a column for the code that enforces it. Together
+with the architecture doc and the API contract, these form the &quot;Always load&quot; set in
+<code>api/CLAUDE.md</code>. The kit&#39;s Golden Triangle (<code>src/templates/context/golden-triangle.md</code>) is
+business rules, architecture and workflow; here the workflow leg is the &quot;Process&quot; section of
+the workspace <code>CLAUDE.md</code>, and the API contract is an extra file that this project always loads.</p>
+<pre><code class="language-markdown">**Validated by:** Maya Chen (product owner), 2026-10-19, from the draft in `product-brief.md`.
+
+| ID | Rule | Enforced in | Since |
+| BR-10 | Only `open` postings appear in search and detail. Draft and closed postings are never public (404 `job_not_found`). | `JobPostingRepository::searchOpen()`, `findOpenById()` | HIRE-1, fixed for detail in HIRE-9 |</code></pre>
+<p>Two more documents complete the API side:</p>
+<ul><li><a href="artifacts/api/docs/api/api-contracts.html"><code>api/docs/api/api-contracts.md</code></a>: the envelope,
+the error-code table and each endpoint with its registry name. The backend is
+authoritative, so <code>web/types/api/*.ts</code> follows this file, not the other way round.</li><li><a href="artifacts/api/docs/schemas/companies.html"><code>api/docs/schemas/companies.md</code></a> and
+<a href="artifacts/api/docs/schemas/job-postings.html"><code>job-postings.md</code></a>: columns, indexes,
+relations and the rules each table supports. The slice agent wrote them before the
+migrations (schema-first). Alex reviews them here because they are the reference every
+later spec starts from.</li></ul>
+<p>The Scaffold phase committed only the scaffold checkpoint. The slice, the handoff docs and the
+context files are still uncommitted, which gives you a chance to review them. The workspace
+root has no git, so commit in each repo with <code>git -C</code>:</p>
+<pre><code class="language-bash">cd ~/work/hireboard
+git -C api status --short | head
+git -C api add -A
+git -C api commit -m &quot;feat(jobs): public job search, job detail and company endpoints (HIRE-1)&quot;
+git -C api remote add origin git@github.com:hireboard/api.git &amp;&amp; git -C api push -u origin main
+
+git -C web add -A
+git -C web commit -m &quot;feat(jobs): job search and detail pages with server-only API client (HIRE-1)&quot;
+git -C web remote add origin git@github.com:hireboard/web.git &amp;&amp; git -C web push -u origin main</code></pre>
+<p><code>create-next-app</code> already ran <code>git init</code> and made an initial commit in <code>web/</code>, and the Scaffold
+agent added its own commit on top. The branch name depends on your <code>init.defaultBranch</code>
+setting, so check it with <code>git -C api branch</code> and <code>git -C web branch</code> before you push (the
+CI files trigger on <code>main</code>). CI in both repos runs on the push.</p>
+<p>Now check what Claude loads:</p>
+<pre><code>/memory</code></pre>
+<p>Simulated output (abridged):</p>
+<pre><code>Memory files
+  User memory     ~/.claude/CLAUDE.md
+  Project memory  ~/work/hireboard/CLAUDE.md
+    @api/CLAUDE.md  → ~/work/hireboard/api/CLAUDE.md
+      @AGENTS.md    → ~/work/hireboard/api/AGENTS.md
+    @web/CLAUDE.md  → ~/work/hireboard/web/CLAUDE.md
+      @AGENTS.md    → ~/work/hireboard/web/AGENTS.md</code></pre>
+<p>Both repo files must be listed. If one is missing, restart the session (imports resolve at
+startup) and check the traps table in <a href="../../reference/multi-repo.html#configuration-traps">docs/multi-repo.md</a>.</p>
+<hr>
+<h3 id="step-7-run-it-yourself">Step 7: Run it yourself</h3>
+<p>Two terminals:</p>
+<pre><code class="language-bash">cd ~/work/hireboard/api &amp;&amp; php artisan migrate:fresh --seed &amp;&amp; php artisan serve --port=8000</code></pre>
+<pre><code class="language-bash">cd ~/work/hireboard/web &amp;&amp; cp .env.example .env.local &amp;&amp; npm run dev</code></pre>
+<p>Open http://localhost:3000/jobs. Tick <strong>Remote only</strong>, search, open a card. The full
+checklist is <a href="artifacts/api/docs/manual-test.html"><code>api/docs/manual-test.md</code></a>.
+If you copied the final-state artifacts into a fresh scaffold, first remove the
+<code>DemoUserSeeder</code> call from <code>DatabaseSeeder</code> (see the note at the end of this chapter).
+<code>migrate:fresh</code> is for the local database only (AGENTS.md red lines). If the seeder complains
+about a missing SQLite file, run <code>touch database/database.sqlite</code> first
+(<a href="artifacts/api/docs/getting-started.html">getting-started</a>).</p>
+<p>The gates, as CI runs them:</p>
+<pre><code class="language-bash">cd ~/work/hireboard/api &amp;&amp; ./vendor/bin/pint --test &amp;&amp; ./vendor/bin/phpstan analyse --no-progress &amp;&amp; php artisan test
+cd ~/work/hireboard/web &amp;&amp; npm run lint &amp;&amp; npx tsc --noEmit &amp;&amp; npm test &amp;&amp; npm run build</code></pre>
+<p>Expected (abridged):</p>
+<pre><code>   PASS  Tests\Feature\Companies\ShowCompanyTest
+  ✓ it shows a company with its open job count
+  ✓ it returns 404 company_not_found for an unknown slug
+   PASS  Tests\Feature\Jobs\SearchJobPostingsTest
+  ✓ it lists only open postings newest first
+  ✓ it filters by keyword, location, remote, employment type and company
+  ✓ it caps per_page at 50
+  ✓ it returns the pagination meta
+   PASS  Tests\Feature\Jobs\ShowJobPostingTest
+  ✓ it shows an open posting with its company
+  ✓ it returns 404 job_not_found for an unknown id</code></pre>
+<pre><code> ✓ lib/search-params.test.ts (3 tests)
+ Test Files  1 passed (1)
+      Tests  3 passed (3)</code></pre>
+<hr>
+<h3 id="step-8-read-the-artifacts-as-final-state">Step 8: Read the artifacts as final state</h3>
+<blockquote><p><strong>The artifact files show their end-of-walkthrough state, not their state on 2026-10-19.</strong>
+Several files grow with every feature, and this chapter owns them, so they already list
+what later chapters add:</p>
+<ul><li><code>web/lib/api/endpoints.ts</code> has all 18 endpoints (auth, reviews, profiles, applications).</li><li><code>api/docs/api/api-contracts.md</code> documents every endpoint through HIRE-6.</li><li><code>api/docs/context/business-rules.md</code> includes BR-44, which comes from the HIRE-4 clarity
+gate in <a href="05-feature-company-reviews-full-spec.html">chapter 05</a>.</li><li><code>RepositoryServiceProvider::$bindings</code> binds all six repositories. <code>CompanyRepository</code>
+already has <code>createForOwner()</code> and <code>findByOwnerId()</code> for HIRE-3 and HIRE-6.
+<code>DatabaseSeeder</code> already calls <code>DemoUserSeeder</code> (chapter 04). <code>Company</code> and <code>JobPosting</code>
+already declare the <code>reviews()</code> and <code>applications()</code> relations.</li><li><code>web/app/jobs/[id]/page.tsx</code> already links the company name to <code>/companies/[slug]</code>, which
+HIRE-7 adds in <a href="08-careers-page-s-spec-and-trivial-change.html">chapter 08</a>.</li><li><code>web/components/job-card.tsx</code> already formats salaries as &quot;€60,000 – €80,000 a year&quot;, the
+HIRE-8 change shown as a diff in <a href="08-careers-page-s-spec-and-trivial-change.html">chapter 08</a>.</li><li><code>JobPostingRepository</code>, its interface and <code>JobPostingService</code> already contain the HIRE-9
+fix (<code>findOpenById()</code>), shown as a diff in <a href="09-bug-closed-jobs-fix-bug.html">chapter 09</a>.
+On 2026-10-19 the detail endpoint went through <code>findById()</code>, which has no status filter,
+and none of this chapter&#39;s tests covered a closed posting. Chapter 09 is about that gap.</li></ul>
+<p>To reproduce the slice exactly as it was on day one, leave out those additions. Remove the
+<code>DemoUserSeeder</code> call from <code>DatabaseSeeder</code> (it needs the chapter 04 role column) and any
+other forward reference, such as <code>$bindings</code> entries and the <code>reviews()</code> and <code>applications()</code>
+relations, or <code>migrate:fresh --seed</code> fails. The full artifact set only works as a whole: drop
+in every chapter&#39;s artifacts together, not a partial prefix.</p></blockquote>
+<p>Files from this chapter:</p>
+<ul><li><strong>api, code:</strong> <code>bootstrap/app.php</code>, <code>bootstrap/providers.php</code>, <code>routes/api.php</code>,
+<code>routes/api/v1/jobs.php</code>, <code>app/Http/Controllers/Controller.php</code>,
+<code>app/Http/Traits/JsonResponseTrait.php</code>, <code>app/Exceptions/{BusinessRule,JobPostingNotFound,CompanyNotFound}Exception.php</code>,
+<code>app/Providers/RepositoryServiceProvider.php</code>, <code>app/Enums/{EmploymentType,JobPostingStatus}.php</code>,
+<code>app/Models/{Company,JobPosting}.php</code>, <code>app/DTOs/{JobSearch,JobPosting,Company}DTO.php</code>,
+<code>app/Contracts/{JobPosting,Company}RepositoryInterface.php</code>, <code>app/Repositories/{JobPosting,Company}Repository.php</code>,
+<code>app/Services/{JobPosting,Company}Service.php</code>, <code>app/Http/Controllers/Jobs/{SearchJobPostings,ShowJobPosting}Controller.php</code>,
+<code>app/Http/Controllers/Companies/ShowCompanyController.php</code>, two migrations, two factories,
+<code>DatabaseSeeder</code>, <code>JobBoardSeeder</code>, <code>tests/Pest.php</code> and three feature tests</li><li><strong>api, config and docs:</strong> <code>phpstan.neon</code>, <code>.github/workflows/ci.yml</code>, <code>CLAUDE.md</code>, <code>AGENTS.md</code>,
+<code>docs/getting-started.md</code>, <code>docs/architecture.md</code>, <code>docs/manual-test.md</code>,
+<code>docs/context/business-rules.md</code>, <code>docs/api/api-contracts.md</code>, <code>docs/schemas/{companies,job-postings}.md</code></li><li><strong>web:</strong> <code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>.env.example</code>, <code>.github/workflows/ci.yml</code>, <code>vitest.config.ts</code>,
+<code>app/{layout,page,not-found}.tsx</code>, <code>app/globals.css</code>, <code>app/jobs/{page,loading,error}.tsx</code>,
+<code>app/jobs/[id]/page.tsx</code>, <code>components/{site-header,job-card,job-filters}.tsx</code>,
+<code>lib/api/{client,endpoints,jobs}.ts</code>, <code>lib/search-params.ts</code> + test, <code>types/api/{common,jobs}.ts</code></li></ul>
+<p>For a shorter <code>new app</code> example without split repos, see
+<a href="../../reference/usage-examples.html#5-new-app">USAGE-EXAMPLES.md, &quot;New app&quot;</a>. For tier and
+cost settings (<code>args.models</code>), see <a href="../../reference/effort-guidelines.html">docs/effort-guidelines.md</a>.</p>
+<h3 id="what-you-have-now">What you have now</h3>
+<ul><li>Two committed repos, <code>api/</code> (Laravel 12, Sanctum, Laravel Data, Pest 3, Larastan) and <code>web/</code>
+(Next.js 15, Tailwind 4, Vitest), each with CI running exactly the kit&#39;s registry gates.</li><li>One working vertical slice: a visitor searches open jobs by keyword, location, remote, type
+and company at <code>/jobs</code>, and opens a job detail page. Both sides have tests, and
+greenfield-build&#39;s Acceptance phase walked the journey (<code>SHIP-SLICE</code>).</li><li>Per-repo context (<code>CLAUDE.md</code> + <code>AGENTS.md</code> + <code>.claude/rules/</code>) that <code>/memory</code> shows imported
+from the workspace root, plus the &quot;Always load&quot; docs in <code>api/docs/</code>: validated business rules,
+architecture and the API contract.</li></ul>
+<p>Next: <a href="03-decision-spa-auth-adr.html">03 — Decision: SPA auth approach with tech-research (HIRE-2 → ADR-0001)</a></p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/02-greenfield-first-slice.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

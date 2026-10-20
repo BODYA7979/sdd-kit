@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>08 — Proportionality: an S spec for the careers page (HIRE-7) and a no-spec trivial change (HIRE-8) · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/08-careers-page-s-spec-and-trivial-change.md</p>
+  <article class="doc-body">
+<h2 id="08--proportionality-an-s-spec-for-the-careers-page-hire-7-and-a-no-spec-trivial-change-hire-8">08 — Proportionality: an S spec for the careers page (HIRE-7) and a no-spec trivial change (HIRE-8)</h2>
+<p>Chapters 04 to 07 ran M specs: schema changes, several layers, both repos. Most tickets are
+smaller than that, and the kit is built to scale down. This chapter takes two small tickets:</p>
+<ul><li><strong>HIRE-7</strong>, a public careers page per company. It is a real feature with acceptance criteria,
+but it touches only <code>web/</code> and needs no API change. <code>write-spec</code> sizes it <strong>S</strong>, so it gets the
+smallest spec there is: <code>spec-lite.md</code> plus <code>tasks.md</code>.</li><li><strong>HIRE-8</strong>, salary ranges on job cards. It is one component and has no design choice, so <code>/sdd</code>
+routes it as <strong>trivial</strong> and <code>/simple-task</code> makes the change with no spec at all.</li></ul>
+<p>It assumes the state at the end of <a href="07-applications-and-deep-review.html">chapter 07</a>: HIRE-3 to
+HIRE-6 are merged in both repos, and the demo data loads with <code>php artisan migrate:fresh --seed</code>.</p>
+<p><strong>Where to start Claude:</strong> the workspace root, <code>~/work/hireboard</code>. Both tickets change only
+<code>web/</code>, but the session reads the API to confirm that nothing needs to change there.</p>
+<h3 id="step-1--hire-7-the-spec-sizes-itself-s">Step 1 — HIRE-7: the spec sizes itself S</h3>
+<p>Alex creates the branch in <code>web/</code> only. HIRE-7 never touches <code>api/</code>, so there is no matching
+branch there:</p>
+<pre><code class="language-bash">cd ~/work/hireboard
+git -C web switch main &amp;&amp; git -C web pull
+git -C web switch -c feature/HIRE-7-company-careers-page
+claude</code></pre>
+<p>Then he types <code>/sdd HIRE-7</code>. No tracker is connected, so <code>/sdd</code> asks for the ticket text and
+Alex pastes it. Because the session runs from the workspace root, he adds in the same breath that
+the spec belongs in <code>web/</code>, since the change starts and ends there. Neither <code>/sdd</code> nor
+<code>write-spec</code> asks about the location, so it has to be said up front (see the friction note below).</p>
+<pre><code class="language-text">&gt; /sdd HIRE-7
+
+  (simulated, abridged)
+  No spec matches spec-HIRE-7-* under .ai/specs/. No Jira/Linear tool is available in this
+  session — paste the ticket text for HIRE-7.
+
+&gt; Public careers page per company at /companies/&lt;slug&gt; listing its open jobs and rating,
+  linked from job detail. Put the spec in web/ — this change starts and ends there.
+
+  Route: feature — adds a new public page; no existing behavior is wrong, no technology choice.
+  ? Confirm the route
+    ❯ feature (recommended)
+      trivial
+  → feature
+
+  Repos: detected api/ (laravel) and web/ (nextjs) under the workspace root.
+  ? Dev URL for browser acceptance?  → http://localhost:3000
+
+  Skill(&quot;write-spec&quot;, &quot;--ticket=HIRE-7 Public careers page per company at /companies/&lt;slug&gt;
+  listing its open jobs and rating, linked from job detail. Spec folder goes in web/.ai/specs/&quot;)</code></pre>
+<p><code>write-spec</code> sizes the work before investigating
+(<a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/write-spec/SKILL.md" target="_blank" rel="noopener noreferrer">write-spec Step 1</a>). Its investigation is
+what makes the size small. Everything the page needs is already shipped:</p>
+<pre><code class="language-text">  (simulated, abridged)
+  Investigate
+    api  GET /api/v1/companies/{slug}          ShowCompanyController (HIRE-1) — Company + open_jobs_count
+    api  GET /api/v1/jobs?company=&lt;slug&gt;       SearchJobPostingsController (HIRE-1) — company filter exists
+    api  GET /api/v1/companies/{slug}/reviews  ListCompanyReviewsController (HIRE-4) — meta.average_rating, meta.total
+    web  lib/api/endpoints.ts: showCompany, searchJobs, listCompanyReviews already registered
+    web  lib/api/jobs.ts getCompany(slug) → null on 404; lib/api/reviews.ts listCompanyReviews(slug, page)
+    web  app/companies/[slug]/ has only reviews/ — no index page
+    git  web: 4f1c2aa feat(reviews): company reviews page (HIRE-4) …
+
+  Size: S — one area (web/), 2 tasks, no schema or public API change.
+  Clarifying questions skipped: the ticket and the existing endpoints answer scope.
+
+  Spec folder: web/.ai/specs/spec-HIRE-7-company-careers-page/
+  Files: spec-lite.md, tasks.md</code></pre>
+<blockquote><p><strong>Kit friction: where the spec folder lands.</strong> <code>write-spec</code> creates <code>.ai/specs/&lt;id&gt;/</code> relative
+to the session&#39;s working directory and never asks where. From the workspace root that would be
+<code>~/work/hireboard/.ai/specs/</code>, the untracked scratch folder. So Alex told the session up front
+that the spec belongs in <code>web/</code> (chapter 05 does the same for <code>api/</code>), and the folder-creation
+step ran inside <code>web/</code>. The rule comes from
+<a href="../../reference/multi-repo.html#workflows-and-specs">docs/multi-repo.md</a>: <em>the spec lives in the repo that
+starts the change</em>. The HIRE-3 to HIRE-6 specs live in <code>api/</code> because the API starts them. This
+one lives in <code>web/</code>. If you would rather not rely on the instruction, start the session in <code>web/</code>
+with <code>CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ../api</code> instead, and pass
+the repos as <code>{ backend: &quot;../api&quot;, frontend: &quot;.&quot; }</code>.</p></blockquote>
+<h4 id="what-an-s-spec-contains">What an S spec contains</h4>
+<p>The whole spec is <a href="artifacts/web/.ai/specs/spec-HIRE-7-company-careers-page/spec-lite.html">spec-lite.md</a>
+and <a href="artifacts/web/.ai/specs/spec-HIRE-7-company-careers-page/tasks.html">tasks.md</a>.
+<code>write-spec</code> does not create <code>decisions.md</code>, and no Decisions section is written: the template
+marks it <em>(when needed)</em> and nothing here needed deciding. <code>manual-test.md</code> comes later from
+ship-feature&#39;s TestPlan phase, not from <code>write-spec</code>. Compare that with HIRE-4 in
+<a href="05-feature-company-reviews-full-spec.html">chapter 05</a>, which needed decisions, business rules
+and seven tasks.</p>
+<p>The frontmatter declares one stack:</p>
+<pre><code class="language-yaml">id: spec-HIRE-7-company-careers-page
+size: S
+status: draft
+ticket: HIRE-7
+stacks: [nextjs]</code></pre>
+<p>The Must NOT change list is short. Both items matter, though: the first makes the &quot;web only&quot;
+promise checkable.</p>
+<pre><code class="language-markdown">## Must NOT change
+- **MNC-1**: No change in `api/`. `git -C api diff --stat main` is empty after the build.
+- **MNC-2**: The `/jobs` page (filters, results, ordering, empty state) is unchanged.</code></pre>
+<p>There are three EARS acceptance criteria (abridged):</p>
+<pre><code class="language-markdown">- **AC-1**: WHEN anyone opens `/companies/&lt;slug&gt;` for an existing company THE SYSTEM SHALL show
+  its name, location, website and description, and list its open jobs from
+  `GET /api/v1/jobs?company=&lt;slug&gt;`.
+- **AC-2**: IF the slug does not match a company THEN THE SYSTEM SHALL render the app&#39;s not-found page
+  with `noindex` meta and an HTTP 404 status. The page awaits `getCompany()` and calls
+  `notFound()` before anything streams, so the route has no `loading.tsx`.
+- **AC-3**: WHEN the careers page renders THE SYSTEM SHALL show the average rating and the number
+  of approved reviews from the `listCompanyReviews` meta … with a link to `/companies/&lt;slug&gt;/reviews`.
+  Job detail SHALL link the company name to `/companies/&lt;slug&gt;`.</code></pre>
+<p><code>tasks.md</code> has two tasks, each with its <code>Covers:</code> line:</p>
+<pre><code class="language-markdown">- [ ] 1. Careers page (nextjs)
+  - Covers: AC-1, AC-2
+- [ ] 2. Rating summary and job-detail company link (nextjs)
+  - Covers: AC-3, MNC-2</code></pre>
+<p>The web repo has no component test harness. Vitest covers <code>lib/**/*.test.ts</code> only, and this
+spec adds no logic under <code>lib/</code>. So the Traceability table points mostly at manual-test steps,
+backed by <code>npx tsc --noEmit</code> for the data shapes. That is honest for a page that only composes
+existing fetchers. The table does not pretend there is a unit test. The gates listed are the
+web ones only. The template rule is to &quot;never paste Laravel commands into a Next.js-only repo&quot;:</p>
+<pre><code class="language-markdown">## Verification gates
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm test`
+- `npm run build` (this spec adds a route)</code></pre>
+<h4 id="clarity-gate-one-question">Clarity gate: one question</h4>
+<p>A fresh-context reviewer reads only the spec folder (write-spec Step 6). For an S spec it finds
+very little:</p>
+<pre><code class="language-text">  (simulated)
+  Clarity gate — 1 raised
+    1. AC-3 says &quot;show the average rating&quot;. What is shown when a company has no approved
+       reviews (average_rating is null)? A blank, &quot;0.0&quot;, or hide the section?
+
+  ? Q1: rating display with no reviews
+    ❯ &quot;No reviews yet&quot;, still linking to the reviews page
+      Hide the rating section
+      Accept as assumption
+  → &quot;No reviews yet&quot;, still linking to the reviews page   (Maya Chen, relayed by Alex)
+
+  Clarity gate: 1 raised, 1 resolved — ready for approval</code></pre>
+<p>The answer goes into the spec and the box is checked:</p>
+<pre><code class="language-markdown">## Open questions
+- [x] Q1: What does the rating summary show for a company with no approved reviews? —
+  **Answered** (Maya Chen): the text &quot;No reviews yet&quot;, still linking to the reviews page so the
+  first candidate can write one.</code></pre>
+<h3 id="step-2--approve-and-build-with-ship-feature">Step 2 — Approve and build with ship-feature</h3>
+<p>The approval has to come from the same <code>/sdd</code> conversation (chapter 04 explains why). Maya
+reviews the spec on Alex&#39;s screen, and <code>/sdd</code> asks:</p>
+<pre><code class="language-text">  (simulated)
+  Spec: web/.ai/specs/spec-HIRE-7-company-careers-page/spec-lite.md
+  Scope: new public page /companies/&lt;slug&gt; (profile, open jobs, rating summary); job detail links to it.
+  Must NOT change: nothing in api/; /jobs page unchanged.
+  Boundaries: ask before any api/ change, new dependency or new endpoint.
+  Acceptance: 3 criteria (page content, not-found page for unknown slug, rating summary + links).
+
+  ? Approve this spec?
+    ❯ Approve and build
+      Approve only
+      Request changes
+      Stop here (draft)
+  → Approve and build
+
+  Approver name? (git config user.name = &quot;Alex Rivera&quot;)  → Maya Chen</code></pre>
+<p><code>/sdd</code> records the approval in the frontmatter. It stamps <code>approved_at</code> from <code>date -u</code>:</p>
+<pre><code class="language-diff">-status: draft
++status: approved
+-approved_by:
+-approved_at:
++approved_by: Maya Chen
++approved_at: 2026-10-28T10:15:00Z</code></pre>
+<p>There is no tracker, so the link-back question is skipped. <code>/sdd</code> then shows the call and waits
+for a yes:</p>
+<pre><code class="language-js">Workflow({
+  name: &quot;ship-feature&quot;,
+  args: {
+    spec: &quot;web/.ai/specs/spec-HIRE-7-company-careers-page&quot;,
+    ticket: &quot;HIRE-7&quot;,
+    repos: { backend: &quot;api&quot;, frontend: &quot;web&quot; },
+    url: &quot;http://localhost:3000&quot;
+  }
+})</code></pre>
+<ul><li><strong><code>spec</code></strong> is the repo-relative path, because the session runs from the workspace root and
+the resolver looks in <code>./.ai/specs</code>. Chapter 04 shows the same pattern for <code>api/</code> specs.</li><li><strong><code>repos</code> lists both repos.</strong> The API is not changed, but Detect, Acceptance and Review need it
+as read-only context: they confirm that <code>?company=</code> and <code>meta.average_rating</code> exist and that
+nothing in <code>api/</code> moved.</li></ul>
+<p>The phases are the same as for an M spec
+(<a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/sdd/references/ship-feature.md" target="_blank" rel="noopener noreferrer">ship-feature reference</a>). They
+are just shorter:</p>
+<pre><code class="language-text">  (simulated, abridged — /workflows)
+  Detect       api (laravel, tracked), web (nextjs, tracked, branch feature/HIRE-7-company-careers-page)
+  Spec         loaded spec-HIRE-7-company-careers-page: 2 pending tasks; approved → in-progress
+  Build        task 1 (nextjs-frontend-dev) app/companies/[slug]/page.tsx ✓
+               task 2 (nextjs-frontend-dev) rating summary; app/jobs/[id]/page.tsx company link ✓
+  Gates        web: npm run lint ✓  npx tsc --noEmit ✓  npm test ✓ (3 passed)
+               api: pint --test ✓  phpstan ✓  php artisan test ✓  (no changes)
+  Converge     round 1: AC-1..AC-3 and MNC-1..MNC-2 covered — no gaps
+  Visual       /companies/acme-robotics at 375/768/1280: layout, contrast OK
+  Review       4 dimensions, 1 candidate finding → refuted 3/3 (see below)
+  Acceptance   job detail → company name → /companies/acme-robotics ✓
+               /companies/no-such-company → not-found page (HTTP 200, streamed after the skeleton) ✓
+               MNC-1: `git -C api diff --stat main` → (empty) ✓
+               MNC-2: /jobs and /jobs?remote=1 render as before ✓
+  Docs         no existing doc covers company pages — skipped
+  TestPlan     web/.ai/specs/spec-HIRE-7-company-careers-page/manual-test.md (7 steps);
+               Traceability manual rows filled; status → done
+  Report       SHIP</code></pre>
+<p>The Review finding that did not survive is worth seeing, because it is the subtle part of this
+page:</p>
+<pre><code class="language-text">  (simulated)
+  Candidate: &quot;Promise.all rejects when listCompanyReviews throws for an unknown slug, so AC-2
+  would show the error boundary instead of not-found.&quot;
+  Refuted 3/3: loadReviewSummary() catches ApiError with status 404 and returns null;
+  getCompany() returns null on 404; notFound() runs before any render, and a malformed slug is stopped by SLUG_PATTERN first. Verified against
+  app/companies/[slug]/page.tsx:34-60 and manual-test.md#step-2.</code></pre>
+<p>TestPlan writes <a href="artifacts/web/.ai/specs/spec-HIRE-7-company-careers-page/manual-test.html">manual-test.md</a>.
+Step 6 covers MNC-1, and it is the same check Acceptance ran:</p>
+<pre><code class="language-bash">git -C api status --short
+git -C api diff --stat main
+# both print nothing</code></pre>
+<p>Two honest notes about running ship-feature on an S spec:</p>
+<ul><li><strong>It is still the full pipeline.</strong> An S spec skips nothing: Converge, Visual, a 3-vote review
+panel and Acceptance all run. For a two-task web change that is a lot of background agents.
+Two cheaper options from earlier chapters work just as well here: &quot;Approve only&quot; followed by
+a session started inside <code>web/</code> (<code>cd web &amp;&amp; CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ../api</code>)
+running <code>/execute-task --spec=HIRE-7</code> (chapter 06), or building the two tasks yourself. Alex picks ship-feature because Acceptance gives him a browser re-walk
+and the MNC-1 check for free.</li><li><strong>Gates run what the stack registry lists.</strong> For <code>nextjs</code> that is lint, tsc and the test script.
+<code>npm run build</code> is not in the registry. <code>web/CLAUDE.md</code> requires a build when routing changes,
+so Alex runs it himself before pushing:</li></ul>
+<pre><code class="language-bash">cd ~/work/hireboard/web
+npm run build
+# ✓ Compiled successfully
+# Route (app)                       Size   First Load JS
+# ├ ƒ /companies/[slug]             …
+# ├ ƒ /companies/[slug]/reviews     …</code></pre>
+<p><code>ƒ</code> (dynamic) is expected. The page reads <code>params</code> and fetches with <code>cache: &#39;no-store&#39;</code>, so
+nothing is fetched at build time.</p>
+<p>He commits in <code>web/</code> only and opens one PR. There is no API PR and no merge order to worry about:</p>
+<pre><code class="language-bash">git -C web add &#39;app/companies/[slug]&#39; &#39;app/jobs/[id]/page.tsx&#39; \
+  .ai/specs/spec-HIRE-7-company-careers-page
+git -C web commit -m &quot;feat(companies): public careers page (HIRE-7)&quot;
+git -C web push -u origin feature/HIRE-7-company-careers-page
+(cd web &amp;&amp; gh pr create --base main --title &quot;HIRE-7: company careers page&quot; \
+  --body &quot;Spec: .ai/specs/spec-HIRE-7-company-careers-page (S, approved by Maya Chen). Web only — api/ unchanged (MNC-1).&quot;)</code></pre>
+<h3 id="step-3--the-code">Step 3 — The code</h3>
+<p>The page is [app/companies/[slug]/page.tsx](artifacts/web/app/companies/%5Bslug%5D/page.tsx).
+It deliberately has no <code>loading.tsx</code>: a loading boundary starts streaming a 200 response before
+<code>notFound()</code> runs, so an unknown slug would never return 404. It is a
+Server Component that makes three calls through the existing fetchers in parallel:</p>
+<pre><code class="language-tsx">export default async function CompanyPage({ params }: CompanyPageProps) {
+  const { slug } = await params;
+
+  if (!SLUG_PATTERN.test(slug)) {
+    notFound();
+  }
+
+  const [company, jobs, reviews] = await Promise.all([
+    getCompany(slug),
+    searchJobs({ company: slug }),
+    loadReviewSummary(slug),
+  ]);
+
+  if (!company) {
+    notFound();
+  }
+
+  const averageRating = reviews?.meta.average_rating ?? null;
+  const reviewCount = reviews?.meta.total ?? 0;
+  // …</code></pre>
+<p>Four details, each tied to the spec:</p>
+<ul><li><strong><code>params</code> is a Promise</strong> (Next.js 15), so it is awaited before use.</li><li><strong><code>SLUG_PATTERN</code> guards the fetches.</strong> The pattern (<code>/^[a-z0-9-]{1,80}$/</code>) matches what the
+API accepts for the <code>company</code> filter. A slug outside it can never exist, and passing it to
+<code>searchJobs({ company: slug })</code> would make the API answer 422 and land on the error boundary
+instead of the not-found page, so the page calls <code>notFound()</code> before any request.</li><li><strong><code>loadReviewSummary</code> catches only a 404.</strong> For an unknown slug the reviews endpoint answers
+<code>404 company_not_found</code> at the same time as <code>getCompany</code> returns <code>null</code>. Without the catch,
+<code>Promise.all</code> would reject and AC-2 would show the error boundary. Any other error still
+surfaces.</li><li><strong>The rating summary</strong> prints <code>averageRating.toFixed(1)</code> with &quot;out of 5 · N reviews&quot;, or &quot;No
+reviews yet&quot; (clarity gate Q1). It always links to <code>/companies/&lt;slug&gt;/reviews</code>. The API already
+rounds half-up to one decimal (BR-43). The page only formats the number.</li></ul>
+<p>Task 2 also touched job detail. The company link is already in the chapter 02 artifact
+[app/jobs/[id]/page.tsx](artifacts/web/app/jobs/%5Bid%5D/page.tsx), which holds the
+end-of-walkthrough state. This is the change HIRE-7 made (excerpt; the artifact is authoritative):</p>
+<pre><code class="language-diff"> import Link from &#39;next/link&#39;;
+ import { notFound } from &#39;next/navigation&#39;;
+ …
+       &lt;h1 className=&quot;text-3xl font-semibold tracking-tight&quot;&gt;{job.title}&lt;/h1&gt;
+       &lt;p className=&quot;text-lg&quot;&gt;
+-        {job.company.name}
++        &lt;Link href={`/companies/${job.company.slug}`} className=&quot;font-medium text-blue-700 hover:underline&quot;&gt;
++          {job.company.name}
++        &lt;/Link&gt;
+       &lt;/p&gt;</code></pre>
+<p><code>job.company.slug</code> was in the <code>JobPosting</code> shape from HIRE-1, so no type or API change was
+needed. The investigation confirmed this before sizing the spec S.</p>
+<h3 id="step-4--hire-8-trivial-no-spec">Step 4 — HIRE-8: trivial, no spec</h3>
+<p>The next ticket is copy-sized. Alex merges HIRE-7, then starts from <code>main</code> in <code>web/</code>:</p>
+<pre><code class="language-bash">git -C web switch main &amp;&amp; git -C web pull
+git -C web switch -c chore/HIRE-8-salary-range</code></pre>
+<p>He passes the ticket text inline, so <code>/sdd</code> does not need to ask for it:</p>
+<pre><code class="language-text">&gt; /sdd HIRE-8: job cards show the salary range as &quot;€60,000 – €80,000 a year&quot;; hide it when there is no salary
+
+  (simulated)
+  Route: trivial — one component (components/job-card.tsx), no design choice, no behavior
+  contract at risk (the API already returns salary {min, max, currency}).
+  ? Confirm the route
+    ❯ trivial (recommended)
+      feature
+  → trivial
+
+  Skill(&quot;simple-task&quot;, &quot;HIRE-8: job cards show the salary range as &#39;€60,000 – €80,000 a year&#39;
+  using Intl.NumberFormat with the posting currency; hide it when salary is null --no-tests&quot;)</code></pre>
+<p>Alex asked for <code>--no-tests</code> on purpose. <code>/simple-task</code> is test-first by default (RED, then GREEN),
+and the flag is its explicit opt-out. The reason is that the web repo has no component test
+environment: Vitest covers <code>lib/**/*.test.ts</code> in a node environment, and the change is
+presentational. The cost is real. <code>formatSalary</code> has three branches of pure logic that nothing
+tests. Moving it to <code>lib/format-salary.ts</code> with a Vitest case would be the stricter alternative;
+chapter 10&#39;s QA plan lists the missing coverage.</p>
+<p>The <code>trivial</code> signal in <a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/sdd/SKILL.md" target="_blank" rel="noopener noreferrer">/sdd Step 2</a> is &quot;≤ ~5 files,
+no design choice, no behavior contract at risk&quot;. This is the same line <code>write-spec</code> draws as
+<strong>XS</strong>: &quot;≤ ~3 files, one obvious change … <strong>No spec.</strong> Recommend <code>/simple-task</code>&quot;. Had Alex
+routed it as a feature, <code>write-spec</code> would have sized it XS and sent it back to this route.
+<code>/sdd</code> never creates a spec for trivial work.</p>
+<p><code>/simple-task</code> takes its fast path (clear task, fewer than 3 files):</p>
+<pre><code class="language-text">  (simulated, abridged)
+  Investigate
+    components/job-card.tsx renders title, company, location, remote badge, employment type
+    types/api/jobs.ts: salary: { min: number | null; max: number | null; currency: string } | null
+    Complexity: 1 file, 0 new files, 0 migrations, 0 endpoints — under every threshold
+  Implement
+    formatSalary(salary) in job-card.tsx: Intl.NumberFormat(&#39;en&#39;, { style: &#39;currency&#39;,
+    currency: salary.currency, maximumFractionDigits: 0 }); range &quot;min – max a year&quot;,
+    &quot;From …&quot; / &quot;Up to …&quot; when one bound is missing; no badge when salary is null
+    Test-first: skipped (--no-tests). No component test environment; verified by tsc,
+    lint and the dev server instead.
+  Verify
+    npm run lint ✓   npx tsc --noEmit ✓   npm test ✓ (3 passed)   no console.log / debugger
+  Task log: .ai/tasks/TASK-0001-salary-range-on-job-cards.md (diff is over 10 lines)
+
+  Files Changed (1):
+    ~ components/job-card.tsx (modified)</code></pre>
+<p>The diff it reports is below (excerpt). The chapter 02 artifact
+<a href="artifacts/web/components/job-card.tsx">components/job-card.tsx</a> already contains the final
+version, so read that file for the exact code:</p>
+<pre><code class="language-diff"> import Link from &#39;next/link&#39;;
+ import { EMPLOYMENT_TYPE_LABELS } from &#39;@/lib/search-params&#39;;
+-import type { JobPosting } from &#39;@/types/api/jobs&#39;;
++import type { JobPosting, Salary } from &#39;@/types/api/jobs&#39;;
++
++/** &quot;€60,000 – €80,000 a year&quot;; one-sided ranges read &quot;From …&quot; / &quot;Up to …&quot;. */
++function formatSalary(salary: Salary): string {
++  const money = new Intl.NumberFormat(&#39;en&#39;, {
++    style: &#39;currency&#39;,
++    currency: salary.currency,
++    maximumFractionDigits: 0,
++  });
++
++  if (salary.min !== null &amp;&amp; salary.max !== null) {
++    return `${money.format(salary.min)} – ${money.format(salary.max)} a year`;
++  }
++  if (salary.min !== null) {
++    return `From ${money.format(salary.min)} a year`;
++  }
++  return `Up to ${money.format(salary.max ?? 0)} a year`;
++}
+
+ export function JobCard({ job }: { job: JobPosting }) {
+   return (
+     &lt;article className=&quot;rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition hover:border-gray-300&quot;&gt;
+       …
+       &lt;ul className=&quot;mt-3 flex flex-wrap gap-2 text-xs text-gray-700&quot;&gt;
+         {job.remote &amp;&amp; &lt;li className=&quot;rounded-full bg-green-100 px-2.5 py-0.5 text-green-800&quot;&gt;Remote&lt;/li&gt;}
+         &lt;li className=&quot;rounded-full bg-gray-100 px-2.5 py-0.5&quot;&gt;{EMPLOYMENT_TYPE_LABELS[job.employment_type]}&lt;/li&gt;
++        {job.salary &amp;&amp; &lt;li className=&quot;rounded-full bg-gray-100 px-2.5 py-0.5&quot;&gt;{formatSalary(job.salary)}&lt;/li&gt;}
+       &lt;/ul&gt;
+     &lt;/article&gt;
+   );
+ }</code></pre>
+<p><code>maximumFractionDigits: 0</code> matches INV-07 and BR-12: salaries are whole annual units, so the
+card shows &quot;€60,000&quot;, not &quot;€60,000.00&quot;. The currency comes from the posting rather than being
+hard-coded to EUR, which keeps any non-EUR posting correct.</p>
+<p>The task log lands at <code>.ai/tasks/TASK-0001-salary-range-on-job-cards.md</code> relative to the session
+directory, here the untracked workspace scratch folder. The skill only skips the log for
+single-file changes under 10 lines, and this diff is longer, so the log is written. Alex checks
+http://localhost:3000/jobs by eye, then commits and opens the PR:</p>
+<pre><code class="language-bash">git -C web add components/job-card.tsx
+git -C web commit -m &quot;chore(jobs): show salary range on job cards (HIRE-8)&quot;
+git -C web push -u origin chore/HIRE-8-salary-range
+(cd web &amp;&amp; gh pr create --base main --title &quot;HIRE-8: salary range on job cards&quot; \
+  --body &quot;Trivial route via /sdd → /simple-task. One file; lint, tsc and vitest green.&quot;)</code></pre>
+<p>The careers page reuses <code>JobCard</code>, so HIRE-8 shows up there too with no extra work.</p>
+<h3 id="step-5--choosing-the-size">Step 5 — Choosing the size</h3>
+<div class="table-wrap"><table><thead><tr><th>Size</th><th>Signals</th><th>What you get</th><th>In this walkthrough</th></tr></thead><tbody><tr><td><strong>XS</strong></td><td>≤ ~3 files, obvious change, no contract at risk</td><td>No spec. <code>/simple-task</code> (via the <code>/sdd</code> trivial route)</td><td>HIRE-8</td></tr><tr><td><strong>S</strong></td><td>One area, 1–3 tasks, no schema or public API change</td><td><code>spec-lite.md</code> + <code>tasks.md</code></td><td>HIRE-7</td></tr><tr><td><strong>M</strong></td><td>Several layers, 4–7 tasks, or a schema/API change</td><td>S + <code>decisions.md</code> when real decisions were made + <code>manual-test.md</code> when there is a UI</td><td>HIRE-3 to HIRE-6</td></tr><tr><td><strong>L</strong></td><td>Cross-cutting, multi-repo, 8+ tasks, or new business rules</td><td>M + <code>business-rules.md</code> + <code>references.md</code>, each only when it has content</td><td>none (chapter 05 explains why HIRE-4 is not L)</td></tr></tbody></table></div>
+<p>HIRE-7 still ended up with a <code>manual-test.md</code>. ship-feature&#39;s TestPlan phase writes one for
+every spec it builds, whatever the size. The size limits what <code>write-spec</code> produces up front,
+not what the build pipeline records.</p>
+<p>The canonical table is <a href="../../reference/specification-system.html#sizing-proportionality">Sizing (proportionality)</a>
+in the specification system. The one-paragraph version of the trivial path is
+<a href="../../reference/usage-examples.html#6-small-change">USAGE-EXAMPLES.md#6-small-change</a>.</p>
+<h3 id="what-you-have-now">What you have now</h3>
+<ul><li>A public careers page at <code>/companies/&lt;slug&gt;</code> with open jobs, a rating summary, and a link from
+job detail. It was built from an approved S spec in <code>web/.ai/specs/</code> that is now <code>done</code>, and
+<code>api/</code> was not touched.</li><li>Job cards that show salary ranges, changed through the trivial route with no spec, using
+<code>--no-tests</code> knowingly.</li><li>Two web PRs (<code>feature/HIRE-7-company-careers-page</code>, <code>chore/HIRE-8-salary-range</code>), each green
+on lint, tsc and vitest, plus <code>npm run build</code> for the new route.</li></ul>
+<p>Next: <a href="09-bug-closed-jobs-fix-bug.html">09 — Bug: closed postings reachable by direct link, fixed with fix-bug</a></p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/08-careers-page-s-spec-and-trivial-change.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

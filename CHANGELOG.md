@@ -5,6 +5,14 @@ All notable changes to SDD Kit (released as the Claude Laravel + Next.js Develop
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-10-21
+
+### Changed
+
+- **One interactive guide.** `docs/guide/index.html` is now the single guide, with every section on one page: primer, install, quickstart, route picker, routes map, pipeline, spec anatomy, hooks, workflows, the Hireboard example, spec board and the searchable catalog. A Cmd/Ctrl+K command palette searches sections, routes, workflows, skills, agents, Hireboard chapters and example specs. The page shows the kit version, and `verify.sh` fails when it differs from `VERSION`.
+- `field-guide.html`, `flow-map.html` and `terminal.html` are redirect stubs that keep old deep links working, including the terminal's command aliases. The README embeds the new desktop screenshot.
+- **Markdown pages on the published site.** Every Markdown file the site serves (the Hireboard chapters and artifacts, the reference docs, and now Getting started, Installation and Usage examples) also gets an HTML page in the guide's styles, with light and dark themes and working heading anchors. Links between site pages open those pages; folders without a README open on GitHub.
+
 ## [2.1.0] - 2026-10-20
 
 ### Changed

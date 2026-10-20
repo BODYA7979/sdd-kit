@@ -80,7 +80,7 @@ because Step 4 copies a template out of it. Clone it even if you install from th
 > name (`Workflow({ name: "greenfield-build", ... })`).
 > Plugins also never create `CLAUDE.md`, `AGENTS.md` or `.claude/rules/`. You write the
 > workspace `CLAUDE.md` by hand in Step 4, and chapter 02 gives each repo its own context
-> files. See [INSTALLATION.md, "Project context is not installed"](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/INSTALLATION.md#project-context-is-not-installed).
+> files. See [INSTALLATION.md, "Project context is not installed"](../../reference/installation.md#project-context-is-not-installed).
 
 Two plugin-mode differences that matter later, from [docs/plugin-mode.md](../../reference/plugin-mode.md):
 the kit's guardrail hooks (dangerous-command blocking, the Conventional Commits check) run in
@@ -135,7 +135,7 @@ cleanup after each update.
 After chapter 02, run the same installer once inside each repo (`cd api && .../install.sh --project`,
 then the same in `web/`). That is the point where per-repo `AGENTS.md` and `.claude/rules/` are created. Never run it
 inside `api/` or `web/` before chapter 02 (F1). The flags (`--with=`, `--user`, `--yes`) are
-documented in [INSTALLATION.md, file-copy mode](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/INSTALLATION.md#file-copy-mode).
+documented in [INSTALLATION.md, file-copy mode](../../reference/installation.md#file-copy-mode).
 
 ---
 
@@ -358,9 +358,9 @@ the kit's first design rule.
 - [ ] `/memory` shows the root `CLAUDE.md`
 - [ ] `ls ~/work/hireboard` shows no `api/`, no `web/` and no `.git`
 
-For the general install and usage reference, see [INSTALLATION.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/INSTALLATION.md),
-[GETTING-STARTED.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/GETTING-STARTED.md) and the multi-repo scenario in
-[USAGE-EXAMPLES.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/USAGE-EXAMPLES.md#11-split-backend-and-frontend-repos).
+For the general install and usage reference, see [INSTALLATION.md](../../reference/installation.md),
+[GETTING-STARTED.md](../../reference/getting-started.md) and the multi-repo scenario in
+[USAGE-EXAMPLES.md](../../reference/usage-examples.md#11-split-backend-and-frontend-repos).
 
 ## What you have now
 

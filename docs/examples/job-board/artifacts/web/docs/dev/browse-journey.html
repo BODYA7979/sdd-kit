@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Public browse journey: how it works · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/web/docs/dev/browse-journey.md</p>
+  <article class="doc-body">
+<h2 id="public-browse-journey-how-it-works">Public browse journey: how it works</h2>
+<p>The anonymous part of Hireboard: job search with filters, job detail and the company careers page. Nothing here needs a session. This page follows a request from the page down to the database, lists the rules each layer enforces, and shows where to make the common changes.</p>
+<p>Tickets that shaped this code: HIRE-1 (first slice), HIRE-7 (careers page), HIRE-8 (salary on job cards), HIRE-9 (closed postings by direct link). Test plan: <a href="../qa/qa-plan-2026-11-03.html">qa-plan-2026-11-03.md</a>.</p>
+<h3 id="routes">Routes</h3>
+<div class="table-wrap"><table><thead><tr><th>Page</th><th>File</th><th>Data</th></tr></thead><tbody><tr><td><code>/</code></td><td><a href="../../app/page.tsx">app/page.tsx</a></td><td><code>redirect(&#39;/jobs&#39;)</code></td></tr><tr><td><code>/jobs</code></td><td><a href="../../app/jobs/page.tsx">app/jobs/page.tsx</a> with <code>loading.tsx</code> and <code>error.tsx</code></td><td><code>searchJobs(filters)</code></td></tr><tr><td><code>/jobs/[id]</code></td><td>[app/jobs/[id]/page.tsx](../../app/jobs/[id]/page.tsx)</td><td><code>getJob(id)</code>, <code>notFound()</code> on <code>null</code></td></tr><tr><td><code>/companies/[slug]</code></td><td>[app/companies/[slug]/page.tsx](../../app/companies/[slug]/page.tsx) (no <code>loading.tsx</code>, so unknown slugs return 404)</td><td><code>getCompany(slug)</code>, <code>searchJobs({ company: slug })</code>, <code>listCompanyReviews(slug, 1)</code></td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>API endpoint</th><th>Controller</th><th>Registry key</th></tr></thead><tbody><tr><td><code>GET /api/v1/jobs</code></td><td><code>Jobs\SearchJobPostingsController</code></td><td><code>searchJobs</code></td></tr><tr><td><code>GET /api/v1/jobs/{id}</code></td><td><code>Jobs\ShowJobPostingController</code></td><td><code>showJob</code></td></tr><tr><td><code>GET /api/v1/companies/{slug}</code></td><td><code>Companies\ShowCompanyController</code></td><td><code>showCompany</code></td></tr></tbody></table></div>
+<p>The full request and response shapes are in <a href="../../../api/docs/api/api-contracts.html">api-contracts.md</a>.</p>
+<h3 id="data-flow-job-search">Data flow: job search</h3>
+<pre><code>app/jobs/page.tsx                    (Server Component, awaits searchParams)
+  └─ parseJobFilters(searchParams)   lib/search-params.ts
+  └─ searchJobs(filters)             lib/api/jobs.ts
+       └─ apiFetch(endpoints.searchJobs, { query })     lib/api/client.ts  (server-only)
+            └─ GET {API_BASE_URL}/api/v1/jobs?q=…&amp;remote=1
+                 └─ SearchJobPostingsController          JobSearchDTO from the query string
+                      └─ JobPostingService::search
+                           └─ JobPostingRepositoryInterface::searchOpen
+                                └─ JobPostingRepository   status = open, newest published_at first
+                      └─ JsonResponseTrait::paginated     data[] via JobPostingDTO::toApiArray(), meta
+  └─ &lt;JobFilters&gt; + &lt;JobCard&gt; per posting</code></pre>
+<h4 id="web-side">Web side</h4>
+<ul><li><strong>The URL is the state.</strong> <a href="../../components/job-filters.tsx">components/job-filters.tsx</a> is a plain <code>GET</code> form, so submitting it changes the query string and the Server Component renders again. No client state holds filters.</li><li><a href="../../lib/search-params.ts">lib/search-params.ts</a> owns the mapping. <code>parseJobFilters()</code> turns Next.js <code>searchParams</code> into a typed <code>JobFilters</code> object and drops empty and unknown values (an <code>employment_type</code> outside the <code>EmploymentType</code> union is ignored, not forwarded). <code>toQueryString()</code> is the inverse. Both are covered by <a href="../../lib/search-params.test.ts">search-params.test.ts</a>.</li><li><a href="../../lib/api/client.ts">lib/api/client.ts</a> starts with <code>import &#39;server-only&#39;</code>. It resolves the path from <a href="../../lib/api/endpoints.ts">lib/api/endpoints.ts</a>, fills <code>{id}</code> and <code>{slug}</code> from <code>params</code>, and sends every request with <code>cache: &#39;no-store&#39;</code>. Non-2xx responses throw <code>ApiError</code> with <code>status</code>, <code>code</code> and <code>errors</code> from the API error envelope.</li><li><code>API_BASE_URL</code> comes from <code>.env.local</code> and is never prefixed <code>NEXT_PUBLIC_</code>. The browser never calls the API directly (ADR-0001), so there is no CORS configuration to maintain.</li><li>All pages here render per request. Nothing is fetched at build time, so <code>npm run build</code> succeeds without a running API.</li></ul>
+<h4 id="api-side">API side</h4>
+<ul><li><code>JobSearchDTO</code> carries <code>q</code>, <code>location</code>, <code>remote</code>, <code>employmentType</code>, <code>company</code>, <code>page</code> and <code>perPage</code>. The controller normalizes <code>remote</code> with <code>$request-&gt;boolean()</code>, so <code>remote=1</code>, <code>remote=true</code> and <code>remote=on</code> all mean true.</li><li><code>per_page</code> defaults to 20 and is capped at 50 (BR-11).</li><li><code>JobPostingRepository::searchOpen</code> always applies <code>status = open</code> (BR-10) before any filter, then orders by <code>published_at</code> descending (BR-11). The <code>(status, published_at)</code> index on <code>job_postings</code> backs this query. The <code>company</code> filter matches the company slug.</li><li>The repository returns a paginator of <code>JobPostingDTO</code>, never Eloquent models. <code>JsonResponseTrait::paginated</code> maps each item through <code>toApiArray()</code> and adds <code>meta: {current_page, per_page, total, last_page}</code> (INV-01).</li></ul>
+<h3 id="data-flow-job-detail">Data flow: job detail</h3>
+<pre><code>app/jobs/[id]/page.tsx              (awaits params)
+  └─ getJob(id)                     lib/api/jobs.ts: returns null when ApiError.status === 404
+       └─ GET /api/v1/jobs/{id}
+            └─ ShowJobPostingController
+                 └─ JobPostingService::findOpen
+                      └─ JobPostingRepositoryInterface::findOpenById   null unless status = open
+                      └─ throws JobPostingNotFoundException            404, code job_not_found
+  └─ notFound() when null           app/not-found.tsx</code></pre>
+<p>Unknown, closed and draft ids all produce the same 404 <code>job_not_found</code>, so a closed posting is indistinguishable from one that never existed (BR-10).</p>
+<p><strong>Two lookups, on purpose.</strong> <code>JobPostingRepositoryInterface</code> has both <code>findOpenById</code> and <code>findById</code>:</p>
+<div class="table-wrap"><table><thead><tr><th>Method</th><th>Filter</th><th>Used by</th><th>Why</th></tr></thead><tbody><tr><td><code>findOpenById</code></td><td><code>status = open</code></td><td><code>JobPostingService::findOpen</code> (public detail)</td><td>Draft and closed postings are never public.</td></tr><tr><td><code>findById</code></td><td>none</td><td><code>JobApplicationService::submit</code></td><td>Applying to a closed job must answer 422 <code>job_not_open</code>, not 404, and employers still see applications to closed jobs.</td></tr></tbody></table></div>
+<p>HIRE-9 was <code>findOpen</code> calling <code>findById</code>. Any new public read path must use <code>findOpenById</code> or <code>searchOpen</code>. <code>ClosedJobPostingVisibilityTest</code> fails if the public detail regresses.</p>
+<h3 id="data-flow-careers-page">Data flow: careers page</h3>
+<p><code>app/companies/[slug]/page.tsx</code> makes three calls in parallel with <code>Promise.all</code>:</p>
+<ol><li><code>getCompany(slug)</code>: <code>GET /api/v1/companies/{slug}</code> through <code>ShowCompanyController</code> and <code>CompanyService::findBySlug</code>. <code>null</code> on 404 <code>company_not_found</code>, which renders the not-found page. The response includes <code>open_jobs_count</code>.</li><li><code>searchJobs({ company: slug })</code>: the same search endpoint as <code>/jobs</code>, so the careers page lists exactly what search would list for that company, closed and draft postings excluded.</li><li><code>listCompanyReviews(slug, 1)</code> from <code>lib/api/reviews.ts</code>: the rating summary uses <code>meta.average_rating</code> (approved reviews only, rounded half-up to one decimal, <code>null</code> when there are none, BR-43) and <code>meta.total</code>. A 404 from this call is swallowed so an unknown slug reaches <code>notFound()</code> through <code>getCompany</code> instead of the error boundary.</li></ol>
+<p>The company payload carries no review fields on purpose. HIRE-4 kept <code>GET /api/v1/companies/{slug}</code> unchanged (its MNC-1), which is why the rating comes from the reviews list.</p>
+<h3 id="salary-display">Salary display</h3>
+<p><a href="../../components/job-card.tsx">components/job-card.tsx</a> formats <code>salary</code> with <code>Intl.NumberFormat</code> using the posting&#39;s <code>currency</code>, producing for example <code>€60,000 – €80,000 a year</code>. When <code>salary</code> is <code>null</code>, the card renders no salary line. The API stores salaries as whole-unit annual integers plus an ISO-4217 currency (BR-12, INV-07), so the frontend never does arithmetic on them, only formatting.</p>
+<h3 id="changing-the-journey">Changing the journey</h3>
+<h4 id="add-a-search-filter">Add a search filter</h4>
+<ol><li>API: add the property to <code>JobSearchDTO</code>, apply it in <code>JobPostingRepository::searchOpen</code> after the <code>status = open</code> constraint, and add a case to <code>SearchJobPostingsTest</code>.</li><li>Document the query parameter in <a href="../../../api/docs/api/api-contracts.html">api-contracts.md</a>.</li><li>Web: add the field to <code>JobFilters</code> in <a href="../../types/api/jobs.ts">types/api/jobs.ts</a>, parse and serialize it in <a href="../../lib/search-params.ts">lib/search-params.ts</a> with a test in <code>search-params.test.ts</code>, and add the input to <code>components/job-filters.tsx</code>.</li><li>Run the gates in both repos: <code>./vendor/bin/pint --test</code>, <code>./vendor/bin/phpstan analyse --no-progress</code> and <code>php artisan test</code> in <code>api/</code>, and <code>npm run lint</code>, <code>npx tsc --noEmit</code> and <code>npm test</code> in <code>web/</code>.</li></ol>
+<h4 id="add-a-field-to-the-job-payload">Add a field to the job payload</h4>
+<p>Add it to <code>JobPostingDTO</code> and its <code>toApiArray()</code>, then to the <code>JobPosting</code> type in <code>types/api/jobs.ts</code>. The type mirrors the API by hand and the response is cast to it, not validated, so <code>npx tsc --noEmit</code> only catches fields that are renamed, removed or narrowed. A newly added field produces no type error anywhere: update the components that should display it (<code>components/job-card.tsx</code>, <code>app/jobs/[id]/page.tsx</code>) yourself. <code>ShowJobPostingTest</code> and the HIRE-9 guard <code>still shows open postings with the same shape</code> assert the payload shape, so update them in the same change.</p>
+<h4 id="add-a-public-page-that-calls-a-new-endpoint">Add a public page that calls a new endpoint</h4>
+<p>Register the endpoint in <a href="../../lib/api/endpoints.ts">lib/api/endpoints.ts</a> and in <code>api-contracts.md</code> (INV-06). A path that exists in only one of them is a contract bug.</p>
+<h3 id="troubleshooting">Troubleshooting</h3>
+<div class="table-wrap"><table><thead><tr><th>Symptom</th><th>Likely cause</th></tr></thead><tbody><tr><td><code>/jobs</code> shows the error boundary</td><td>The API is not running on <code>API_BASE_URL</code>, or <code>.env.local</code> is missing. Start <code>php artisan serve --port=8000</code>.</td></tr><tr><td>A posting you just closed still shows in a browser tab</td><td>The tab was rendered before the change. Reload; nothing is cached server-side.</td></tr><tr><td>Search returns nothing on a fresh checkout</td><td>The database has no data. Run <code>php artisan migrate:fresh --seed</code> in <code>api/</code> (local only).</td></tr></tbody></table></div>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/web/docs/dev/browse-journey.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

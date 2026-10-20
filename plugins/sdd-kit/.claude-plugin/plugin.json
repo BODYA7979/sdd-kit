@@ -1,6 +1,6 @@
 {
   "name": "sdd-kit",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "SDD Kit: spec-driven development for Claude Code. A single /sdd front door, six background multi-agent workflows with stack detection and cross-repo support, specialized agents and skills, and guardrail hooks. Ships Laravel and Next.js support today; optional add-ons: ops, ios, drupal, design.",
   "author": {
     "name": "Stas Markov"

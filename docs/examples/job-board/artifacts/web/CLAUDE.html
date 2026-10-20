@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hireboard web · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/web/CLAUDE.md</p>
+  <article class="doc-body">
+<h2 id="hireboard-web">Hireboard web</h2>
+<p>@AGENTS.md</p>
+<h3 id="project-facts">Project facts</h3>
+<p>The Next.js 15 frontend of Hireboard, a small job board. It renders every page on the
+server and talks to the Laravel API (<code>../api/</code>) as a backend-for-frontend. What must never
+break: the API token never reaches the browser, and pages never show data the API did not
+return (a 404 from the API is a not-found page here).</p>
+<p>The stack, exact commands, red lines, architecture and code standards are in <code>AGENTS.md</code>
+(imported above). Cross-repo rules (contract, routing, process) are in the workspace
+<code>../CLAUDE.md</code>. Each fact goes in one file only.</p>
+<h3 id="always-load">Always load</h3>
+<ol><li><code>../api/docs/api/api-contracts.md</code>: shapes and error codes this app relies on</li><li><code>lib/api/endpoints.ts</code>: the endpoints this app may call</li><li><code>../api/docs/context/business-rules.md</code>: BR ids cited in specs and copy</li></ol>
+<h3 id="task-routing">Task routing</h3>
+<div class="table-wrap"><table><thead><tr><th>If you are working on</th><th>Load first</th></tr></thead><tbody><tr><td>A page</td><td><code>.claude/rules/frontend-pages.md</code>, the contract section for the data it shows</td></tr><tr><td>Calling a new endpoint</td><td>the contract, then <code>lib/api/endpoints.ts</code>, <code>types/api/&lt;area&gt;.ts</code>, <code>lib/api/&lt;area&gt;.ts</code></td></tr><tr><td>A form</td><td>the input DTO rules in the contract, an existing <code>*-form.tsx</code> and its <code>actions.ts</code></td></tr><tr><td>Auth, session, protected pages</td><td><code>../api/docs/adr/0001-spa-auth.md</code>, <code>lib/session.ts</code>, <code>middleware.ts</code></td></tr><tr><td>Job search filters</td><td><code>lib/search-params.ts</code> and its test</td></tr><tr><td>Tests</td><td><code>.claude/rules/tests.md</code>, <code>vitest.config.ts</code></td></tr></tbody></table></div>
+<h3 id="invariants">Invariants</h3>
+<p>Cite them by ID in specs and reviews.</p>
+<ul><li><strong>INV-01</strong> API responses use the envelope <code>{success, status, message, data[, meta]}</code>;
+errors <code>{success: false, status, message, code[, errors]}</code>. Types: <code>types/api/common.ts</code>.</li><li><strong>INV-04</strong> API timestamps are ISO-8601 UTC strings. Format them for display only.</li><li><strong>INV-05</strong> The browser never holds the API token. Only <code>lib/session.ts</code> reads or writes the
+HttpOnly cookie <code>hireboard_session</code> (ADR-0001).</li><li><strong>INV-06</strong> Every endpoint this app calls is listed in <code>lib/api/endpoints.ts</code> and in the API
+contract. contract-sync (<code>scripts/contract-sync.mjs</code>) fails CI on drift.</li><li><strong>INV-07</strong> Salaries arrive as integers plus an ISO-4217 currency; format with
+<code>Intl.NumberFormat</code> and the posting&#39;s currency, never assume EUR.</li></ul>
+<h3 id="gotchas">Gotchas</h3>
+<ul><li><strong>GOTCHA-01</strong> Hand-written enum literal unions type-check even when they don&#39;t match the
+backend. Copy values from <code>../api/app/Enums/</code> exactly.</li><li><strong>GOTCHA-02</strong> <code>apiFetch</code> always uses <code>cache: &#39;no-store&#39;</code>, which makes any page that calls
+the API dynamic, so nothing is fetched at build time. A raw <code>fetch</code> without it, or a
+module-level call to <code>baseUrl()</code>, would run during <code>npm run build</code> and fail because the API
+isn&#39;t running. <code>export const dynamic = &#39;force-dynamic&#39;</code> is optional belt-and-braces.</li><li><strong>GOTCHA-03</strong> <code>next/form</code> keeps typed values across soft navigations. <code>JobFilters</code> sets a
+<code>key</code> from the current query so the inputs reset when the URL changes.</li><li><strong>GOTCHA-04</strong> <code>remote=0</code> in the URL is a real filter (on-site only), not &quot;no filter&quot;.
+<code>parseJobFilters()</code> keeps it; an unchecked box omits <code>remote</code> entirely.</li></ul>
+<h3 id="change-impact-map">Change-impact map</h3>
+<div class="table-wrap"><table><thead><tr><th>If you change</th><th>Also update</th></tr></thead><tbody><tr><td>A type in <code>types/api/</code></td><td>only after the API contract changed; the fetcher and pages using it</td></tr><tr><td><code>lib/api/endpoints.ts</code></td><td>the API contract and route; run contract-sync</td></tr><tr><td>A protected route</td><td><code>middleware.ts</code> matcher and the page&#39;s <code>requireUser()</code> roles</td></tr><tr><td>Filter parameters</td><td><code>lib/search-params.ts</code>, its test, <code>components/job-filters.tsx</code></td></tr></tbody></table></div>
+<h3 id="how-to-start-work">How to start work</h3>
+<ul><li>Feature, bug or decision: <code>/sdd &lt;HIRE-n: description&gt;</code> (<code>/sdd-kit:sdd</code> in plugin mode).
+Most features start in <code>api/</code> and their spec lives in <code>../api/.ai/specs/</code>; a web-only
+change keeps its spec in <code>.ai/specs/</code> here.</li><li>Small, obvious change: just do it, then run the gates.</li></ul>
+<h3 id="area-rules">Area rules</h3>
+<p>Path-scoped conventions in <code>.claude/rules/</code> load when matching files are read:</p>
+<div class="table-wrap"><table><thead><tr><th>Rule file</th><th>Applies to</th></tr></thead><tbody><tr><td><code>frontend-pages.md</code></td><td><code>app/**</code>, <code>components/**</code>, <code>lib/api/**</code></td></tr><tr><td><code>tests.md</code></td><td><code>**/*.test.ts</code></td></tr></tbody></table></div>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/web/CLAUDE.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

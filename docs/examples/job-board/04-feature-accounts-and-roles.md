@@ -19,7 +19,7 @@ You will run each step once. The commands and arguments shown are the real ones.
 abridged and marked *simulated*, because your run will word things differently.
 
 > In plugin mode the entry point is namespaced: type `/sdd-kit:sdd` wherever this chapter shows `/sdd`
-> (see [INSTALLATION.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/INSTALLATION.md)).
+> (see [INSTALLATION.md](../../reference/installation.md)).
 
 ## Before you start
 
@@ -382,7 +382,7 @@ where the session started. [Chapter 03](03-decision-spa-auth-adr.md) started ins
 `"."` and `"../web"`.
 
 The arguments are documented in
-[references/ship-feature.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/plugins/sdd-kit/skills/sdd/references/ship-feature.md). The
+[references/ship-feature.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/sdd/references/ship-feature.md). The
 `ticket` arg only names the folder in free-text `feature` mode. In spec mode it is ignored, which is
 harmless. The key still shows up in the report because it is part of the spec id
 `spec-HIRE-3-accounts-and-roles`.
@@ -667,8 +667,8 @@ a change that breaks the contract, use expand/contract instead
 ([docs/multi-repo.md, "Process"](../../reference/multi-repo.md#process)).
 
 For the general shape of this route on a single repo, see
-[USAGE-EXAMPLES.md, "1. Feature from a ticket"](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/USAGE-EXAMPLES.md#1-feature-from-a-ticket)
-and ["11. Split backend and frontend repos"](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/USAGE-EXAMPLES.md#11-split-backend-and-frontend-repos).
+[USAGE-EXAMPLES.md, "1. Feature from a ticket"](../../reference/usage-examples.md#1-feature-from-a-ticket)
+and ["11. Split backend and frontend repos"](../../reference/usage-examples.md#11-split-backend-and-frontend-repos).
 
 ## Frictions you met in this chapter
 

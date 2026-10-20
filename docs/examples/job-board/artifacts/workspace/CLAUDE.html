@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hireboard workspace · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/workspace/CLAUDE.md</p>
+  <article class="doc-body">
+<h2 id="hireboard-workspace">Hireboard workspace</h2>
+<p>Root context for the Hireboard workspace. This folder has no <code>.git</code> on purpose: <code>api/</code> and
+<code>web/</code> are separate repositories. Start Claude here for cross-repo work. The imports below
+pull in each repo&#39;s own context; this file holds only what neither repo knows alone.</p>
+<p>@api/CLAUDE.md
+@web/CLAUDE.md</p>
+<h3 id="product">Product</h3>
+<p>Hireboard is a small job board. Visitors search open job postings and read company careers
+pages. Candidates keep a private profile, apply to jobs and review companies. Employers see
+applications to their own company&#39;s jobs. Admins moderate every review before it goes public.</p>
+<ul><li>Product brief, roles, scope and non-goals: <code>product-brief.md</code></li><li>Business rules (canonical, validated by Maya Chen): <code>api/docs/context/business-rules.md</code>.
+Specs cite rules by ID (<code>BR-xx</code>) and invariants by ID (<code>INV-xx</code>).</li><li>Decisions: <code>api/docs/adr/</code> (ADR-0001: SPA auth through the Next.js server)</li></ul>
+<h4 id="invariants">Invariants</h4>
+<p>These hold across both repos. A change that breaks one needs an ADR first.</p>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>Invariant</th></tr></thead><tbody><tr><td>INV-01</td><td>The API lives under <code>/api/v1</code>. Success envelope <code>{success, status, message, data[, meta]}</code>; paginated <code>meta</code> is <code>{current_page, per_page, total, last_page}</code>. Error envelope <code>{success: false, status, message, code[, errors]}</code>.</td></tr><tr><td>INV-02</td><td>Single-action invokable controllers, business logic in services, DTOs (<code>App\DTOs</code>, Spatie Laravel Data v4) across layers, repositories behind <code>App\Contracts</code> interfaces.</td></tr><tr><td>INV-03</td><td>Domain tables use UUID keys; <code>users</code> keeps bigint ids (Sanctum token morphs stay unchanged).</td></tr><tr><td>INV-04</td><td>Timestamps are stored in UTC and serialized as ISO-8601.</td></tr><tr><td>INV-05</td><td>The browser never holds the API token. The Next.js server keeps it in the HttpOnly cookie <code>hireboard_session</code> (ADR-0001).</td></tr><tr><td>INV-06</td><td>Every endpoint the browser calls is listed in <code>web/lib/api/endpoints.ts</code> and <code>api/docs/api/api-contracts.md</code>.</td></tr><tr><td>INV-07</td><td>Salaries are integers (annual, whole currency units) plus an ISO-4217 currency.</td></tr></tbody></table></div>
+<h3 id="layout">Layout</h3>
+<div class="table-wrap"><table><thead><tr><th>Folder</th><th>Repo</th><th>Stack</th><th>Gates</th></tr></thead><tbody><tr><td><code>api/</code></td><td><code>git@github.com:hireboard/api.git</code></td><td>Laravel 12 JSON API (PHP 8.3, Sanctum, Pest 3, SQLite in dev)</td><td>see <code>api/AGENTS.md</code></td></tr><tr><td><code>web/</code></td><td><code>git@github.com:hireboard/web.git</code></td><td>Next.js 15 App Router (BFF, TypeScript, Tailwind 4, Vitest)</td><td>see <code>web/AGENTS.md</code></td></tr></tbody></table></div>
+<h3 id="contract">Contract</h3>
+<ul><li>The API contract lives in <code>api/docs/api/api-contracts.md</code>. <strong>The backend is authoritative.</strong>
+When the frontend and the contract disagree, the frontend is wrong.</li><li>Every backend endpoint the browser calls is registered in <code>web/lib/api/endpoints.ts</code>
+(INV-06). Pages and server actions call the API only through <code>web/lib/api/client.ts</code>.</li><li>Frontend types mirror backend DTO output (<code>toApiArray()</code> and friends) in <code>web/types/api/</code>.
+Enum literals must match the backend enum values exactly (<code>UserRole</code>, <code>EmploymentType</code>,
+<code>JobPostingStatus</code>, <code>ReviewStatus</code>).</li><li>Error codes (<code>job_not_found</code>, <code>already_applied</code>, ...) are part of the contract. The web
+forms map them to messages, so a renamed code is a breaking change.</li><li>Check drift with <code>web/scripts/contract-sync.mjs</code>: it compares <code>php artisan route:list --json</code>
+from <code>api/</code> with the registry and fails on a mismatch. CI runs it on every web PR
+(<code>web/.github/workflows/contract-sync.yml</code>). Don&#39;t trust endpoint counts written in any doc.</li></ul>
+<h3 id="cross-repo-routing">Cross-repo routing</h3>
+<div class="table-wrap"><table><thead><tr><th>If you change</th><th>Read first</th><th>Then update</th></tr></thead><tbody><tr><td>A DTO&#39;s output (<code>toApiArray()</code>, <code>toOwnerArray()</code>, ...)</td><td><code>api/app/DTOs/</code> + <code>api/docs/api/api-contracts.md</code></td><td><code>web/types/api/*.ts</code>, the fetcher in <code>web/lib/api/</code>, affected pages</td></tr><tr><td>A route path, method or auth middleware</td><td><code>api/routes/api/v1/*.php</code></td><td><code>web/lib/api/endpoints.ts</code>, <code>api/docs/api/api-contracts.md</code>, <code>web/middleware.ts</code> matcher</td></tr><tr><td>Validation rules or field names</td><td>the input DTO in <code>api/app/DTOs/</code></td><td>the matching form component and its server action error mapping</td></tr><tr><td>A domain error code</td><td><code>api/app/Exceptions/*Exception.php</code></td><td>the server action that maps <code>ApiError.code</code> to a message</td></tr><tr><td>An enum</td><td><code>api/app/Enums/</code></td><td>the literal union in <code>web/types/api/</code>, labels and filters</td></tr><tr><td>Auth or session flow</td><td>ADR-0001, <code>api/app/Services/AuthService.php</code></td><td><code>web/lib/session.ts</code>, <code>web/middleware.ts</code>, <code>web/app/(auth)/actions.ts</code>, in matching branches</td></tr><tr><td>A table or column</td><td><code>api/docs/schemas/*.md</code> (schema-first)</td><td>migration, model, factory, then the DTOs above</td></tr><tr><td>A business rule</td><td><code>api/docs/context/business-rules.md</code></td><td>the specs that cite it; ask Maya Chen first</td></tr></tbody></table></div>
+<p><strong>Rule of thumb:</strong> if a backend change could be visible to the browser, assume the frontend
+has to change too. Grep <code>web/</code> before you call the backend task done.</p>
+<h3 id="process">Process</h3>
+<ul><li>Tickets use the <code>HIRE</code> prefix. No tracker is connected: paste the ticket text into <code>/sdd</code>.</li><li>Commit in each repo separately (<code>git -C api ...</code>, <code>git -C web ...</code>). Never run git from this root.</li><li>Use the same branch name in both repos for one change: <code>&lt;feature|fix|chore&gt;/HIRE-&lt;n&gt;-&lt;slug&gt;</code>,
+for example <code>feature/HIRE-4-company-reviews</code>. One PR per repo; link them to each other.</li><li>Commit subjects follow Conventional Commits (the kit&#39;s commit hook enforces it).</li><li>Features go <code>/sdd</code> -&gt; write-spec -&gt; approval by Maya Chen in the same <code>/sdd</code> conversation
+-&gt; ship-feature or <code>/execute-task</code>. Pass both repos to workflows:
+<code>{ repos: { backend: &quot;api&quot;, frontend: &quot;web&quot; }, url: &quot;http://localhost:3000&quot; }</code>.</li><li>Each repo&#39;s gates run in that repo. A failure in one blocks the change.</li><li>Merge order: <code>api</code> first when the change is additive. Use expand/contract when it breaks
+the contract: add the new shape, move <code>web</code> over, then remove the old shape.</li></ul>
+<h3 id="where-outputs-land">Where outputs land</h3>
+<p>Workflows and skills write relative to the directory the session started in.</p>
+<ul><li><strong>Specs live in the repo that starts the change</strong>, usually <code>api/.ai/specs/spec-HIRE-&lt;n&gt;-&lt;slug&gt;/</code>
+(a web-only change uses <code>web/.ai/specs/</code>). Workflows accept a repo-relative folder from this root:
+<code>spec: &quot;api/.ai/specs/spec-HIRE-4-company-reviews&quot;</code>. <code>/execute-task --spec=</code> and <code>/deep-review --spec=</code>
+resolve only against <code>./.ai/specs</code> of the session directory and do not accept a repo-relative path,
+so run them from a session started inside the owning repo, where <code>--spec=HIRE-5</code> or the full folder
+name resolves.</li><li><strong>Root <code>.ai/</code> is local scratch and is never committed</strong> (this folder has no git):
+anything a skill writes while the session runs from the root lands here. <code>/execute-task</code> state
+and verification reports land in the owning repo&#39;s <code>.ai/</code>, because <code>/execute-task</code> runs there.</li><li><strong>One-file outputs you want committed</strong> (tech-research ADR in <code>docs/adr/</code>, a qa-and-docs plan
+in <code>docs/qa/</code>, <code>/deep-review</code> reports in <code>.ai/reviews/</code>): start the session inside the owning repo
+so the file lands in that repo:<pre><code class="language-bash">cd api &amp;&amp; CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ../web
+cd web &amp;&amp; CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ../api</code></pre>
+<p>In such a session the repos are <code>&quot;.&quot;</code> and <code>&quot;../web&quot;</code> (or <code>&quot;.&quot;</code> and <code>&quot;../api&quot;</code>), not <code>api</code>/<code>web</code>.</p></li></ul>
+<h3 id="environment">Environment</h3>
+<ul><li>API: <code>http://localhost:8000</code> (<code>cd api &amp;&amp; php artisan serve --port=8000</code>).</li><li>Web: <code>http://localhost:3000</code> (<code>cd web &amp;&amp; npm run dev</code>). This is the <code>url</code> for every workflow.</li><li>The web server reads the API URL from <code>web/.env.local</code>: <code>API_BASE_URL=http://localhost:8000</code>.
+Never expose it as <code>NEXT_PUBLIC_*</code>: the browser never calls <code>:8000</code> directly (INV-05), so
+the API needs no CORS config.</li><li>Local data: <code>cd api &amp;&amp; php artisan migrate:fresh --seed</code>. Local only, never against a shared
+database. Demo accounts (password <code>password</code>): <code>candidate@hireboard.test</code>,
+<code>employer@acme.test</code>, <code>admin@hireboard.test</code>.</li></ul>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/workspace/CLAUDE.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting Started · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">reference/getting-started.md</p>
+  <article class="doc-body">
+<h2 id="getting-started">Getting Started</h2>
+<p>From zero to building with SDD Kit: learn the Claude Code basics, install the kit, give Claude your project context, and take one ticket from spec to shipped code.</p>
+<p>This guide uses bare skill names (<code>/sdd</code>, <code>/write-spec</code>). In plugin mode they are namespaced: <code>/sdd-kit:sdd</code>, <code>/sdd-kit-ops:deploy</code>, and so on.</p>
+<h3 id="0-new-to-claude-code">0. New to Claude Code?</h3>
+<p>Skip this section if you already use Claude Code.</p>
+<p><strong>What it is.</strong> Claude Code is an AI coding agent that runs in your terminal (there are also IDE extensions and a desktop app). It reads your project, edits files and runs commands, and it asks your permission before it acts. SDD Kit adds a process on top: a written spec that a human approves, fixed pipelines with quality gates, and hooks that block risky actions.</p>
+<p><strong>Install it.</strong> Pick the line for your system (<a href="https://code.claude.com/docs/en/setup" target="_blank" rel="noopener noreferrer">official setup page</a> for other options and requirements):</p>
+<pre><code class="language-bash">curl -fsSL https://claude.ai/install.sh | bash      # macOS, Linux, WSL
+irm https://claude.ai/install.ps1 | iex             # Windows PowerShell
+brew install --cask claude-code                     # Homebrew
+winget install Anthropic.ClaudeCode                 # WinGet</code></pre>
+<p>Open a new terminal and check it with <code>claude --version</code>. Then start it with <code>claude</code> and follow the browser prompts to sign in. You need a Claude account that includes Claude Code, or a supported API provider.</p>
+<p>The kit&#39;s background workflows run on paid plans and API access. On a Pro plan, turn on <strong>Dynamic workflows</strong> in <code>/config</code> before your first <code>/sdd</code>.</p>
+<p><strong>Your first session.</strong> The <a href="https://code.claude.com/docs/en/quickstart" target="_blank" rel="noopener noreferrer">quickstart</a> walks through one; the essentials:</p>
+<div class="table-wrap"><table><thead><tr><th>To</th><th>Do this</th></tr></thead><tbody><tr><td>Work on a project</td><td><code>cd</code> into the project root and run <code>claude</code>. Claude Code works on the folder you start it in.</td></tr><tr><td>Ask for something</td><td>Type it in plain English. Claude reads the code, proposes edits and runs commands to check them.</td></tr><tr><td>Find commands</td><td>Type <code>/</code> to list built-in commands and installed skills (the kit&#39;s <code>/sdd</code> among them); keep typing to filter.</td></tr><tr><td>Answer a permission prompt</td><td>Before it edits a file or runs a command, Claude asks. Allow it once, allow it for the session, or decline and say what to do instead.</td></tr><tr><td>Stop and redirect</td><td>Press <code>Esc</code>. The work done so far is kept.</td></tr><tr><td>Change how much it may do</td><td><code>Shift+Tab</code> cycles the permission modes: the default asks before acting, accept-edits lets file edits through, and plan mode reads and plans without changing anything.</td></tr><tr><td>Start fresh</td><td><code>/clear</code> empties the conversation when you switch tasks. Files and specs on disk stay.</td></tr><tr><td>Get help</td><td><code>/help</code> lists commands and shortcuts.</td></tr></tbody></table></div>
+<p>Every shortcut is in <a href="https://code.claude.com/docs/en/interactive-mode" target="_blank" rel="noopener noreferrer">interactive mode</a>.</p>
+<p><strong>Words you will meet.</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Claude Code term</th><th>Meaning</th><th>In the kit</th></tr></thead><tbody><tr><td>Skill</td><td>A packaged set of instructions. Claude loads it when the task matches, or you start it with <code>/name</code>.</td><td><code>/sdd</code></td></tr><tr><td>Subagent</td><td>A separate Claude with its own context and tools that does one job and returns a summary.</td><td><code>code-explorer</code></td></tr><tr><td>Workflow</td><td>A background script that runs many subagents through fixed phases. Watch it with <code>/workflows</code>.</td><td><code>ship-feature</code></td></tr><tr><td>Hook</td><td>A script Claude Code runs on an event, such as before a shell command. It can block the action.</td><td><code>block-dangerous</code></td></tr><tr><td>MCP server</td><td>A connector that gives Claude extra tools.</td><td>Playwright MCP (browser), context7 (library docs)</td></tr><tr><td>Plugin</td><td>A bundle of skills, agents, hooks and MCP servers installed in one step.</td><td><code>sdd-kit</code></td></tr><tr><td>Spec</td><td>A kit term: a folder that says what &quot;done&quot; means, which a human approves before anything is built.</td><td><code>.ai/specs/spec-PROJ-123-&lt;slug&gt;/</code></td></tr></tbody></table></div>
+<h3 id="1-before-you-start">1. Before you start</h3>
+<p>Install the kit, either as a plugin (from inside Claude Code):</p>
+<pre><code>/plugin marketplace add stasmarkov/sdd-kit
+/plugin install sdd-kit@sdd-kit</code></pre>
+<p>or copied into your project&#39;s <code>.claude/</code> without cloning (from your project root; needs bash, git, jq and Node 18+):</p>
+<pre><code class="language-bash">npx github:stasmarkov/sdd-kit install --project</code></pre>
+<p>Both modes, add-ons, and a clone-based install are in <a href="installation.html">INSTALLATION.md</a>. This release targets a Laravel API with a Next.js frontend; see <a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/README.md" target="_blank" rel="noopener noreferrer">Stacks and roadmap</a>.</p>
+<p>Start Claude Code in your project root and run the health check:</p>
+<pre><code class="language-bash">cd ~/projects/my-app
+claude</code></pre>
+<pre><code>/framework-doctor</code></pre>
+<p>In plugin mode, type <code>/sdd-kit:framework-doctor</code>.</p>
+<p>It reports PASS / WARN / FAIL for the directory layout, skill discovery, agents, MCP config, and hooks. It also fires a harmless payload at the hooks to prove they run. Fix any FAIL before you go on. <code>--fix</code> only sets permissions and creates missing directories. Anything else is covered in the troubleshooting section of <a href="installation.html">INSTALLATION.md</a>.</p>
+<h3 id="2-give-claude-your-project-context">2. Give Claude your project context</h3>
+<p>Claude only knows what the code shows and what you tell it. Three files carry that context. The file-copy installer creates them and never overwrites files that already exist. Plugin mode creates none of them, so plugin users fetch the templates once from the project root (skip any file you already have):</p>
+<pre><code class="language-bash">base=https://raw.githubusercontent.com/stasmarkov/sdd-kit/v2.1.0/share
+curl -fsSL &quot;$base/CLAUDE.template.md&quot; -o CLAUDE.md
+curl -fsSL &quot;$base/templates/AGENTS.template.md&quot; -o AGENTS.md
+mkdir -p .claude/rules
+for f in api-controllers frontend-pages migrations services-dtos tests; do
+  curl -fsSL &quot;$base/templates/rules/$f.md&quot; -o &quot;.claude/rules/$f.md&quot;
+done</code></pre>
+<div class="table-wrap"><table><thead><tr><th>File</th><th>What it is for</th><th>Fill in first</th></tr></thead><tbody><tr><td><code>CLAUDE.md</code></td><td>Loaded every session. Keep it under 200 lines. It imports <code>@AGENTS.md</code>.</td><td>One-paragraph product summary, the &quot;Always load&quot; docs, invariants (<code>INV-01</code>…)</td></tr><tr><td><code>AGENTS.md</code></td><td>Stack, exact commands, red lines, architecture, code standards. Cursor, Codex, and Copilot read it too.</td><td>The test, lint, and build commands; things that must never happen</td></tr><tr><td><code>.claude/rules/*.md</code></td><td>Area conventions (migrations, API controllers, services and DTOs, frontend pages, tests). Each file has a <code>paths:</code> glob and loads only when Claude touches matching files.</td><td>Delete the rules that don&#39;t apply to you and adjust the globs to match your layout</td></tr></tbody></table></div>
+<p>Put each fact in one file. Commands and red lines go in <code>AGENTS.md</code>. Anything that only matters in one area goes in a rule. <code>CLAUDE.md</code> holds what is left. Replace every <code>&lt;placeholder&gt;</code> and delete sections you have nothing real for. An empty template costs tokens and teaches nothing.</p>
+<h4 id="the-golden-triangle">The Golden Triangle</h4>
+<p>Three short documents give Claude your business context. <code>CLAUDE.md</code> loads them in every session:</p>
+<ul><li><code>docs/context/business-rules.md</code>: what the system must enforce (prohibitions, money rules, security, validation)</li><li><code>docs/context/architecture.md</code>: how it is built (layers, modules, boundaries, patterns)</li><li><code>docs/api/api-contracts.md</code>: the request and response shapes the frontend relies on</li></ul>
+<p>For an existing codebase, generate them from the code rather than from memory:</p>
+<pre><code>/write-docs --type=all</code></pre>
+<p>Every rule and contract it writes cites <code>file:line</code>. Read the business rules before you rely on them: the code shows what the system does, not what it should do. If the rules already exist in a wiki, a PDF, or a ticket, <code>/write-docs --import &lt;file|url&gt;</code> reformats them into the same paths instead. Keep each document to one to three pages. Long context gets skimmed, and the rules Claude skims are the ones it breaks.</p>
+<p>Create <code>docs/schemas/</code> (one file per table, written before its migration) and <code>docs/adr/</code> (ADRs from the decision route) as you need them.</p>
+<p>After a context compaction, a hook re-injects the top of <code>docs/context/business-rules.md</code> and <code>docs/context/architecture.md</code> and the number of specs with pending tasks, so a long session keeps its rules. The API contract is not re-injected; Claude re-reads it when it touches an endpoint.</p>
+<p>If your backend and frontend live in separate repositories, set up a workspace as described in <a href="multi-repo.html">multi-repo.md</a> before your first ticket.</p>
+<h4 id="starting-a-new-product">Starting a new product</h4>
+<p>With no code yet, start with <code>/product-brief</code>: it turns the idea into a brief (users, problems, business rules, success metrics) and a backlog of vertical slices, each with its size, business-rule ids, and the <code>/sdd</code> line that starts it. <code>/sdd</code> then routes the first slice to the new-app route, which builds it with the <code>greenfield-build</code> workflow. The rest of this guide applies from the second slice on.</p>
+<h4 id="first-session-order">First-session order</h4>
+<ol><li><code>/framework-doctor</code>: the install works.</li><li>Context from code: <code>/write-docs</code> for the Golden Triangle (or <code>/product-brief</code> for a new product).</li><li><code>/sdd &lt;ticket or description&gt;</code>: your first piece of work.</li></ol>
+<h3 id="3-your-first-ticket-with-sdd">3. Your first ticket with /sdd</h3>
+<p><code>/sdd</code> is the front door for all spec-driven work. Give it a ticket key or a plain description:</p>
+<pre><code>/sdd PROJ-123</code></pre>
+<p><strong>1. Classify and confirm.</strong> <code>/sdd</code> pulls the ticket text from Jira or Linear if a tracker MCP server or CLI is available. Otherwise it asks you to paste the ticket. It then proposes a route with a one-line reason:</p>
+<pre><code>Route: feature. Adds a new behavior (refund guard on top-up orders); no existing behavior is broken.</code></pre>
+<p>You confirm it or pick another route. The routes are trivial, bug, decision, feature, shipped code, and new app. The full route tree is in the <a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/README.md" target="_blank" rel="noopener noreferrer">README</a>. Nothing launches until you confirm.</p>
+<p><strong>2. Inputs up front.</strong> Background workflows can&#39;t stop to ask questions, so <code>/sdd</code> asks two to four now: single repo or backend and frontend paths, the dev URL for browser checks, and anything specific to the route.</p>
+<p>A request is <strong>trivial</strong> only when it touches about three files with no design choice; <code>/sdd</code> sends it to <code>/simple-task</code> without a spec.</p>
+<p><strong>3. Spec.</strong> For a feature, <code>/sdd</code> runs <code>/write-spec</code>. It sizes the work, investigates the codebase, asks clarifying questions, and writes the spec:</p>
+<pre><code>.ai/specs/spec-PROJ-123-refund-guard/
+├── spec-lite.md
+└── tasks.md</code></pre>
+<p>Without a ticket, the folder is named from a timestamp, for example <code>spec-20261018-1430-order-pdf-export</code>. Work sized XS gets no spec and goes to <code>/simple-task</code> instead. Medium and large specs add more files.</p>
+<p><strong>4. Review <code>spec-lite.md</code>.</strong> This is the step that matters most. Read these sections:</p>
+<ul><li><strong>Must NOT change</strong>: behavior near the change that has to stay identical. Each item gets a guard test.</li><li><strong>Acceptance criteria</strong>: EARS or Given/When/Then statements. Each maps to a test or a manual-test step in the traceability table in <code>tasks.md</code>.</li><li><strong>Boundaries</strong>: what the build may always do, what it must ask about first, and what it must never do.</li><li><strong>Open questions</strong>: a spec with unchecked open questions can&#39;t be approved. Answer them, or accept them as assumptions.</li></ul>
+<p>Before you see the spec, a fresh-context clarity gate has already reread it. Anything it found ambiguous is listed for you. The format itself is defined in <a href="specification-system.html">specification-system.md</a>.</p>
+<p><strong>5. Approve.</strong> <code>/sdd</code> asks: <em>Approve and build</em>, <em>Approve only</em> (approve now and build it yourself later with <code>/execute-task</code>, see section 4), <em>Request changes</em>, or <em>Stop here (draft)</em>. On approval it writes <code>status: approved</code>, <code>approved_by</code>, and <code>approved_at</code> into the spec frontmatter. If a tracker is connected, it offers to post the spec link back to the ticket, and posts only if you say yes.</p>
+<p><strong>6. Build in the background.</strong> <em>Approve and build</em> launches the <code>ship-feature</code> workflow with <code>{ spec: &quot;spec-PROJ-123-refund-guard&quot; }</code>. It investigates, builds the tasks with tests first, runs quality gates, closes gaps against the acceptance criteria, checks the UI in the browser, runs an adversarial review, re-walks the ticket&#39;s scenario, and updates the docs. Browser checks use the built-in Playwright MCP server (headless), fall back to Claude in Chrome, and are reported as &quot;not run&quot; when no browser is available.</p>
+<p>Claude Code asks you to allow each workflow run (<em>Yes, run it</em>, <em>Yes, and don&#39;t ask again</em>, <em>View raw script</em>, <em>No</em>). <em>Don&#39;t ask again</em> is safe for the kit&#39;s workflows in this project. Watch the run with:</p>
+<pre><code>/workflows</code></pre>
+<p><strong>7. Read the report.</strong> The report ends with a recommendation:</p>
+<ul><li><strong>SHIP</strong>: gates green, review approved, acceptance re-walked.</li><li><strong>FIX-FIRST</strong>: confirmed findings to address, listed by file and line with a one-line fix each.</li><li><strong>BLOCKED</strong>: a partial build, an unreachable gate, or an acceptance trace that did not resolve.</li></ul>
+<p>It also writes a manual test plan to <code>manual-test.md</code> in the spec folder. Run it before you merge.</p>
+<h4 id="a-bug-takes-a-shorter-path">A bug takes a shorter path</h4>
+<pre><code>/sdd &quot;Refund button returns 500 for top-up orders since Tuesday&#39;s deploy&quot;</code></pre>
+<p><code>/sdd</code> proposes the bug route. It asks for repro steps, expected versus actual behavior, and what nearby must not change, then launches the <code>fix-bug</code> workflow. No spec is written, because the pipeline itself is the spec. It reproduces the bug, verifies the root cause, writes a failing regression test, applies a minimal fix, and runs the gates. The verdict is <code>FIXED</code> only when the regression test goes from red to green and the original report no longer reproduces. Otherwise it is <code>NOT-RESOLVED</code> or <code>NEEDS-INFO</code>.</p>
+<p>Per-workflow phases and <code>Workflow()</code> arguments are in <a href="usage-examples.html">USAGE-EXAMPLES.md</a>.</p>
+<h3 id="4-working-interactively-instead">4. Working interactively instead</h3>
+<p>If you want to watch each task land, skip the background build. Write the spec, approve it, then build it task by task:</p>
+<pre><code>/write-spec --ticket=PROJ-123 Block refunds on top-up orders
+/sdd spec-PROJ-123-refund-guard
+/execute-task --spec=PROJ-123</code></pre>
+<p><code>/write-spec</code> always leaves the spec as <code>status: draft</code>. The second line reopens it in <code>/sdd</code>: review it as in section 3 and choose <em>Approve only</em>. <code>/execute-task</code> stops on a draft spec and asks before building anything.</p>
+<p><code>/execute-task</code> builds one task at a time with tests first and a verification gate after each task, then pauses. <code>--auto-continue</code> runs the remaining tasks back to back and stops at the first failed gate. For a larger spec, or an area you don&#39;t know yet, <code>/write-spec --background</code> runs the <code>create-spec</code> research workflow instead.</p>
+<p>For an unattended run, set a goal with the built-in <code>/goal</code> and let Claude keep going until the condition holds:</p>
+<pre><code>/goal every task in .ai/specs/spec-PROJ-123-refund-guard/tasks.md is checked and the verification gates pass
+/execute-task --spec=PROJ-123 --continue</code></pre>
+<h3 id="5-after-sdd-continue-check-finish">5. After /sdd: continue, check, finish</h3>
+<p><code>/sdd</code> starts the work. A short set of commands continues, checks, and finishes it. Progress is saved to disk, so a new session or a context reset loses nothing.</p>
+<p><strong>Continue</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Command</th><th>When</th></tr></thead><tbody><tr><td><code>/execute-task --spec=&lt;id&gt; --continue</code></td><td>Resume an approved spec task by task after <code>/clear</code>, a new day, or a switch to the other repo</td></tr><tr><td><code>/investigate &quot;&lt;question&gt;&quot;</code></td><td>Get a sourced answer and a recommendation before you decide</td></tr></tbody></table></div>
+<p><strong>Check</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Command</th><th>When</th></tr></thead><tbody><tr><td><code>/run-tests</code></td><td>Run the Pest suite; <code>--frontend</code> runs Vitest and <code>--e2e</code> the Playwright journeys</td></tr><tr><td><code>/deep-review</code></td><td>Get a blocking verdict before merge from a reviewer that never saw your prompt</td></tr><tr><td><code>/progress</code></td><td>Where was I across all specs, and the next task (<code>--spec=&lt;ref&gt;</code> for one spec, <code>--next</code> for a recommendation). <code>/progress --health</code> adds git, tests, lint, and dependency health</td></tr><tr><td><code>/spec-board</code></td><td>Board of every spec by status plus backlog slices, with approval and open-question warnings. <code>/spec-board --out /tmp/spec-board.html</code> writes a shareable snapshot</td></tr></tbody></table></div>
+<p>People without Claude Code can open the same board from GitHub: <code>npx github:stasmarkov/sdd-kit spec-board --serve</code> in a repo that has <code>.ai/specs</code> (Node 18+).</p>
+<p><strong>Finish</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Command</th><th>When</th></tr></thead><tbody><tr><td><code>/open-pr --spec=&lt;id&gt; --report=&lt;report&gt;</code></td><td>Open spec-traced PRs, one per repo, backend first and cross-linked. The ship-feature and fix-bug reports end with this line ready to paste</td></tr><tr><td><code>/learn &quot;&lt;finding&gt;&quot;</code></td><td>Turn a review finding, bug class, or CI failure into a durable guard, so the mistake cannot recur</td></tr></tbody></table></div>
+<p>File-copy installs also add a status line that shows the active spec and task progress (<code>spec-PROJ-123 · task 3/7</code>), unless you already have one. Plugins cannot set a status line, so in plugin mode point <code>statusLine</code> in your settings at <code>&lt;plugin path&gt;/scripts/statusline.sh</code> if you want it.</p>
+<h3 id="6-how-memory-works">6. How memory works</h3>
+<p>The kit has no memory server of its own. Two built-in Claude Code mechanisms handle memory:</p>
+<ul><li><strong>Auto memory</strong>: Claude saves durable facts, preferences, and corrections it learns in your project and loads them in later sessions.</li><li><strong>Agent memory</strong>: several of the kit&#39;s agents declare <code>memory: project</code>, so each keeps its own notes for the project across sessions.</li></ul>
+<p>Run <code>/memory</code> to see what is stored and edit or delete entries. Facts every session must know belong in <code>CLAUDE.md</code>, <code>AGENTS.md</code>, or a rule, not in memory.</p>
+<h3 id="7-where-artifacts-go">7. Where artifacts go</h3>
+<div class="table-wrap"><table><thead><tr><th>Path</th><th>Contents</th></tr></thead><tbody><tr><td><code>.ai/specs/&lt;spec-folder&gt;/</code></td><td>One folder per spec: <code>spec-lite.md</code>, <code>tasks.md</code>, plus <code>decisions.md</code>, <code>manual-test.md</code>, and others for larger specs</td></tr><tr><td><code>.ai/session/&lt;spec-folder&gt;-state.json</code></td><td><code>/execute-task</code> resume state</td></tr><tr><td><code>.ai/verification/&lt;spec-folder&gt;/</code></td><td>Per-task quality gate reports</td></tr><tr><td><code>docs/context/</code></td><td>Golden Triangle documents</td></tr></tbody></table></div>
+<p>Folder naming, how spec references resolve, and the full layout are in <a href="specification-system.html">specification-system.md</a>. Generated documentation uses lowercase filenames.</p>
+<h3 id="8-where-to-go-next">8. Where to go next</h3>
+<div class="table-wrap"><table><thead><tr><th>Read</th><th>When</th></tr></thead><tbody><tr><td><a href="../examples/job-board/README.html">Hireboard worked example</a></td><td>See every <code>/sdd</code> route on one project, from an empty folder to a team: 12 chapters with real commands and tested code. Start with chapter 04 for a full feature</td></tr><tr><td><a href="https://github.com/stasmarkov/sdd-kit/tree/v2.1.1/docs" target="_blank" rel="noopener noreferrer">Interactive guide</a></td><td>The same material, clickable, with the example&#39;s spec board. Open <code>docs/guide/index.html</code> from a clone in a browser, or run <code>npx github:stasmarkov/sdd-kit guide</code></td></tr><tr><td><a href="usage-examples.html">USAGE-EXAMPLES.md</a></td><td>Real scenarios, phases of each workflow, <code>Workflow()</code> arguments</td></tr><tr><td><a href="installation.html">INSTALLATION.md</a></td><td>Upgrading, add-ons, MCP servers, troubleshooting</td></tr><tr><td><a href="plugin-mode.html">plugin-mode.md</a></td><td>Plugin versus file-copy, add-on plugins, namespacing</td></tr><tr><td><a href="effort-guidelines.html">effort-guidelines.md</a></td><td>Model tiers, effort levels, controlling cost</td></tr><tr><td><a href="multi-repo.html">multi-repo.md</a></td><td>Separate backend and frontend repositories</td></tr><tr><td><a href="third-party.html">third-party.md</a></td><td>Recommended third-party skills, LSP plugins</td></tr><tr><td><a href="skills.html">skill index</a>, <a href="agents.html">agent index</a></td><td>Every skill and agent with a one-line description</td></tr></tbody></table></div>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/getting-started.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

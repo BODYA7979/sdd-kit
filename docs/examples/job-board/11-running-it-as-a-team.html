@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>11 — Running Hireboard as a team: contract-sync, routines, evals, pinned versions · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/11-running-it-as-a-team.md</p>
+  <article class="doc-body">
+<h2 id="11--running-hireboard-as-a-team-contract-sync-routines-evals-pinned-versions">11 — Running Hireboard as a team: contract-sync, routines, evals, pinned versions</h2>
+<p>By the end of <a href="10-qa-and-docs-browse-journey.html">chapter 10</a>, Alex Rivera had shipped Hireboard on his own: one greenfield slice, an ADR, five specs, a trivial change, a bug fix and a QA plan. Two more developers join on Monday, 2026-11-09. This chapter turns what Alex did by habit into checks and conventions that hold when he isn&#39;t watching:</p>
+<ol><li>The api/web contract becomes a check that fails CI.</li><li>Drift checks run on a schedule and only report.</li><li>A Hireboard-flavored eval guards <code>/sdd</code> routing.</li><li>Everyone runs the same pinned kit version, and Cursor or Codex users get the same gates.</li><li>A short team rhythm, then the next ticket (HIRE-11) as an exercise.</li></ol>
+<p>This chapter links to the existing docs instead of repeating them: <a href="../../reference/multi-repo.html">multi-repo.md</a>, evals.md, <a href="../../reference/team-marketplace.html">team-marketplace.md</a>, <a href="../../reference/usage-examples.html#14-recurring-checks-with-routines">USAGE-EXAMPLES.md section 14</a> and the <a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/share/templates/contract-sync/README.md" target="_blank" rel="noopener noreferrer">contract-sync README</a>.</p>
+<blockquote><p>Artifacts for this chapter: <code>artifacts/api/.github/workflows/export-routes.yml</code>, <code>artifacts/web/.github/workflows/contract-sync.yml</code> and <code>artifacts/kit-fork/evals/hireboard-routing/</code> (<code>case.yaml</code>, <code>prompt.md</code>, <code>graders/routes-correct.md</code>).</p></blockquote>
+<hr>
+<h3 id="1-make-the-contract-a-sensor">1. Make the contract a sensor</h3>
+<p>Hireboard keeps the contract in two hand-maintained places (INV-06): <code>web/lib/api/endpoints.ts</code> and <code>api/docs/api/api-contracts.md</code>. Prose drifts, as <a href="../../reference/multi-repo.html#make-the-contract-a-sensor">multi-repo.md, &quot;Make the contract a sensor&quot;</a> warns. So the registry is compared against the routes Laravel actually registers.</p>
+<p>The kit ships the checker as a template. Copy it into <code>web/</code> <strong>unmodified</strong> and configure it through environment variables, so a later kit upgrade means copying the file again with no merge:</p>
+<pre><code class="language-bash">cd ~/work/hireboard
+mkdir -p web/scripts
+cp ~/tools/sdd-kit/share/templates/contract-sync/contract-sync.mjs web/scripts/contract-sync.mjs
+echo &quot;route-list.json&quot; &gt;&gt; web/.gitignore</code></pre>
+<p>The defaults already fit Hireboard. <code>backendPrefix: &#39;api&#39;</code> turns Laravel&#39;s <code>api/v1/jobs</code> into <code>/v1/jobs</code>, and <code>frontendPrefix: &#39;/api&#39;</code> turns the registry&#39;s <code>/api/v1/jobs</code> into the same path. <code>onlyBackendUris: &#39;^api/&#39;</code> drops <code>up</code> and <code>sanctum/csrf-cookie</code>. The only settings that need changing are the registry path and the route file:</p>
+<div class="table-wrap"><table><thead><tr><th>Variable</th><th>Value</th><th>Why</th></tr></thead><tbody><tr><td><code>CONTRACT_SYNC_REGISTRY</code></td><td><code>lib/api/endpoints.ts</code></td><td>The template default points at <code>../frontend/src/lib/...</code>, but Hireboard has no <code>src/</code> dir</td></tr><tr><td><code>CONTRACT_SYNC_ROUTES_FILE</code></td><td><code>route-list.json</code></td><td>CI has no PHP in the web job, so it reads a saved <code>route:list --json</code></td></tr></tbody></table></div>
+<p>The <code>registry-ts</code> format is auto-detected from the <code>.ts</code> extension. It picks up every object literal that has a <code>method</code> and a <code>path</code>, which is exactly the shape of Hireboard&#39;s registry:</p>
+<pre><code class="language-ts">// web/lib/api/endpoints.ts (excerpt; full file owned by chapter 02)
+export const endpoints = {
+  searchJobs: { method: &#39;GET&#39;, path: &#39;/api/v1/jobs&#39; },
+  // ...
+  approveReview: { method: &#39;POST&#39;, path: &#39;/api/v1/admin/reviews/{id}/approve&#39; },
+  rejectReview: { method: &#39;POST&#39;, path: &#39;/api/v1/admin/reviews/{id}/reject&#39; },
+  // ...
+} as const;</code></pre>
+<h4 id="run-it-locally">Run it locally</h4>
+<p>From the workspace root:</p>
+<pre><code class="language-bash">(cd api &amp;&amp; php artisan route:list --json &gt; ../web/route-list.json) \
+  &amp;&amp; (cd web &amp;&amp; node scripts/contract-sync.mjs --routes-file route-list.json --registry lib/api/endpoints.ts)
+echo &quot;exit $?&quot;</code></pre>
+<pre><code class="language-text">contract-sync: 18 backend routes, 18 frontend endpoints compared
+
+In sync.
+exit 0</code></pre>
+<p>All 18 entries match: 3 from jobs (ch02), 4 from auth (ch04), 6 from reviews (ch05), 2 from profiles (ch06) and 3 from applications (ch07). The counts exclude <code>HEAD</code> and every non-<code>api/</code> route.</p>
+<h4 id="what-drift-looks-like">What drift looks like</h4>
+<p>Suppose a developer renames the approve endpoint on the web side only, changing <code>/approve</code> to <code>/approval</code> in <code>endpoints.ts</code>:</p>
+<pre><code class="language-diff">-  approveReview: { method: &#39;POST&#39;, path: &#39;/api/v1/admin/reviews/{id}/approve&#39; },
++  approveReview: { method: &#39;POST&#39;, path: &#39;/api/v1/admin/reviews/{id}/approval&#39; },</code></pre>
+<p>Re-run the same command:</p>
+<pre><code class="language-text">contract-sync: 18 backend routes, 18 frontend endpoints compared
+
+Missing in backend — frontend calls a route the API does not have (1)
+  POST   /v1/admin/reviews/{}/approval   &lt;- lib/api/endpoints.ts:14
+
+Unused by frontend (warning) — API route with no registry entry (1)
+  POST   /v1/admin/reviews/{}/approve   -&gt; App\Http\Controllers\Reviews\ApproveReviewController
+
+Fix: add the missing Laravel route (or remove the stale registry entry), align methods, then re-run. Paths compare after prefix stripping and parameter normalization ({id}, [id], :id, ${id} -&gt; {}).
+exit 1</code></pre>
+<p><em>(Real checker output format. The line number depends on your file.)</em> <code>/admin/reviews</code> would have shown &quot;The decision could not be saved. Please try again.&quot; for every review, <code>npx tsc --noEmit</code> would have passed and no Pest test would have failed. Revert the change before you go on.</p>
+<p>Parameter names are normalized to <code>{}</code>, so the check catches path and method drift. It does not catch payload drift, such as a renamed JSON field. Those are still covered by the <code>types/api/*.ts</code> mirrors, the Pest shape tests and <code>/deep-review</code>.</p>
+<h4 id="wire-it-into-ci">Wire it into CI</h4>
+<p>Commit the two artifact workflows (on a <code>chore/contract-sync</code> branch in each repo, api merged first as usual):</p>
+<ul><li><strong><code>api/.github/workflows/export-routes.yml</code></strong>, named &quot;Export API routes&quot;. It runs on every push to <code>main</code> and on pull requests, boots the app with <code>cp .env.example .env &amp;&amp; php artisan key:generate</code> (no database), and uploads <code>route-list.json</code> as the artifact <code>route-list</code>.</li><li><strong><code>web/.github/workflows/contract-sync.yml</code></strong>. It runs on every web pull request, downloads <code>route-list</code> from the latest <strong>successful <code>main</code></strong> run of &quot;Export API routes&quot; in <code>hireboard/api</code> using <code>gh</code>, and then runs the checker with the two env vars set:</li></ul>
+<pre><code class="language-yaml"># web/.github/workflows/contract-sync.yml (excerpt)
+    env:
+      CONTRACT_SYNC_REGISTRY: lib/api/endpoints.ts
+      CONTRACT_SYNC_ROUTES_FILE: route-list.json
+    steps:
+      # ...
+      - name: Download the route list from the latest green api main build
+        env:
+          GH_TOKEN: ${{ secrets.BACKEND_REPO_TOKEN }}
+        run: |
+          run_id=$(gh run list -R hireboard/api -w &quot;Export API routes&quot; -b main -s success -L 1 --json databaseId -q &#39;.[0].databaseId&#39;)
+          # ...
+          gh run download &quot;$run_id&quot; -R hireboard/api -n route-list
+      - name: Compare lib/api/endpoints.ts with the API routes
+        run: node scripts/contract-sync.mjs</code></pre>
+<p>Create the <code>BACKEND_REPO_TOKEN</code> secret in <code>hireboard/web</code>. Use a fine-grained token with read access to <strong>Actions</strong> on <code>hireboard/api</code>, because the default <code>GITHUB_TOKEN</code> cannot read another repo&#39;s artifacts.</p>
+<p>Two choices are deliberate:</p>
+<ul><li><strong>No <code>--strict</code> yet.</strong> The README advises starting with warnings allowed. Today there are no unused routes. HIRE-11 will add employer posting endpoints, and while its api PR is merged but its web PR is still open, those routes show up as <code>unused-by-frontend</code> warnings. That is the expected state between the two merges, and it should not block anyone. Turn on <code>--strict</code> (or <code>CONTRACT_SYNC_STRICT=1</code>) once the team trusts the check.</li><li><strong>The check reads api <code>main</code>, not the api PR.</strong> This is what makes &quot;api merged first&quot; enforceable. A web PR that calls an endpoint the api has not merged yet fails with <code>missing-in-backend</code> until the api PR lands.</li></ul>
+<p>Optional, but the agent benefits: the README&#39;s <a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/share/templates/contract-sync/README.md#as-a-claude-code-hook" target="_blank" rel="noopener noreferrer">PostToolUse hook</a> runs the checker whenever Claude edits <code>routes/*.php</code> or <code>endpoints.ts</code>, so drift surfaces in the same turn. The same section describes a lighter pre-push variant (<code>node scripts/contract-sync.mjs || exit 1</code>). Hireboard adds the pre-push hook in <code>web/</code> only. In the workspace, the hook would need a fresh <code>route-list.json</code> on every edit, and the README recommends <code>routesFile</code> in that case.</p>
+<hr>
+<h3 id="2-routines-report-only-drift-checks">2. Routines: report-only drift checks</h3>
+<p>CI only checks pull requests. If someone renames a route on api <code>main</code> while no web PR is open, nothing goes red. Routines cover the gap. They are Claude Code cloud agents on a cron, created with <code>/schedule</code>. <a href="../../reference/usage-examples.html#14-recurring-checks-with-routines">USAGE-EXAMPLES.md section 14</a> gives generic prompts, and these are tailored to Hireboard. Give each routine access to both <code>hireboard/api</code> and <code>hireboard/web</code> when <code>/schedule</code> asks for repositories.</p>
+<p><strong>Nightly contract drift:</strong></p>
+<pre><code class="language-text">/schedule every night at 02:00 Europe/Berlin: In hireboard/api run `composer install --no-interaction --prefer-dist`, `cp .env.example .env &amp;&amp; php artisan key:generate`, then `php artisan route:list --json &gt; route-list.json`. If PHP is not available, download the `route-list` artifact from the latest successful &quot;Export API routes&quot; run on hireboard/api main with gh instead. In hireboard/web run `node scripts/contract-sync.mjs --routes-file &lt;path to route-list.json&gt; --registry lib/api/endpoints.ts --json`. Report every error and warning with method, path and the registry line or controller, plus the api and web commits you checked. Report only: do not edit files, commit, push or open pull requests.</code></pre>
+<p><strong>Weekly spec status reconciliation:</strong></p>
+<pre><code class="language-text">/schedule every Monday at 07:00 Europe/Berlin: In hireboard/api and hireboard/web, for every folder under .ai/specs/, read the status in spec-lite.md frontmatter and the checkboxes in tasks.md. Report specs whose status disagrees with their tasks: done with unchecked tasks, in-progress or approved with every task checked, draft older than 7 days, approved without approved_by/approved_at. For each spec, give the folder, the status, checked/total tasks and a one-line suggestion. Report only: do not edit specs or code.</code></pre>
+<p><strong>Weekly dependency audit:</strong></p>
+<pre><code class="language-text">/schedule every Monday at 07:30 Europe/Berlin: In hireboard/api and hireboard/web run the audit commands directly: in api, `composer outdated --direct` and `composer audit`; in web, `npm outdated` and `npm audit --omit=dev`. Summarize outdated and vulnerable packages per repo by risk (security first, then majors), with the advisory id and the fixed version. Report only: do not upgrade, edit lockfiles or open pull requests.</code></pre>
+<p><code>/upgrade-deps</code> is a manual-only skill: a routine agent cannot invoke it, so the routine runs the underlying commands itself. Type <code>/upgrade-deps</code> (or <code>/security-scan</code>) yourself when you act on the report.</p>
+<p><em>(Simulated)</em> <code>/schedule</code> echoes each routine with its cron and repositories, and the first nightly report arrives the next morning:</p>
+<pre><code class="language-text">Contract drift — 2026-11-10 02:00 CET
+api main 4e1c9a2 · web main b77d310
+contract-sync: 18 backend routes, 18 frontend endpoints compared
+In sync. No errors, no warnings.</code></pre>
+<p>The rule that makes routines safe: <strong>a routine finds, a person acts through <code>/sdd</code>.</strong> If the dependency audit flags a vulnerable package, someone runs <code>/sdd</code> with the finding. A patch bump is <code>trivial</code>, and a breaking upgrade is a <code>feature</code> with a spec. A routine that &quot;just fixes it&quot; pushes unreviewed changes at 02:00, bypassing the approval gate and the api-first merge order.</p>
+<hr>
+<h3 id="3-a-hireboard-routing-eval">3. A Hireboard routing eval</h3>
+<p><code>/sdd</code> routing decides which pipeline runs, so a wrong route is expensive. A <code>trivial</code> request routed to <code>feature</code> costs a spec, and a <code>bug</code> routed to <code>trivial</code> skips the regression test. The kit&#39;s built-in <code>sdd-routing</code> case covers four routes (bug, feature, decision, trivial). Hireboard&#39;s tickets exercise all six, so the team adds a case in its own words. See evals.md for the format and flags.</p>
+<p>Evals run against the plugin source, so the case lives in a fork of the kit (<code>hireboard/claude-laravel-nexjs</code>). The fork tracks upstream tags, and <code>evals/hireboard-routing/</code> is its only addition, so the plugin code under test is byte-identical to the version the team pins in section 4. The artifact <code>artifacts/kit-fork/evals/hireboard-routing/</code> maps to <code>evals/hireboard-routing/</code> in that fork:</p>
+<pre><code class="language-text">evals/hireboard-routing/
+├── case.yaml               runs: 5, max_turns 8, allowed_tools [Read, Glob, Grep, Skill]
+├── prompt.md               dry run: classify six requests, one line each
+└── graders/
+    └── routes-correct.md   type: llm, focus: last_message</code></pre>
+<p>The prompt mirrors the built-in case. It uses the six route names, a no-launch dry run and one line per request, and ticket text is included so <code>/sdd</code> doesn&#39;t ask for a paste (there is no tracker, F8). The six requests:</p>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>Request (abridged)</th><th>Expected route</th><th>Chapter</th></tr></thead><tbody><tr><td>1</td><td>HIRE-9: closed posting renders by direct link</td><td>bug</td><td><a href="09-bug-closed-jobs-fix-bug.html">09</a></td></tr><tr><td>2</td><td>HIRE-6: candidates apply, employers see applications</td><td>feature</td><td><a href="07-applications-and-deep-review.html">07</a></td></tr><tr><td>3</td><td>HIRE-2: which SPA auth approach</td><td>decision</td><td><a href="03-decision-spa-auth-adr.html">03</a></td></tr><tr><td>4</td><td>HIRE-10: QA plan + docs for the live browse journey</td><td>shipped</td><td><a href="10-qa-and-docs-browse-journey.html">10</a></td></tr><tr><td>5</td><td>New admin analytics service in an empty repository</td><td>new app</td><td><a href="02-greenfield-first-slice.html">02</a> shape</td></tr><tr><td>6</td><td>HIRE-8: format the salary on job cards</td><td>trivial</td><td><a href="08-careers-page-s-spec-and-trivial-change.html">08</a></td></tr></tbody></table></div>
+<p>The grader passes only on exactly those six routes, with no hedging and nothing launched or written:</p>
+<pre><code class="language-markdown">---
+type: llm
+focus: last_message
+weight: 1
+---
+Pass only if the final answer assigns exactly these routes: request 1 → bug, request 2 → feature, ...</code></pre>
+<p>Run it from the fork root in a plain terminal, not inside a Claude Code session. It has no fixture, so <code>--scaffold</code> and <code>--allow-tools</code> aren&#39;t needed:</p>
+<pre><code class="language-bash">cd ~/tools/hireboard-kit-fork
+claude plugin eval . --case hireboard-routing --runs 5 --no-publish</code></pre>
+<p><em>(Simulated, abridged)</em></p>
+<pre><code class="language-text">hireboard-routing   with plugin   5/5 pass   median 1.00
+                    baseline      2/5 pass   median 0.00
+                    delta         +1.00
+Report: evals/results/2026-11-09T09-14-03/report.html</code></pre>
+<p>The default <code>--ablation with-without</code> adds the no-plugin baseline arm, so the score shows what the kit adds, not just whether a model can sort six sentences. Judge it the way evals.md, &quot;How to judge results&quot; says: <strong>the median of 5 runs, against the baseline</strong>, never a single run. Keep <code>--judge-model</code> fixed across runs you compare, and <strong>rerun it on every model release and every kit release</strong>. A drop blocks the kit upgrade in section 4 until someone explains it.</p>
+<hr>
+<h3 id="4-pin-the-kit-for-everyone">4. Pin the kit for everyone</h3>
+<p>Alex installed the kit in plugin mode in <a href="01-workspace-and-install.html">chapter 01</a>. If three developers each run &quot;whatever is on master&quot;, their behavior diverges and every eval result is meaningless. Follow <a href="../../reference/team-marketplace.html">team-marketplace.md</a>: a catalog repo <code>hireboard/claude-marketplace</code> with the core plugin pinned by <code>ref</code> <strong>and</strong> <code>sha</code>:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;hireboard-claude&quot;,
+  &quot;owner&quot;: { &quot;name&quot;: &quot;Hireboard&quot; },
+  &quot;plugins&quot;: [
+    {
+      &quot;name&quot;: &quot;sdd-kit&quot;,
+      &quot;description&quot;: &quot;Spec-driven Laravel API + Next.js framework: /sdd, workflows, agents, skills, hooks.&quot;,
+      &quot;source&quot;: {
+        &quot;source&quot;: &quot;git-subdir&quot;,
+        &quot;url&quot;: &quot;stasmarkov/sdd-kit&quot;,
+        &quot;path&quot;: &quot;plugins/sdd-kit&quot;,
+        &quot;ref&quot;: &quot;v2.0.0&quot;,
+        &quot;sha&quot;: &quot;&lt;40-char commit sha of v2.0.0&gt;&quot;
+      }
+    }
+  ]
+}</code></pre>
+<p>Get the sha with <code>git ls-remote https://github.com/stasmarkov/sdd-kit refs/tags/v2.0.0</code> (use the <code>^{}</code> line for an annotated tag), and validate with <code>claude plugin validate ./claude-marketplace</code>. The catalog points at upstream rather than the fork, because the fork&#39;s only difference is the eval case. No add-ons yet: Hireboard has no on-call rotation, so it does not need <code>sdd-kit-ops</code>.</p>
+<p>Commit the same <code>.claude/settings.json</code> to <strong>both</strong> <code>api/</code> and <code>web/</code> (section 2 of the doc):</p>
+<pre><code class="language-json">{
+  &quot;extraKnownMarketplaces&quot;: {
+    &quot;hireboard-claude&quot;: { &quot;source&quot;: { &quot;source&quot;: &quot;github&quot;, &quot;repo&quot;: &quot;hireboard/claude-marketplace&quot; } }
+  },
+  &quot;enabledPlugins&quot;: { &quot;sdd-kit@hireboard-claude&quot;: true }
+}</code></pre>
+<p>Each developer then runs <code>claude plugin install sdd-kit@hireboard-claude --scope project</code> once per repo. The workspace root <code>~/work/hireboard/</code> has no git, so nothing there can be committed. Each developer either keeps an untracked copy of that settings file at the root or starts cross-repo sessions from inside a repo with <code>--add-dir</code> (F3). Plugin mode namespaces skills, so <code>/sdd</code> in this walkthrough is <code>/sdd-kit:sdd</code> (F5, <a href="../../reference/installation.html#namespacing">INSTALLATION.md, &quot;Namespacing&quot;</a>).</p>
+<p>Upgrades follow the doc&#39;s <a href="../../reference/team-marketplace.html#4-update-and-pinning-policy">pinning policy</a>. Open a PR to the marketplace repo that bumps <code>ref</code> and <code>sha</code>, rebase the fork onto the new tag, and run the section 3 eval plus the built-in suite. Merge only if the medians hold.</p>
+<p><strong>Other AI tools.</strong> Not everyone uses Claude Code. The <code>AGENTS.md</code> files from <a href="02-greenfield-first-slice.html">chapter 02</a> are tool-neutral (stack, the exact gate commands, the red lines), and Cursor and Codex read them directly. Make sure they are committed in both repos, and that each <code>CLAUDE.md</code> imports <code>@AGENTS.md</code> so each fact lives in one file only (see the comment at the top of <code>src/templates/AGENTS.template.md</code>). Keep every <code>CLAUDE.md</code> under 200 lines, as <code>src/CLAUDE.template.md</code> and <a href="../../reference/getting-started.html#2-give-claude-your-project-context">GETTING-STARTED.md</a> advise:</p>
+<pre><code class="language-bash">cd ~/work/hireboard
+wc -l CLAUDE.md api/CLAUDE.md web/CLAUDE.md api/AGENTS.md web/AGENTS.md
+git -C api ls-files AGENTS.md CLAUDE.md .claude/settings.json
+git -C web ls-files AGENTS.md CLAUDE.md .claude/settings.json</code></pre>
+<p>Run <code>/memory</code> in a fresh session to confirm the right files load. New rules go in <code>api/.claude/rules/</code> or <code>web/.claude/rules/</code>, not as more lines in <code>CLAUDE.md</code>.</p>
+<hr>
+<h3 id="5-team-rhythm">5. Team rhythm</h3>
+<p>Print this out. It is the walkthrough compressed to six rules:</p>
+<ul class="contains-task-list"><li class="task"><input type="checkbox" disabled> <strong>Every ticket starts with <code>/sdd</code>.</strong> It picks the route, and the team doesn&#39;t debate the pipeline.</li><li class="task"><input type="checkbox" disabled> <strong>The spec lives in the repo that starts the change.</strong> api + web features go in <code>api/.ai/specs/</code> (HIRE-3 to HIRE-6), and web-only features go in <code>web/.ai/specs/</code> (HIRE-7). From the workspace root, pass workflows the repo-relative path; run <code>/execute-task</code> and <code>/deep-review --spec</code> from a session inside the owning repo (F2).</li><li class="task"><input type="checkbox" disabled> <strong>Approval is recorded in frontmatter</strong> (<code>status: approved</code>, <code>approved_by</code>, <code>approved_at</code>) by <code>/sdd</code> in the same conversation. A Slack &quot;lgtm&quot; is not approval (F7).</li><li class="task"><input type="checkbox" disabled> <strong>One PR per repo, with matching branch names, and api merged first.</strong> The contract-sync check from section 1 now enforces this order.</li><li class="task"><input type="checkbox" disabled> <strong><code>/deep-review</code> before merge</strong> for anything touching auth, personal data or money, as in <a href="07-applications-and-deep-review.html">chapter 07</a>.</li><li class="task"><input type="checkbox" disabled> <strong><code>qa-and-docs</code> before a release</strong>, as in <a href="10-qa-and-docs-browse-journey.html">chapter 10</a>. Maya Chen validates inferred criteria.</li></ul>
+<hr>
+<h3 id="6-exercise-hire-11-employers-publish-and-close-job-postings">6. Exercise: HIRE-11 &quot;Employers publish and close job postings&quot;</h3>
+<p>This ticket is the hand-off to the new developers. It is not built in this walkthrough. The ticket text, as Maya would paste it:</p>
+<blockquote><p><strong>HIRE-11 Employers publish and close job postings.</strong> An employer creates job postings for their own company as drafts, publishes them (they become <code>open</code> with a <code>published_at</code>), and closes them when filled. Employers see all their own postings, including drafts and closed ones. Other companies&#39; postings are off-limits.</p></blockquote>
+<p>Start it the way every ticket starts. Run this from inside <code>api/</code> with <code>--add-dir ../web</code>, so the spec lands in <code>api/.ai/specs/</code>:</p>
+<pre><code class="language-text">/sdd HIRE-11</code></pre>
+<p>What you should see:</p>
+<ul><li><strong>Route: feature.</strong> It adds behavior, and the code base already exists. Expect <code>write-spec</code> to size it <strong>M</strong>: a schema-touching API change plus web pages is the template&#39;s own M shape, and two repos alone don&#39;t make it L (F6). If it proposes L, ask why.</li><li><strong>Must NOT change, as a hint.</strong> Expect at least these two, and add them yourself if they are missing:<ul><li>MNC: <code>GET /api/v1/jobs</code> and <code>GET /api/v1/jobs/{id}</code> still return only <code>open</code> postings. Drafts stay invisible and closed postings return 404 <code>job_not_found</code> (BR-10, plus the HIRE-9 regression tests in <code>ClosedJobPostingVisibilityTest.php</code>).</li><li>MNC: applying to a closed posting still returns 422 <code>job_not_open</code> (BR-31), and employers still see applications to their closed postings (BR-33).</li></ul></li><li><strong>Clarity gate questions worth raising:</strong> can a closed posting be reopened? Can a published posting be edited, and does <code>published_at</code> change when it is? Does closing a posting notify its applicants? Is the salary rule BR-12 enforced on publish or on save?</li><li><strong>Contract:</strong> new endpoints such as an employer postings list and publish/close actions show up as <code>unused-by-frontend</code> warnings in contract-sync between the api and web merges. That is expected without <code>--strict</code>.</li></ul>
+<p>Then follow <a href="04-feature-accounts-and-roles.html">chapter 04</a> for approval and <code>ship-feature</code>, or <a href="06-execute-task-candidate-profiles.html">chapter 06</a> to go task by task.</p>
+<hr>
+<h3 id="what-you-have-now">What you have now</h3>
+<ul><li>A contract check that fails a web PR when <code>lib/api/endpoints.ts</code> calls a route the api <code>main</code> doesn&#39;t have, fed by an &quot;Export API routes&quot; artifact from <code>hireboard/api</code>.</li><li>Three report-only routines (nightly contract drift, weekly spec reconciliation, weekly dependency audit) whose findings go back through <code>/sdd</code>.</li><li>A <code>hireboard-routing</code> eval covering all six <code>/sdd</code> routes, judged on the median of 5 runs against the baseline and rerun on every model or kit release.</li><li>One pinned kit version for the whole team through <code>hireboard-claude</code>, plus committed <code>AGENTS.md</code> files for non-Claude tools.</li></ul>
+<h3 id="where-to-go-next">Where to go next</h3>
+<p>This is the last chapter. Go back to the <a href="00-overview.html">overview</a> for the full map. For depth on each topic, see <a href="../../reference/multi-repo.html">multi-repo.md</a>, evals.md, <a href="../../reference/team-marketplace.html">team-marketplace.md</a>, <a href="../../reference/effort-guidelines.html">effort-guidelines.md</a> (which model tier each workflow phase uses), <a href="../../reference/usage-examples.html">USAGE-EXAMPLES.md</a> and <a href="../../reference/getting-started.html">GETTING-STARTED.md</a>.</p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/11-running-it-as-a-team.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

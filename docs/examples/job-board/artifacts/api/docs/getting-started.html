@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting started · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/docs/getting-started.md</p>
+  <article class="doc-body">
+<h2 id="getting-started">Getting started</h2>
+<p>How to install, run and test Hireboard locally. Both repos live side by side in one
+workspace folder (<code>~/work/hireboard/api</code> and <code>~/work/hireboard/web</code>).</p>
+<h3 id="requirements">Requirements</h3>
+<ul><li>PHP 8.3 with the <code>pdo_sqlite</code> extension, Composer 2</li><li>Node 20 or newer, npm</li></ul>
+<h3 id="api-api">API (<code>api/</code>)</h3>
+<pre><code class="language-bash">cd ~/work/hireboard/api
+composer install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite          # .env uses DB_CONNECTION=sqlite
+php artisan migrate:fresh --seed         # local only: wipes and reseeds the dev database
+php artisan serve --port=8000</code></pre>
+<p>Check it: <code>curl -s http://localhost:8000/api/v1/jobs -H &#39;Accept: application/json&#39; | jq &#39;.meta&#39;</code></p>
+<p>Demo data comes from <code>JobBoardSeeder</code> (3 companies, 8 open postings, 1 closed, 1 draft) and
+<code>DemoUserSeeder</code> (accounts below).</p>
+<div class="table-wrap"><table><thead><tr><th>Account</th><th>Password</th><th>Role</th></tr></thead><tbody><tr><td><code>candidate@hireboard.test</code></td><td><code>password</code></td><td>candidate</td></tr><tr><td><code>employer@acme.test</code></td><td><code>password</code></td><td>employer (owns Acme Robotics)</td></tr><tr><td><code>admin@hireboard.test</code></td><td><code>password</code></td><td>admin</td></tr></tbody></table></div>
+<h3 id="web-web">Web (<code>web/</code>)</h3>
+<pre><code class="language-bash">cd ~/work/hireboard/web
+npm ci
+cp .env.example .env.local              # API_BASE_URL=http://localhost:8000 (server-only)
+npm run dev</code></pre>
+<p>Open http://localhost:3000. The API must be running; the browser never calls it directly.</p>
+<h3 id="quality-gates">Quality gates</h3>
+<p>A change is done only when every gate passes in the repo you touched. CI runs the same
+commands (<code>.github/workflows/ci.yml</code> in each repo).</p>
+<pre><code class="language-bash"># api/
+./vendor/bin/pint --test
+./vendor/bin/phpstan analyse --no-progress
+php artisan test                        # in-memory SQLite from phpunit.xml, never the dev DB
+
+# web/
+npm run lint
+npx tsc --noEmit
+npm test                                # vitest run
+npm run build                           # when routes or layouts change</code></pre>
+<h3 id="useful-commands">Useful commands</h3>
+<pre><code class="language-bash">php artisan route:list --path=api/v1    # endpoints, compare with web/lib/api/endpoints.ts
+php artisan test --filter=SearchJobPostings
+./vendor/bin/pint                       # fix style
+php artisan migrate --pretend           # read the SQL before running a new migration</code></pre>
+<h3 id="troubleshooting">Troubleshooting</h3>
+<div class="table-wrap"><table><thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead><tbody><tr><td><code>/jobs</code> shows &quot;Jobs could not be loaded&quot;</td><td>API not running or <code>API_BASE_URL</code> missing</td><td>Start <code>php artisan serve --port=8000</code>; check <code>web/.env.local</code></td></tr><tr><td><code>Database file at path [...] does not exist</code></td><td>No SQLite file</td><td><code>touch database/database.sqlite</code></td></tr><tr><td>Tests change your dev data</td><td>Tests not using <code>phpunit.xml</code> env</td><td>Run <code>php artisan test</code>, not a custom runner pointing at <code>.env</code></td></tr></tbody></table></div>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/docs/getting-started.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

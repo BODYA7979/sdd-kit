@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hireboard API contract (v1) · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/docs/api/api-contracts.md</p>
+  <article class="doc-body">
+<h2 id="hireboard-api-contract-v1">Hireboard API contract (v1)</h2>
+<p>The request and response shapes the web app relies on. <strong>This file is authoritative</strong>: when
+<code>web/</code> and this file disagree, <code>web/</code> is wrong (workspace <code>CLAUDE.md</code>, &quot;Contract&quot;).
+Every endpoint below is registered in <code>web/lib/api/endpoints.ts</code> under the name in the
+&quot;Registry&quot; column (INV-06). <code>web/scripts/contract-sync.mjs</code> checks method and path against
+<code>php artisan route:list --json</code>; it cannot check shapes, so update this file and
+<code>web/types/api/*.ts</code> in the same change.</p>
+<p>Base URL (local): <code>http://localhost:8000</code>. Only the Next.js server calls it (INV-05).</p>
+<h3 id="conventions">Conventions</h3>
+<p><strong>Envelope (INV-01).</strong> Success:</p>
+<pre><code class="language-json">{ &quot;success&quot;: true, &quot;status&quot;: 200, &quot;message&quot;: &quot;OK&quot;, &quot;data&quot;: { } }</code></pre>
+<p>Paginated lists add <code>meta</code> (<code>data</code> is an array):</p>
+<pre><code class="language-json">{ &quot;success&quot;: true, &quot;status&quot;: 200, &quot;message&quot;: &quot;OK&quot;, &quot;data&quot;: [ ],
+  &quot;meta&quot;: { &quot;current_page&quot;: 1, &quot;per_page&quot;: 20, &quot;total&quot;: 8, &quot;last_page&quot;: 1 } }</code></pre>
+<p>Errors never carry <code>data</code>:</p>
+<pre><code class="language-json">{ &quot;success&quot;: false, &quot;status&quot;: 422, &quot;message&quot;: &quot;The given data was invalid.&quot;, &quot;code&quot;: &quot;validation_failed&quot;,
+  &quot;errors&quot;: { &quot;per_page&quot;: [&quot;The per page field must be at least 1.&quot;] } }</code></pre>
+<ul><li>Field names are snake_case. Timestamps are ISO-8601 in UTC (INV-04).</li><li>IDs: domain records are UUID strings (INV-03); users are integers.</li><li>Auth: <code>Authorization: Bearer &lt;token&gt;</code> (Sanctum personal access token, ADR-0001). Send
+<code>Accept: application/json</code>.</li><li>Pagination query: <code>page</code> (default 1), <code>per_page</code> (default 20). Search caps <code>per_page</code> at 50.</li><li>Rate limits answer 429 <code>too_many_requests</code> with a <code>Retry-After</code> header.</li></ul>
+<h3 id="error-codes">Error codes</h3>
+<div class="table-wrap"><table><thead><tr><th>Code</th><th>HTTP</th><th>Raised when</th></tr></thead><tbody><tr><td><code>unauthenticated</code></td><td>401</td><td>Missing, invalid, expired or revoked token</td></tr><tr><td><code>forbidden</code></td><td>403</td><td>A policy refuses the action (wrong role, not the owner)</td></tr><tr><td><code>not_found</code></td><td>404</td><td>Unknown route</td></tr><tr><td><code>job_not_found</code></td><td>404</td><td>Posting id unknown, or posting not <code>open</code> (BR-10)</td></tr><tr><td><code>company_not_found</code></td><td>404</td><td>Company slug unknown</td></tr><tr><td><code>profile_not_found</code></td><td>404</td><td>Candidate has no profile yet</td></tr><tr><td><code>review_not_found</code></td><td>404</td><td>Review id unknown, or no own review for this company</td></tr><tr><td><code>validation_failed</code></td><td>422</td><td>Input validation failed; see <code>errors</code></td></tr><tr><td><code>invalid_credentials</code></td><td>422</td><td>Login with a wrong email or password</td></tr><tr><td><code>profile_required</code></td><td>422</td><td>Applying without a profile (BR-30)</td></tr><tr><td><code>job_not_open</code></td><td>422</td><td>Applying to a draft or closed posting (BR-31)</td></tr><tr><td><code>already_applied</code></td><td>409</td><td>Second application to the same posting (BR-32)</td></tr><tr><td><code>review_already_exists</code></td><td>409</td><td>Second review of the same company (BR-40)</td></tr><tr><td><code>review_already_moderated</code></td><td>409</td><td>Approving or rejecting a review that is not pending (BR-44)</td></tr><tr><td><code>too_many_requests</code></td><td>429</td><td>Rate limit hit</td></tr><tr><td><code>method_not_allowed</code></td><td>405</td><td>Known route called with the wrong HTTP method</td></tr><tr><td><code>http_error</code></td><td>other 4xx</td><td>Any other client error raised by the framework, with its own status (for example 400 or 419)</td></tr><tr><td><code>service_unavailable</code></td><td>503</td><td>Maintenance mode or temporary outage; carries the <code>Retry-After</code> header</td></tr><tr><td><code>server_error</code></td><td>500 (or the framework&#39;s own 5xx)</td><td>Unexpected failure. Other 5xx framework exceptions keep their status with this code; the message is generic and never exposes internals</td></tr></tbody></table></div>
+<p>The web forms map codes to messages, so renaming a code is a breaking change. The last four codes are the catch-all handlers in <code>bootstrap/app.php</code>; the web client treats any unrecognised code as <code>http_error</code> (see <code>ApiError</code> in <code>lib/api/client.ts</code>) and shows the envelope <code>message</code>.</p>
+<h3 id="shapes">Shapes</h3>
+<pre><code class="language-text">JobPosting         {id, title, description, location, remote, employment_type,
+                    salary: {min, max, currency} | null, status, published_at,
+                    company: {id, slug, name, location}}
+Company            {id, slug, name, website, location, description, open_jobs_count}
+User               {id, name, email, role}
+AuthResult         {user: User, token}
+CandidateProfile   {id, headline, location, bio, skills[], years_experience, open_to_work, updated_at}
+JobApplication     {id, job: {id, title, company: {slug, name}}, cover_letter, submitted_at}
+EmployerApplication {id, job: {id, title, status}, candidate: {name, email, headline}, cover_letter, submitted_at}
+CompanyReview      {id, rating, title, body, author: &quot;Verified candidate&quot;, created_at}
+MyCompanyReview    CompanyReview + {status, rejection_reason}
+PendingReview      CompanyReview + {status, company: {slug, name}, candidate_name}</code></pre>
+<p>Enums: <code>employment_type</code> is <code>full_time | part_time | contract | internship</code>; posting <code>status</code>
+is <code>draft | open | closed</code> (only <code>open</code> is ever returned publicly); <code>role</code> is
+<code>candidate | employer | admin</code>; review <code>status</code> is <code>pending | approved | rejected</code>.
+<code>salary</code> is <code>null</code> when neither bound is set; otherwise either bound may be <code>null</code> (BR-12, INV-07).</p>
+<hr>
+<h3 id="jobs-and-companies-hire-1--routesapiv1jobsphp">Jobs and companies (HIRE-1) — <code>routes/api/v1/jobs.php</code></h3>
+<div class="table-wrap"><table><thead><tr><th>Method</th><th>Path</th><th>Registry</th><th>Auth</th><th>Controller</th></tr></thead><tbody><tr><td>GET</td><td><code>/api/v1/jobs</code></td><td><code>searchJobs</code></td><td>public</td><td><code>Jobs\SearchJobPostingsController</code></td></tr><tr><td>GET</td><td><code>/api/v1/jobs/{id}</code></td><td><code>showJob</code></td><td>public</td><td><code>Jobs\ShowJobPostingController</code></td></tr><tr><td>GET</td><td><code>/api/v1/companies/{slug}</code></td><td><code>showCompany</code></td><td>public</td><td><code>Companies\ShowCompanyController</code></td></tr></tbody></table></div>
+<h4 id="get-apiv1jobs">GET /api/v1/jobs</h4>
+<p>Open postings only, newest <code>published_at</code> first (BR-10, BR-11).</p>
+<div class="table-wrap"><table><thead><tr><th>Query</th><th>Type</th><th>Notes</th></tr></thead><tbody><tr><td><code>q</code></td><td>string, max 120</td><td>Substring of title or description</td></tr><tr><td><code>location</code></td><td>string, max 120</td><td>Substring of location</td></tr><tr><td><code>remote</code></td><td><code>1</code> or <code>0</code></td><td>Omit for both</td></tr><tr><td><code>employment_type</code></td><td>enum</td><td>Unknown value: 422</td></tr><tr><td><code>company</code></td><td>slug, max 80</td><td>Only this company&#39;s postings</td></tr><tr><td><code>page</code></td><td>int &gt;= 1</td><td>Default 1</td></tr><tr><td><code>per_page</code></td><td>int &gt;= 1</td><td>Default 20; values above 50 are capped to 50; <code>0</code>: 422</td></tr></tbody></table></div>
+<p><code>200</code> paginated <code>JobPosting</code>. <code>422 validation_failed</code>.</p>
+<pre><code class="language-bash">curl -s &#39;http://localhost:8000/api/v1/jobs?remote=1&amp;employment_type=full_time&#39; -H &#39;Accept: application/json&#39;</code></pre>
+<pre><code class="language-json">{
+  &quot;success&quot;: true, &quot;status&quot;: 200, &quot;message&quot;: &quot;OK&quot;,
+  &quot;data&quot;: [{
+    &quot;id&quot;: &quot;9d3c5a1e-6b8f-4f7a-9a51-1c2d3e4f5a6b&quot;,
+    &quot;title&quot;: &quot;Senior Laravel Engineer&quot;,
+    &quot;description&quot;: &quot;Acme Robotics is hiring a Senior Laravel Engineer. ...&quot;,
+    &quot;location&quot;: &quot;Berlin&quot;, &quot;remote&quot;: true, &quot;employment_type&quot;: &quot;full_time&quot;,
+    &quot;salary&quot;: { &quot;min&quot;: 65000, &quot;max&quot;: 85000, &quot;currency&quot;: &quot;EUR&quot; },
+    &quot;status&quot;: &quot;open&quot;, &quot;published_at&quot;: &quot;2026-10-18T10:00:00+00:00&quot;,
+    &quot;company&quot;: { &quot;id&quot;: &quot;9d3c59f0-...&quot;, &quot;slug&quot;: &quot;acme-robotics&quot;, &quot;name&quot;: &quot;Acme Robotics&quot;, &quot;location&quot;: &quot;Berlin&quot; }
+  }],
+  &quot;meta&quot;: { &quot;current_page&quot;: 1, &quot;per_page&quot;: 20, &quot;total&quot;: 3, &quot;last_page&quot;: 1 }
+}</code></pre>
+<h4 id="get-apiv1jobsid">GET /api/v1/jobs/{id}</h4>
+<p><code>200</code> <code>JobPosting</code>. <code>404 job_not_found</code> when the id is unknown <strong>or the posting is not open</strong>
+(draft or closed). The two cases are indistinguishable on purpose (BR-10; regression-tested
+since HIRE-9).</p>
+<h4 id="get-apiv1companiesslug">GET /api/v1/companies/{slug}</h4>
+<p><code>200</code> <code>Company</code>. <code>open_jobs_count</code> counts open postings only. <code>404 company_not_found</code>.
+No review fields are added here; the rating lives in the reviews list <code>meta</code> (HIRE-4 MNC-1).</p>
+<hr>
+<h3 id="auth-hire-3--routesapiv1authphp">Auth (HIRE-3) — <code>routes/api/v1/auth.php</code></h3>
+<div class="table-wrap"><table><thead><tr><th>Method</th><th>Path</th><th>Registry</th><th>Auth</th><th>Controller</th></tr></thead><tbody><tr><td>POST</td><td><code>/api/v1/auth/register</code></td><td><code>register</code></td><td>public, <code>throttle:6,1</code></td><td><code>Auth\RegisterController</code></td></tr><tr><td>POST</td><td><code>/api/v1/auth/login</code></td><td><code>login</code></td><td>public, <code>throttle:6,1</code></td><td><code>Auth\LoginController</code></td></tr><tr><td>POST</td><td><code>/api/v1/auth/logout</code></td><td><code>logout</code></td><td><code>auth:sanctum</code></td><td><code>Auth\LogoutController</code></td></tr><tr><td>GET</td><td><code>/api/v1/auth/me</code></td><td><code>me</code></td><td><code>auth:sanctum</code></td><td><code>Auth\ShowCurrentUserController</code></td></tr></tbody></table></div>
+<ul><li><strong>register</strong> body: <code>name</code> (max 120), <code>email</code>, <code>password</code> (min 8), <code>password_confirmation</code>,
+<code>role</code> (<code>candidate</code> or <code>employer</code>, BR-01), <code>company_name</code> (required when <code>role=employer</code>,
+2-120). <code>201</code> <code>AuthResult</code>; an employer also gets a company (BR-02). <code>422 validation_failed</code>
+(also for <code>role=admin</code> and for a duplicate email in any case, BR-03).</li><li><strong>login</strong> body: <code>email</code>, <code>password</code>. <code>200</code> <code>AuthResult</code>. <code>422 invalid_credentials</code>. <code>429</code>.</li><li><strong>logout</strong>: revokes the current token (BR-04). <code>204</code>, no body.</li><li><strong>me</strong>: <code>200</code> <code>User</code>. <code>401 unauthenticated</code>.</li></ul>
+<p>Tokens are named <code>web</code> and expire after 7 days (BR-04). The web server stores the token in the
+HttpOnly cookie <code>hireboard_session</code> and never sends it to the browser (INV-05, ADR-0001).</p>
+<hr>
+<h3 id="reviews-hire-4--routesapiv1reviewsphp">Reviews (HIRE-4) — <code>routes/api/v1/reviews.php</code></h3>
+<div class="table-wrap"><table><thead><tr><th>Method</th><th>Path</th><th>Registry</th><th>Auth</th><th>Controller</th></tr></thead><tbody><tr><td>GET</td><td><code>/api/v1/companies/{slug}/reviews</code></td><td><code>listCompanyReviews</code></td><td>public</td><td><code>Reviews\ListCompanyReviewsController</code></td></tr><tr><td>POST</td><td><code>/api/v1/companies/{slug}/reviews</code></td><td><code>submitCompanyReview</code></td><td>candidate</td><td><code>Reviews\SubmitCompanyReviewController</code></td></tr><tr><td>GET</td><td><code>/api/v1/companies/{slug}/reviews/mine</code></td><td><code>showMyCompanyReview</code></td><td>candidate</td><td><code>Reviews\ShowMyCompanyReviewController</code></td></tr><tr><td>GET</td><td><code>/api/v1/admin/reviews</code></td><td><code>listPendingReviews</code></td><td>admin</td><td><code>Reviews\ListPendingReviewsController</code></td></tr><tr><td>POST</td><td><code>/api/v1/admin/reviews/{id}/approve</code></td><td><code>approveReview</code></td><td>admin</td><td><code>Reviews\ApproveReviewController</code></td></tr><tr><td>POST</td><td><code>/api/v1/admin/reviews/{id}/reject</code></td><td><code>rejectReview</code></td><td>admin</td><td><code>Reviews\RejectReviewController</code></td></tr></tbody></table></div>
+<ul><li><strong>list</strong>: approved reviews only, newest first, paginated <code>CompanyReview</code>. <code>meta</code> adds
+<code>average_rating</code> (number with 1 decimal, or <code>null</code> when there are no approved reviews; BR-43).
+<code>404 company_not_found</code>.</li><li><strong>submit</strong> body: <code>rating</code> (1-5), <code>title</code> (5-120), <code>body</code> (20-2000). <code>201</code> <code>MyCompanyReview</code>
+with <code>status: &quot;pending&quot;</code> (BR-41). <code>409 review_already_exists</code> (BR-40), <code>403</code> for employers
+and admins, <code>401</code>, <code>404 company_not_found</code>, <code>422</code>.</li><li><strong>mine</strong>: <code>200</code> <code>MyCompanyReview</code> (includes <code>rejection_reason</code> when rejected). <code>404 review_not_found</code>.</li><li><strong>admin list</strong>: pending reviews, oldest first, paginated <code>PendingReview</code>. <code>403</code> for non-admins.</li><li><strong>approve</strong>: <code>200</code> <code>PendingReview</code> with <code>status: &quot;approved&quot;</code>. <code>409 review_already_moderated</code>,
+<code>404 review_not_found</code>, <code>403</code>.</li><li><strong>reject</strong> body: <code>reason</code> (5-255). <code>200</code> with <code>status: &quot;rejected&quot;</code>. <code>409</code>, <code>404</code>, <code>403</code>, <code>422</code>.</li></ul>
+<hr>
+<h3 id="candidate-profiles-hire-5--routesapiv1profilesphp">Candidate profiles (HIRE-5) — <code>routes/api/v1/profiles.php</code></h3>
+<div class="table-wrap"><table><thead><tr><th>Method</th><th>Path</th><th>Registry</th><th>Auth</th><th>Controller</th></tr></thead><tbody><tr><td>GET</td><td><code>/api/v1/me/profile</code></td><td><code>showMyProfile</code></td><td>candidate</td><td><code>Profiles\ShowMyProfileController</code></td></tr><tr><td>PUT</td><td><code>/api/v1/me/profile</code></td><td><code>upsertMyProfile</code></td><td>candidate</td><td><code>Profiles\UpsertMyProfileController</code></td></tr></tbody></table></div>
+<ul><li><strong>show</strong>: <code>200</code> <code>CandidateProfile</code>. <code>404 profile_not_found</code> before the first save. <code>403</code>
+for non-candidates (BR-20). <code>401</code>.</li><li><strong>upsert</strong> body: <code>headline</code> (3-120), <code>location</code> (max 120, optional), <code>bio</code> (max 2000,
+optional), <code>skills</code> (array of up to 20 unique strings, each max 40), <code>years_experience</code>
+(0-60), <code>open_to_work</code> (boolean). Creates on first save, updates after. <code>200</code>
+<code>CandidateProfile</code>. <code>422</code>, <code>403</code>, <code>401</code>.</li></ul>
+<hr>
+<h3 id="applications-hire-6--routesapiv1applicationsphp">Applications (HIRE-6) — <code>routes/api/v1/applications.php</code></h3>
+<div class="table-wrap"><table><thead><tr><th>Method</th><th>Path</th><th>Registry</th><th>Auth</th><th>Controller</th></tr></thead><tbody><tr><td>POST</td><td><code>/api/v1/jobs/{id}/applications</code></td><td><code>submitApplication</code></td><td>candidate</td><td><code>Applications\SubmitApplicationController</code></td></tr><tr><td>GET</td><td><code>/api/v1/me/applications</code></td><td><code>listMyApplications</code></td><td>candidate</td><td><code>Applications\ListMyApplicationsController</code></td></tr><tr><td>GET</td><td><code>/api/v1/employer/applications</code></td><td><code>listEmployerApplications</code></td><td>employer</td><td><code>Applications\ListEmployerApplicationsController</code></td></tr></tbody></table></div>
+<ul><li><strong>submit</strong> body: <code>cover_letter</code> (optional, max 2000). <code>201</code> <code>JobApplication</code>.
+<code>404 job_not_found</code> (unknown id), <code>422 profile_required</code> (BR-30), <code>422 job_not_open</code>
+(BR-31), <code>409 already_applied</code> (BR-32, also for a concurrent duplicate), <code>403</code> for
+non-candidates, <code>401</code>.</li><li><strong>mine</strong>: paginated <code>JobApplication</code>, newest first. <code>403</code>, <code>401</code>.</li><li><strong>employer</strong>: paginated <code>EmployerApplication</code> for postings of the employer&#39;s own company,
+closed postings included (BR-33). Candidate data is limited to name, email and headline
+(BR-21). <code>403</code>, <code>401</code>.</li></ul>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/docs/api/api-contracts.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

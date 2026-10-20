@@ -9,7 +9,7 @@ For the hook API itself (events, matchers, exit codes, stdin/stdout JSON, async 
 
 ## Lifecycle hooks
 
-[`hooks/hooks.json`](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/plugins/sdd-kit/hooks/hooks.json) is the source of truth. If this table disagrees with that file, trust the file. All command hooks need `jq`.
+[`hooks/hooks.json`](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/hooks/hooks.json) is the source of truth. If this table disagrees with that file, trust the file. All command hooks need `jq`.
 
 | Script | Event (matcher) | Blocks? | Purpose | Tune/disable |
 |--------|-----------------|---------|---------|--------------|
@@ -47,7 +47,7 @@ To turn off every hook temporarily, set `"disableAllHooks": true` in `settings.j
 
 In file-copy mode, `src/scripts/install-hooks.sh` merges the hooks into your existing `settings.json`. It needs `jq`, backs up the file first, and keeps your permissions and your own hooks. Re-running the installer replaces the kit's hooks instead of duplicating them. That also restores any kit hook you deleted, so use the env-var opt-outs above for hooks you want to keep off. Installer behavior is covered in [INSTALLATION.md](../docs/INSTALLATION.md).
 
-**Plugin mode.** The plugin's `hooks/hooks.json` is global. It applies to the whole session, subagents included, and you can't edit it per project. Use the env-var opt-outs or `disableAllHooks` instead. For what does and doesn't apply in plugin mode, see [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/plugin-mode.md).
+**Plugin mode.** The plugin's `hooks/hooks.json` is global. It applies to the whole session, subagents included, and you can't edit it per project. Use the env-var opt-outs or `disableAllHooks` instead. For what does and doesn't apply in plugin mode, see [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/plugin-mode.md).
 
 **Drift rule.** `src/settings/settings.template.json` must contain exactly the hooks in `hooks/hooks.json`, differing only in the script path prefix. `./verify.sh` fails the build if they drift. When you add or change a hook, edit both files.
 
@@ -61,7 +61,7 @@ Both are `prompt` hooks: a model reviews the context and either allows the stop 
 
 ## Agent-scoped hooks
 
-Don't put guardrails in agent frontmatter (`hooks:`, `permissionMode:`). Plugin mode ignores those fields without warning, so a guard defined there is off for plugin users. Put guards in the global hooks above, or restrict the agent's `tools`. Details are in [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/plugin-mode.md).
+Don't put guardrails in agent frontmatter (`hooks:`, `permissionMode:`). Plugin mode ignores those fields without warning, so a guard defined there is off for plugin users. Put guards in the global hooks above, or restrict the agent's `tools`. Details are in [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/plugin-mode.md).
 
 ## Operational scripts
 

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schema: users · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/docs/schemas/users.md</p>
+  <article class="doc-body">
+<h2 id="schema-users">Schema: users</h2>
+<h3 id="purpose">Purpose</h3>
+<p>Everyone who signs in: candidates, employers and admins. Laravel&#39;s default <code>users</code> table, extended
+with a <code>role</code> column for HIRE-3 (<code>spec-HIRE-3-accounts-and-roles</code>). Written before the migration
+<code>2026_10_21_090000_add_role_to_users_table</code>, per the schema-first rule.</p>
+<h3 id="fields">Fields</h3>
+<div class="table-wrap"><table><thead><tr><th>Column</th><th>Type</th><th>Nullable</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td>id</td><td>bigint unsigned</td><td>No</td><td>auto increment</td><td>Primary key. Stays bigint so Sanctum&#39;s <code>personal_access_tokens.tokenable_id</code> morph works unchanged (INV-03)</td></tr><tr><td>name</td><td>string(255)</td><td>No</td><td>—</td><td>Display name; registration validates 2-120 chars</td></tr><tr><td>email</td><td>string(255)</td><td>No</td><td>—</td><td>Unique, always stored lowercase (BR-03)</td></tr><tr><td>email_verified_at</td><td>timestamp</td><td>Yes</td><td>null</td><td>Unused in v1 (email verification is out of scope)</td></tr><tr><td>password</td><td>string(255)</td><td>No</td><td>—</td><td>Bcrypt hash via the <code>hashed</code> cast; registration requires 8+ chars</td></tr><tr><td>role</td><td>string(20)</td><td>No</td><td><code>candidate</code></td><td><code>UserRole</code> value: <code>candidate</code>, <code>employer</code> or <code>admin</code> (added by HIRE-3)</td></tr><tr><td>remember_token</td><td>string(100)</td><td>Yes</td><td>null</td><td>Laravel default; unused by the token API</td></tr><tr><td>created_at</td><td>timestamp</td><td>Yes</td><td>null</td><td>UTC (INV-04)</td></tr><tr><td>updated_at</td><td>timestamp</td><td>Yes</td><td>null</td><td>UTC (INV-04)</td></tr></tbody></table></div>
+<h3 id="relationships">Relationships</h3>
+<ul><li>has_many: personal_access_tokens (Sanctum morph <code>tokenable</code>), deleted on logout one token at a time</li><li>referenced by: companies.owner_id (nullOnDelete), and in later features candidate_profiles.user_id,
+job_applications.candidate_id, company_reviews.candidate_id and company_reviews.moderated_by</li><li><code>User</code> declares no relations to the domain models on purpose; repositories query by user id.</li></ul>
+<h3 id="indexes">Indexes</h3>
+<ul><li>PRIMARY: id</li><li>UNIQUE: email (purpose: one account per email, BR-03)</li><li>INDEX: role (purpose: admin and reporting queries by role)</li></ul>
+<h3 id="constraints">Constraints</h3>
+<ul><li>role: one of the <code>App\Enums\UserRole</code> values. Self-registration accepts only <code>candidate</code> or
+<code>employer</code> (BR-01); admins are created by <code>DemoUserSeeder</code> or by hand, never through the API.</li><li>email: lowercased by <code>RegisterUserDTO</code> / <code>LoginDTO</code> before validation and lookup.</li></ul>
+<h3 id="enums">Enums</h3>
+<ul><li><code>App\Enums\UserRole</code> (string-backed): <code>candidate</code>, <code>employer</code>, <code>admin</code>. The web mirror is
+<code>UserRole</code> in <code>web/types/api/auth.ts</code>.</li></ul>
+<h3 id="notes">Notes</h3>
+<ul><li>BR-02: an employer registration also creates exactly one company with <code>owner_id</code> = the new user.</li><li>BR-04: tokens are Sanctum personal access tokens named <code>web</code> with a 7-day <code>expires_at</code>.</li><li>Migration is additive with a default, so existing rows become candidates. <code>down()</code> drops the
+index before the column because SQLite cannot drop an indexed column.</li></ul>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/docs/schemas/users.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

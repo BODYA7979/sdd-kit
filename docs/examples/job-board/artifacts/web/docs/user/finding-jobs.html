@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finding jobs on Hireboard · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/web/docs/user/finding-jobs.md</p>
+  <article class="doc-body">
+<h2 id="finding-jobs-on-hireboard">Finding jobs on Hireboard</h2>
+<p>You can browse every open job on Hireboard without an account. You only need to sign in when you apply.</p>
+<h3 id="search-for-jobs">Search for jobs</h3>
+<p>Open <strong>Jobs</strong> in the header, or go to the home page, which takes you to the job list.</p>
+<p>The newest jobs come first, 20 per page. Each card shows the job title, the company, the location, and the salary when the employer has published one.</p>
+<p>To narrow the list, use the filters above it and press the search button:</p>
+<div class="table-wrap"><table><thead><tr><th>Filter</th><th>What it does</th></tr></thead><tbody><tr><td>Keyword</td><td>Finds jobs whose posting matches the words you type, for example <code>designer</code> or <code>laravel</code>.</td></tr><tr><td>Location</td><td>Finds jobs in a city, for example <code>Berlin</code>.</td></tr><tr><td>Remote only</td><td>Shows only jobs you can do remotely.</td></tr><tr><td>Type</td><td>Full-time, Part-time, Contract or Internship.</td></tr></tbody></table></div>
+<p>Filters work together. If you tick <strong>Remote only</strong> and choose <strong>Full-time</strong> under <strong>Type</strong>, you see only jobs that are both remote and full-time.</p>
+<p>Your filters are part of the page address, so you can bookmark a search or send it to a friend. Reloading the page keeps your filters.</p>
+<p>If nothing matches, clear one of the filters and search again.</p>
+<h3 id="read-a-job">Read a job</h3>
+<p>Click a job to open its page. You see the full description, the location, whether it is remote and the employment type.</p>
+<p>Salaries are yearly amounts in the currency the employer chose, for example <strong>€60,000 – €80,000 a year</strong>. When a card shows no salary, the employer did not publish one.</p>
+<p>To apply, click <strong>Apply</strong>. If you are not signed in, Hireboard asks you to sign in or create a candidate account first.</p>
+<h3 id="jobs-that-are-no-longer-available">Jobs that are no longer available</h3>
+<p>When an employer closes a job, it disappears from search and its page shows <strong>not found</strong>, even if you saved the link. This is expected: closed jobs no longer accept applications.</p>
+<h3 id="look-at-a-company">Look at a company</h3>
+<p>Click the company name on a job page to open the company&#39;s careers page. It shows:</p>
+<ul><li>what the company does, where it is based and a link to its website</li><li>every job the company currently has open</li><li>the company&#39;s average rating from candidate reviews and how many reviews it has, with a link to read them</li></ul>
+<p>Reviews are written by candidates and checked by the Hireboard team before they appear. Reviewers are always shown as &quot;Verified candidate&quot;. A company with no published reviews shows no rating yet.</p>
+<h3 id="tips">Tips</h3>
+<ul><li>Run one search with <strong>Location</strong> and another with <strong>Remote only</strong> to see both local roles and roles you can do from anywhere.</li><li>Bookmark searches you repeat, for example remote contract roles.</li><li>Check the careers page before applying to see the company&#39;s other openings.</li></ul>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/web/docs/user/finding-jobs.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

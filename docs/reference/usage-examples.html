@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usage Examples · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">reference/usage-examples.md</p>
+  <article class="doc-body">
+<h2 id="usage-examples">Usage Examples</h2>
+<p>What to type for each kind of work in SDD Kit, and what you get back.</p>
+<p>See every route used on one project: the <a href="../examples/job-board/README.html">Hireboard worked example</a>.</p>
+<p>Start with <code>/sdd</code> unless you already know you want a specific skill. It classifies the request, confirms the route with you, collects every input up front, and launches one fixed pipeline. The route tree itself is in the <a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/README.md" target="_blank" rel="noopener noreferrer">README</a>; this page shows each route in practice.</p>
+<p>Skill names below are bare (<code>/sdd</code>, <code>/write-spec</code>). In plugin mode they are namespaced: <code>/sdd-kit:sdd</code>, <code>/sdd-kit-ops:deploy</code>. The full lists are in <a href="skills.html">skill index</a> and <a href="agents.html">agent index</a>.</p>
+<div class="table-wrap"><table><thead><tr><th>Kind of work</th><th>Type</th><th>Runs</th></tr></thead><tbody><tr><td><a href="#1-feature-from-a-ticket" data-anchor="1-feature-from-a-ticket">Feature from a ticket</a></td><td><code>/sdd PROJ-123</code></td><td><code>/write-spec</code> → approval → <code>ship-feature</code></td></tr><tr><td><a href="#2-bug" data-anchor="2-bug">Bug</a></td><td><code>/sdd &quot;&lt;symptom&gt;&quot;</code></td><td><code>fix-bug</code></td></tr><tr><td><a href="#3-technology-decision" data-anchor="3-technology-decision">Technology decision</a></td><td><code>/sdd &quot;X or Y?&quot;</code></td><td><code>tech-research</code> → ADR</td></tr><tr><td><a href="#4-qa-plan-and-docs-for-shipped-code" data-anchor="4-qa-plan-and-docs-for-shipped-code">QA plan and docs for shipped code</a></td><td><code>/sdd &quot;document &lt;feature&gt;&quot;</code></td><td><code>qa-and-docs</code></td></tr><tr><td><a href="#5-new-app" data-anchor="5-new-app">New app</a></td><td><code>/product-brief &quot;&lt;idea&gt;&quot;</code>, then <code>/sdd &quot;new &lt;app&gt;&quot;</code></td><td>brief + backlog → <code>greenfield-build</code></td></tr><tr><td><a href="#6-small-change" data-anchor="6-small-change">Small change</a></td><td><code>/simple-task &quot;&lt;change&gt;&quot;</code></td><td>one context, no spec</td></tr><tr><td><a href="#7-plan-interactively-build-task-by-task" data-anchor="7-plan-interactively-build-task-by-task">Plan, then build task by task</a></td><td><code>/write-spec</code>, <code>/execute-task</code></td><td>interactive</td></tr><tr><td><a href="#8-api-and-schema-design" data-anchor="8-api-and-schema-design">API and schema design</a></td><td><code>/design-api</code>, <code>/design-schema</code>, <code>/migrate-db</code></td><td>interactive</td></tr><tr><td><a href="#9-review-before-merge" data-anchor="9-review-before-merge">Review before merge, PR, and lessons</a></td><td><code>/deep-review</code> → <code>/open-pr</code> → <code>/learn</code></td><td>verdict, linked PRs, a guard</td></tr><tr><td><a href="#10-security-and-dependencies" data-anchor="10-security-and-dependencies">Security and dependencies</a></td><td><code>/security-scan</code>, <code>/upgrade-deps</code></td><td>interactive</td></tr><tr><td><a href="#11-split-backend-and-frontend-repos" data-anchor="11-split-backend-and-frontend-repos">Split backend/frontend repos</a></td><td><code>/sdd</code> or <code>Workflow({ ..., repos })</code></td><td>any workflow</td></tr><tr><td><a href="#12-overnight-headless-codebase-review" data-anchor="12-overnight-headless-codebase-review">Overnight codebase review</a></td><td><code>scripts/review/review.sh</code></td><td>headless</td></tr><tr><td><a href="#13-add-ons-ops-and-design" data-anchor="13-add-ons-ops-and-design">Deploy, incidents, UI design</a></td><td><code>/deploy</code>, <code>/incident</code>, <code>/design-ui</code></td><td>add-on plugins</td></tr><tr><td><a href="#14-recurring-checks-with-routines" data-anchor="14-recurring-checks-with-routines">Recurring checks</a></td><td><code>/schedule</code></td><td>report-only routines in the cloud</td></tr><tr><td><a href="#15-red-ci" data-anchor="15-red-ci">Red CI</a></td><td><code>/fix-ci &lt;PR&gt;</code></td><td>restore the gates without weakening them</td></tr></tbody></table></div>
+<hr>
+<h3 id="1-feature-from-a-ticket">1. Feature from a ticket</h3>
+<p><strong>When:</strong> a ticket or request adds or changes behavior and is bigger than a quick edit.</p>
+<p><strong>Type:</strong></p>
+<pre><code>/sdd PROJ-123
+/sdd &quot;Customers can cancel an order until it ships&quot;</code></pre>
+<p><strong>What happens:</strong></p>
+<ul><li><code>/sdd</code> fetches the ticket (Jira/Linear MCP or CLI if available, otherwise asks you to paste it), checks for an existing <code>spec-PROJ-123-*</code> folder, and confirms the <code>feature</code> route.</li><li><code>/write-spec</code> sizes the work (XS gets no spec and goes to <code>/simple-task</code>), investigates, asks clarifying questions, and writes a <code>status: draft</code> spec. A fresh-context clarity gate records hidden assumptions as open questions.</li><li>You resolve open questions, then choose <strong>Approve and build</strong>, <strong>Approve only</strong>, <strong>Request changes</strong>, or <strong>Stop here</strong>. Approval writes <code>approved_by</code> and <code>approved_at</code> into the spec frontmatter.</li><li>On <strong>Approve and build</strong>, <code>ship-feature</code> runs in the background against the approved spec:
+<code>Detect → Investigate → Spec → Build → Gates → Converge → Visual → Review → Acceptance → Docs → TestPlan → Report</code></li><li>Converge audits code against the spec and rebuilds gaps (two rounds at most). Visual checks the UI at desktop and mobile widths with the built-in Playwright MCP server (headless) when you gave a dev URL, falls back to Claude in Chrome, and reports &quot;not run&quot; when no browser is available. Review is an adversarial panel with 3-vote verification.</li></ul>
+<p><strong>You get:</strong></p>
+<ul><li><code>.ai/specs/spec-PROJ-123-&lt;slug&gt;/</code> with <code>spec-lite.md</code>, <code>tasks.md</code> (ticked), and <code>manual-test.md</code> for a human to walk through.</li><li>Code and tests in your repo(s), updated docs, and a ship report.</li><li>Verdict: <code>SHIP</code> (every task built, gates green, no gaps left, no critical findings, acceptance resolved) or <code>FIX-FIRST</code> / <code>BLOCKED</code> with the blockers listed.</li></ul>
+<p>Watch the spec&#39;s status with <code>/spec-board</code> (or <code>npx github:stasmarkov/sdd-kit spec-board --serve</code> without Claude Code).</p>
+<p>Spec format, sizes (XS/S/M/L), and acceptance-criteria style: <a href="specification-system.html">specification-system.md</a>.</p>
+<h3 id="2-bug">2. Bug</h3>
+<p><strong>When:</strong> existing behavior is wrong: an error, a regression, &quot;this used to work&quot;.</p>
+<p><strong>Type:</strong></p>
+<pre><code>/sdd &quot;PROJ-456: refund button returns 500 for top-up orders&quot;</code></pre>
+<p><strong>What happens:</strong></p>
+<ul><li><code>/sdd</code> confirms the <code>bug</code> route and asks for repro steps, expected vs actual, and <strong>must-not-change</strong> behavior (what nearby must stay identical). No spec is written; the pipeline is the spec.</li><li><code>fix-bug</code> runs in the background:
+<code>Detect → Reproduce → RootCause → RegressionTest → Fix → Gates → Acceptance → Report</code></li><li>The root-cause hypothesis is adversarially verified before any code changes.</li><li>A failing regression test (red) and green guard tests for the must-not-change behavior are committed first; the fix is the minimal change that turns the regression test green without touching those tests.</li><li>Acceptance re-walks the original report end-to-end.</li></ul>
+<p><strong>You get:</strong> a report with root cause (file:line), the regression test path, the fix, gate results, and manual test steps.</p>
+<p>Verdict:</p>
+<ul><li><code>FIXED</code>: regression test green, guards green, gates green, original symptom gone.</li><li><code>NOT-RESOLVED</code>: anything short of that.</li><li><code>NEEDS-INFO</code>: the bug could not be reproduced. The report says what information or access is missing.</li></ul>
+<h3 id="3-technology-decision">3. Technology decision</h3>
+<p><strong>When:</strong> a fork-in-the-road choice must be made before building (which queue, REST or tRPC, build or buy). Not for planning a known feature.</p>
+<p><strong>Type:</strong></p>
+<pre><code>/sdd &quot;Should order events go through Redis queues or SQS?&quot;</code></pre>
+<p><strong>What happens:</strong></p>
+<ul><li><code>/sdd</code> confirms the <code>decision</code> route and collects the candidate options and criteria (weighted if you know them).</li><li><code>tech-research</code> runs in the background:
+<code>Detect → Frame → Research → Verify → Decide → Document → Report</code></li><li>Each option is researched in parallel against sourced web material and fit with your codebase.</li><li>Every material claim is adversarially verified; unsourced claims are dropped.</li></ul>
+<p><strong>You get:</strong> an ADR (status <code>Proposed</code>) in <code>docs/adr/</code>, or <code>.ai/decisions/</code> if there is no <code>docs/</code> folder, plus a report with the recommendation, confidence, runner-up, disagreement flags, and open questions. The decision is done once a human signs off on the ADR.</p>
+<h3 id="4-qa-plan-and-docs-for-shipped-code">4. QA plan and docs for shipped code</h3>
+<p><strong>When:</strong> code already exists (built with the kit or not) and needs a traceable test plan and documentation, not changes.</p>
+<p><strong>Type:</strong></p>
+<pre><code>/sdd &quot;QA plan and docs for spec-PROJ-123-order-cancel&quot;
+/sdd &quot;Document the checkout flow&quot;</code></pre>
+<p><strong>What happens:</strong></p>
+<ul><li><code>/sdd</code> confirms the <code>shipped</code> route and asks for a scope. One of:<ul><li>a spec: <code>{ spec: &quot;PROJ-123&quot; }</code></li><li>file globs: <code>{ paths: [&quot;app/Domain/Orders/**&quot;, &quot;src/app/orders/**&quot;] }</code></li><li>a git range: <code>{ gitRange: &quot;v1.4.0..v1.5.0&quot; }</code></li><li>a feature name (plain string): <code>&quot;checkout flow&quot;</code></li></ul></li><li><code>qa-and-docs</code> runs in the background:
+<code>Detect → Index → Criteria → QAPlan → Docs → Grade → Report</code></li><li>Acceptance criteria come from the spec or are inferred from the code (the report marks inferred ones for human validation).</li><li>Every test case and doc claim must link to real code. The grader flags phantom links and uncovered criteria.</li></ul>
+<p><strong>You get:</strong> <code>qa-plan.md</code> in the spec folder (or <code>docs/qa/qa-plan-&lt;date&gt;.md</code>), new or updated user and dev docs, and a coverage matrix. Verdict: <code>PASS</code> or <code>CHANGES_REQUIRED</code>.</p>
+<h3 id="5-new-app">5. New app</h3>
+<p><strong>When:</strong> little or no code exists yet for the target: a new service, repo, or module.</p>
+<p><strong>Type:</strong> start with the brief, then build its first slice:</p>
+<pre><code>/product-brief &quot;Studio room booking: members book rooms by the hour, admins manage rooms and opening hours&quot;
+/sdd &quot;New app — Studiobook, first slice SL-01: a member sees free slots for a room and books one&quot;</code></pre>
+<p><strong>What happens:</strong></p>
+<ul><li><code>/product-brief</code> asks a few rounds of questions, then writes <code>product-brief.md</code> (problem, roles, MVP scope, non-goals, draft business rules <code>BR-01</code>…, success metrics, open questions) and <code>backlog.md</code> (dependency-ordered slices, each sized, citing its BR ids, and ending in a ready <code>/sdd</code> line). You approve the order. Each slice&#39;s <code>Run:</code> line is what you paste into <code>/sdd</code>; <code>/spec-board</code> shows the unspecced slices in its Backlog column.</li><li>Skip the brief only for a throwaway prototype: <code>/sdd &quot;New Laravel API + Next.js app for booking studio rooms&quot;</code> offers <code>/product-brief</code> first and lets you decline.</li><li><code>/sdd</code> confirms the <code>new app</code> route, passes <code>product-brief.md</code> as the constitution, and asks for the stack, repo paths, and dev URL.</li><li><code>greenfield-build</code> runs in the background:
+<code>Detect → Constitution → Architecture → Scaffold → Slice → Gates → Acceptance → Handoff → Report</code></li><li>It stops before writing anything if the target already holds a tracked codebase.</li><li>Project conventions are loaded as a constitution; the architecture is checked against it.</li><li>It scaffolds the repo and CI, then builds <strong>one</strong> vertical slice TDD-first.</li></ul>
+<p><strong>You get:</strong> a scaffold with CI, one working slice, and handoff docs: <code>getting-started.md</code>, <code>architecture.md</code> (a lightweight ADR), and <code>manual-test.md</code>. The slice is marked <code>shipped</code> in <code>backlog.md</code> and the next slices are added to it. Verdict: <code>SHIP-SLICE</code>, <code>FIX-FIRST</code>, or <code>BLOCKED</code> (target was not empty). Build later slices with their <code>Run:</code> line (scenario 1). Feedback from a demo or sprint review goes back into the backlog with <code>/product-brief --intake &quot;&lt;notes&gt;&quot;</code>.</p>
+<p>Supported stacks come from the registry in <a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/workflows/lib/stacks.js" target="_blank" rel="noopener noreferrer">src/workflows/lib/stacks.js</a>.</p>
+<h3 id="6-small-change">6. Small change</h3>
+<p><strong>When:</strong> a clear change touching about five files or fewer, with no design choice and no behavior contract at risk. <code>/sdd</code> routes a request here as <code>trivial</code> only when it touches about three files; anything bigger gets a spec.</p>
+<p><strong>Type:</strong></p>
+<pre><code>/simple-task &quot;Add created_at column to the orders CSV export&quot;
+/simple-task --rename &quot;OrderService to OrderProcessingService&quot;
+/simple-task &quot;How should we rate-limit the public API?&quot; --research-only
+/simple-task --continue=TASK-0042</code></pre>
+<p><strong>What happens:</strong></p>
+<ul><li>Investigates, implements, and verifies in a single context window. No spec.</li><li>Suggests escalating to <code>/write-spec</code> when the change exceeds its complexity thresholds (<code>--force</code> to proceed anyway).</li></ul>
+<p><strong>You get:</strong> the diff, gate results, and a task log in <code>.ai/tasks/TASK-&lt;NNNN&gt;-&lt;slug&gt;.md</code> that <code>--continue</code> resumes from.</p>
+<h3 id="7-plan-interactively-build-task-by-task">7. Plan interactively, build task by task</h3>
+<p><strong>When:</strong> you want to stay in the loop for each task instead of running <code>ship-feature</code> in the background.</p>
+<p><strong>Type:</strong></p>
+<pre><code>/write-spec --ticket=PROJ-123 Customers can cancel an order until it ships
+/write-spec --spec=PROJ-123                  # revise an existing spec
+/write-spec --background &lt;description&gt;       # heavier research, runs the create-spec workflow
+
+/execute-task --spec=PROJ-123                # next pending task
+/execute-task --spec=PROJ-123 --continue     # resume after a context reset
+/execute-task --spec=PROJ-123 --task=3       # a specific task
+/execute-task --spec=PROJ-123 --verify-only  # re-run verification only</code></pre>
+<p><strong>What happens:</strong></p>
+<ul><li><code>/write-spec</code> produces the same draft spec as scenario 1. <code>--background</code> runs <code>create-spec</code> instead (<code>Detect → Classify → Research → Synthesize → Document → Clarify</code>): parallel codebase and web research, worth it for L-size or unfamiliar areas.</li><li>Approve the spec through <code>/sdd spec-PROJ-123-&lt;slug&gt;</code> (or by editing its frontmatter yourself), then build.</li><li><code>/execute-task</code> runs one task at a time with TDD and verification gates, ticking <code>tasks.md</code> and saving state in <code>.ai/session/</code> so the next session picks up where you left off.</li></ul>
+<p><strong>You get:</strong> the spec folder, per-task verification reports in <code>.ai/verification/&lt;spec-folder&gt;/</code>, and code built one reviewed step at a time. Watch progress with <code>/progress</code> or <code>/spec-board</code> (or <code>npx github:stasmarkov/sdd-kit spec-board --serve</code>). <code>--spec</code> accepts a folder name, ticket key, timestamp id, or legacy number.</p>
+<h3 id="8-api-and-schema-design">8. API and schema design</h3>
+<p><strong>When:</strong> you want a contract or data model reviewed before any code is written.</p>
+<p><strong>Type:</strong></p>
+<pre><code>/design-api orders --openapi
+/design-schema --entity=Order --migration
+/migrate-db --create=orders
+/migrate-db --status</code></pre>
+<p><strong>What happens:</strong></p>
+<ul><li><code>/design-api</code> designs resources, endpoints, request/response contracts, and the error format, with optional OpenAPI output.</li><li><code>/design-schema</code> designs entities, columns, relationships, indexes, and the migration strategy.</li><li><code>/migrate-db</code> updates the schema doc in <code>docs/schemas/</code> first, then generates and runs the migration. It is manual-only (it runs migrations, so it never triggers on its own).</li></ul>
+<p><strong>You get:</strong> design documents you can review or attach to a spec, then a migration that matches the documented schema.</p>
+<h3 id="9-review-before-merge">9. Review before merge</h3>
+<p><strong>When:</strong> a task, spec, branch, or set of files is finished.</p>
+<p><strong>Type:</strong></p>
+<pre><code>/deep-review --spec=PROJ-123                             # adversarial (default)
+/deep-review --depth=standard                            # current branch vs main
+/deep-review --depth=standard --branch=feature/PROJ-123-order-cancel --base=develop
+/deep-review --depth=standard --focus=security
+/deep-review --depth=standard --format=json              # CI-friendly
+/deep-review --depth=quick --staged                      # fast critical-only pass</code></pre>
+<p><strong>What happens:</strong></p>
+<ul><li><code>adversarial</code> (the default): a skeptical reviewer on a different model tier that ignores the original prompt.</li><li><code>standard</code>: a structured checklist review with <code>--focus=security|performance|architecture|testing</code>.</li><li><code>quick</code>: critical issues only.</li><li>security-auditor joins automatically when the scope touches auth, payments, or personal data.</li></ul>
+<p><strong>You get:</strong> a review report with findings by severity. Verdict: <code>APPROVED</code>, <code>CHANGES_REQUIRED</code>, or <code>BLOCKED</code>.</p>
+<p><strong>Then open the PRs:</strong></p>
+<pre><code>/open-pr --spec=PROJ-123 --report=.ai/reports/ship-spec-PROJ-123-order-cancel-20261019-1012.md
+/open-pr --report=.ai/reports/fix-PROJ-130-20261019-1412.md      # bug fixed by fix-bug, no spec</code></pre>
+<ul><li>It checks the preconditions (spec status, gates newer than the last commit, review verdict, secrets in the diff), using the saved ship-feature or fix-bug report instead of re-running the gates when the report is fresh.</li><li>It builds each PR body from the spec: every AC, MNC, and NFR mapped to its test, the manual test plan, and the ADR link. Then it shows the exact <code>git push</code> and <code>gh pr create</code> commands and runs them only after you confirm. In a polyrepo change the backend PR comes first, and the frontend PR links to it.</li></ul>
+<p><strong>Then turn the lesson into a guard:</strong> when a review finding or a fix-bug report names a class of mistake, run <code>/learn</code> with it:</p>
+<pre><code>/learn &quot;authorization checked in the UI but not in the Server Action (REVIEW-spec-PROJ-123, finding 2)&quot;</code></pre>
+<p><code>/learn</code> picks the cheapest guard that would have caught the whole class (an architecture test, a static rule, a path-scoped rules line, a CLAUDE.md entry, or a hook proposal), shows the diff, and writes it only on your approval.</p>
+<h3 id="10-security-and-dependencies">10. Security and dependencies</h3>
+<p><strong>Type:</strong></p>
+<pre><code>/security-scan --quick
+/security-scan --full
+/upgrade-deps --audit-only
+/upgrade-deps --patch
+/upgrade-deps --major=laravel/framework</code></pre>
+<p><strong>What happens:</strong></p>
+<ul><li><code>/security-scan</code> runs Composer and npm audits, outdated and unused package checks, and code scans for injection, XSS, CSRF, and similar issues.</li><li><code>/upgrade-deps</code> (manual-only) reports outdated and vulnerable packages, then bumps in tiers (patch → minor → major) and runs the quality gates after each tier. Scope to one side with <code>--backend</code> or <code>--frontend</code>.</li></ul>
+<p><strong>You get:</strong> a findings report, or upgraded lock files with gate results for each tier.</p>
+<h3 id="11-split-backend-and-frontend-repos">11. Split backend and frontend repos</h3>
+<p><strong>When:</strong> the Laravel API and the Next.js frontend live in separate git repositories.</p>
+<p><strong>Type:</strong> open Claude Code in the parent folder that holds both repos and use <code>/sdd</code> as usual. It asks for the repo paths when it can&#39;t detect them. To launch directly:</p>
+<pre><code class="language-js">Workflow({
+  name: &quot;ship-feature&quot;,
+  args: {
+    feature: &quot;PROJ-123: customers can cancel an order until it ships&quot;,
+    repos: { backend: &quot;be&quot;, frontend: &quot;fe&quot; },
+    url: &quot;http://localhost:3000&quot;
+  }
+})</code></pre>
+<p><strong>What happens:</strong> Detect identifies each repo&#39;s stack and gate commands, Build picks the specialist agent per repo, and Gates run per repo. The same <code>repos</code> argument works for <code>fix-bug</code>, <code>create-spec</code>, <code>qa-and-docs</code>, <code>tech-research</code>, and <code>greenfield-build</code>.</p>
+<p><strong>You get:</strong> the same outputs as the single-repo route, with per-repo gate results and a warning for any repo with untracked (WIP) files.</p>
+<p>Layout, the parent-folder <code>CLAUDE.md</code>, contract rules, and merge order: <a href="multi-repo.html">multi-repo.md</a>.</p>
+<h3 id="12-overnight-headless-codebase-review">12. Overnight headless codebase review</h3>
+<p><strong>When:</strong> you want a full adversarially validated review of an existing codebase without sitting in a session.</p>
+<p>The pipeline runs <code>claude -p</code> from a plain terminal (not from inside Claude Code). Setup, configuration, and phases: <a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/scripts/review/README.md" target="_blank" rel="noopener noreferrer">scripts/review/README.md</a>.</p>
+<h3 id="13-add-ons-ops-and-design">13. Add-ons: ops and design</h3>
+<p>These skills ship in optional add-on plugins, not in the core <code>sdd-kit</code>. Install the add-on first: <code>./install.sh --project --with=ops,design</code>, or enable <code>sdd-kit-ops</code> / <code>sdd-kit-design</code> in plugin mode (<a href="plugin-mode.html">plugin-mode.md</a>).</p>
+<p><strong>Ops (<code>sdd-kit-ops</code>):</strong></p>
+<pre><code>/deploy --staging --dry-run
+/deploy --production            # manual-only; confirms before production
+/rollback --production --steps=1
+/feature-flag create order-cancel
+/feature-flag rollout order-cancel
+/health-check --quick
+/incident --start
+/incident --resolve</code></pre>
+<ul><li><code>/deploy</code> runs pre-deploy gates (tests, lint, build), asks for confirmation on production, and verifies after.</li><li><code>/rollback</code> captures current state, picks the known-good target, and reverts code and migrations under maintenance mode.</li><li><code>/health-check</code> reports pass/warn/fail across the app, database, cache, queues, disk, and external services.</li><li><code>/incident</code> opens an incident record, triages by severity, investigates logs and recent deploys, and tracks resolution.</li></ul>
+<p><strong>Design (<code>sdd-kit-design</code>):</strong></p>
+<pre><code>/design-ui order-cancel
+/design-ui --page=orders</code></pre>
+<p><code>/design-ui</code> produces user flows, component hierarchy, state management, data fetching, and accessibility notes for a feature.</p>
+<hr>
+<h3 id="14-recurring-checks-with-routines">14. Recurring checks with routines</h3>
+<p>Drift is cheapest to catch on a schedule. Claude Code routines (<code>/schedule</code>) run an agent on a cron in the cloud; use them for read-only checks that report back rather than change code:</p>
+<div class="table-wrap"><table><thead><tr><th>Routine</th><th>Suggested schedule</th><th>Prompt</th></tr></thead><tbody><tr><td>Doc drift</td><td>nightly</td><td>&quot;Run /write-docs --audit, then compare docs/ and CLAUDE.md against the code changed in the last day; list stale statements with file:line. Don&#39;t edit.&quot;</td></tr><tr><td>Spec status reconciliation</td><td>weekly</td><td>&quot;Run /progress --health; for every spec not marked done, check its tasks against the code and report specs whose status disagrees with reality.&quot;</td></tr><tr><td>Dependency audit</td><td>weekly</td><td>&quot;Run /security-scan --dependencies; summarize outdated and vulnerable packages by risk.&quot;</td></tr></tbody></table></div>
+<p>Routines run without you, so keep them report-only; act on findings through <code>/sdd</code>.</p>
+<h3 id="15-red-ci">15. Red CI</h3>
+<p><strong>When:</strong> a PR&#39;s checks are red, or a gate fails locally, and nothing says the product behavior is wrong.</p>
+<p><strong>Type:</strong></p>
+<pre><code>/fix-ci 482                               # the PR&#39;s failing checks
+/fix-ci --run=1234567890                  # one Actions run
+/fix-ci local &quot;vendor/bin/phpstan analyse&quot;</code></pre>
+<p><strong>What happens:</strong></p>
+<ul><li>It reads the failing job&#39;s log, reproduces the failure locally with CI&#39;s exact command, and classifies it (code, flaky test, tooling drift, environment, contract sync).</li><li>It fixes the cause, never the gate. Baselines, <code>@ts-ignore</code>, skipped tests, <code>continue-on-error</code>, and lowered thresholds are blocked unless you approve a specific exception, which is listed under <em>Gate exceptions</em> in the report.</li><li>It re-runs the failing gate and the full gate set, and checks its own diff for any weakening. It does not commit or push.</li><li>A failing test that shows the product is actually wrong goes back to <code>/sdd</code> as a bug.</li></ul>
+<p><strong>You get:</strong> the cause, the fix, the gate results, any approved gate exceptions, and a suggested conventional commit message. If the failure exposed a class of mistake, follow with <code>/learn</code>.</p>
+<p>To run the frontend suites on their own: <code>/run-tests --frontend</code> (Vitest) or <code>/run-tests --e2e &quot;AC-2:&quot;</code> (Playwright, one criterion).</p>
+<h3 id="running-workflows-directly">Running workflows directly</h3>
+<p>There are three ways to start a background workflow:</p>
+<ol><li><strong><code>/sdd</code></strong> (preferred). It confirms the route, collects inputs, and never builds an unapproved spec.</li><li><strong>Plain English containing the word &quot;workflow&quot;</strong>, e.g. &quot;run the fix-bug workflow for the refund 500&quot;. Claude only launches a background workflow when you explicitly opt in like this.</li><li><strong>A direct call</strong>, <code>Workflow({ name, args })</code>. Each workflow is also runnable as a skill: <code>/ship-feature</code>, <code>/fix-bug</code>, <code>/qa-and-docs</code>, <code>/tech-research</code>, <code>/greenfield-build</code>, <code>/create-spec</code>.</li></ol>
+<p>Watch running workflows with <code>/workflows</code>.</p>
+<pre><code class="language-js">// Build an approved spec. ship-feature refuses draft specs.
+Workflow({ name: &quot;ship-feature&quot;, args: { spec: &quot;PROJ-123&quot; } })
+
+// A bare string is a feature DESCRIPTION: ship-feature writes its own spec first.
+Workflow({ name: &quot;ship-feature&quot;, args: &quot;PROJ-123: customers can cancel an order until it ships&quot; })
+
+Workflow({ name: &quot;fix-bug&quot;, args: {
+  bug: &quot;PROJ-456: refund button returns 500 for top-up orders&quot;,
+  mustNotChange: [&quot;Refunds for card orders still go through the gateway&quot;],
+  url: &quot;http://localhost:8000&quot;
+} })
+
+Workflow({ name: &quot;tech-research&quot;, args: {
+  question: &quot;Redis queues or SQS for order events?&quot;,
+  options: [&quot;Redis&quot;, &quot;SQS&quot;],
+  criteria: [&quot;ops cost&quot;, &quot;local dev parity&quot;]
+} })
+
+Workflow({ name: &quot;qa-and-docs&quot;, args: { gitRange: &quot;v1.4.0..v1.5.0&quot; } })
+Workflow({ name: &quot;greenfield-build&quot;, args: { idea: &quot;Studio room booking&quot;, stack: &quot;laravel&quot;, repos: { backend: &quot;api&quot;, frontend: &quot;web&quot; } } })
+Workflow({ name: &quot;create-spec&quot;, args: { description: &quot;Order cancellation&quot;, ticket: &quot;PROJ-123&quot; } })</code></pre>
+<p>To build an existing spec, pass <code>{ spec: &quot;&lt;ref&gt;&quot; }</code> (folder name, ticket key, timestamp id, or legacy number). There is no <code>--spec</code> flag for workflows; <code>/ship-feature --spec=...</code> would be read as a feature description.</p>
+<p>Every workflow accepts <code>args.models</code> to pin a model per tier (<code>deep</code>, <code>standard</code>, <code>light</code>) for one run. Which tier each phase uses, and when to override it, is in <a href="effort-guidelines.html">effort-guidelines.md</a>.</p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/usage-examples.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

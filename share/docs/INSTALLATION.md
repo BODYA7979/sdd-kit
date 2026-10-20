@@ -33,7 +33,7 @@ New to Claude Code? Install it first: [GETTING-STARTED, section 0](GETTING-START
 
 - **Plugin mode**: install from the marketplace; one pinned version per team, updated with `/plugin`.
 - **File-copy mode**: `./install.sh` merges the kit into `.claude/`; you can edit agents and skills in place.
-- Both ship the same agents, skills, workflows, and hooks. The full comparison (hooks, permissions, namespacing, limitations) is in [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/plugin-mode.md).
+- Both ship the same agents, skills, workflows, and hooks. The full comparison (hooks, permissions, namespacing, limitations) is in [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/plugin-mode.md).
 
 ## Plugin mode
 
@@ -92,7 +92,7 @@ How to fill them in is covered in [GETTING-STARTED](GETTING-STARTED.md).
 ### Team rollout
 
 To pin a reviewed version for a whole team, publish your own marketplace that points at a
-release tag and commit. See [team-marketplace.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/team-marketplace.md).
+release tag and commit. See [team-marketplace.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/team-marketplace.md).
 
 ## File-copy mode
 
@@ -128,7 +128,7 @@ published to npm.
 | `--minimal` | Spec-driven core only, without `/progress`, `/spec-board`, `/investigate`, `/learn` or `/fix-ci` (see below) |
 | `--full` | Everything in core. This is the default |
 | `--with=LIST` | Add optional add-ons, comma-separated: `ops`, `ios`, `drupal`, `design` |
-| `--third-party` | Also install the pinned third-party skills from `src/settings/third-party.json` and print the recommended plugin commands. Policy: [third-party.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/third-party.md) |
+| `--third-party` | Also install the pinned third-party skills from `src/settings/third-party.json` and print the recommended plugin commands. Policy: [third-party.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/third-party.md) |
 | `--dry-run` | Print added / updated / removed files and stop. Nothing is written |
 | `--yes`, `-y` | Skip the confirmation prompt |
 | `--help`, `-h` | Show help |
@@ -145,8 +145,8 @@ Examples:
 
 | | `--minimal` | `--full` |
 |---|---|---|
-| Skills | The main path: `sdd`, `product-brief`, `write-spec`, `execute-task`, `simple-task`, `run-tests`, `deep-review`, `open-pr`, `framework-doctor`, the shared `verification-gates` and `source-verification` references, and the stack skills the agents preload: `laravel-12`, `pest-3`, `dto-first`, `service-repository`, `api-design`, `api-security`, `nextjs-15`, `nextjs-testing`, `nextjs-auth` | Every core skill ([skill index](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/skills.md)) |
-| Agents | Every agent the main path hands off to: `code-explorer`, `requirements-analyst` (product-brief, write-spec), `laravel-backend-dev`, `nextjs-frontend-dev`, `test-writer`, `code-quality` (execute-task), `adversarial-reviewer`, `security-auditor` (deep-review) | Every core agent ([agents index](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/agents.md)) |
+| Skills | The main path: `sdd`, `product-brief`, `write-spec`, `execute-task`, `simple-task`, `run-tests`, `deep-review`, `open-pr`, `framework-doctor`, the shared `verification-gates` and `source-verification` references, and the stack skills the agents preload: `laravel-12`, `pest-3`, `dto-first`, `service-repository`, `api-design`, `api-security`, `nextjs-15`, `nextjs-testing`, `nextjs-auth` | Every core skill ([skill index](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/skills.md)) |
+| Agents | Every agent the main path hands off to: `code-explorer`, `requirements-analyst` (product-brief, write-spec), `laravel-backend-dev`, `nextjs-frontend-dev`, `test-writer`, `code-quality` (execute-task), `adversarial-reviewer`, `security-auditor` (deep-review) | Every core agent ([agents index](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/agents.md)) |
 | Not included | Four of the after-`/sdd` commands (`/progress`, `/spec-board`, `/investigate`, `/learn`) and `/fix-ci`, the `/sdd` route for red CI. Use `--full` if you want them | Included |
 | Workflows | All six: `ship-feature`, `create-spec`, `fix-bug`, `qa-and-docs`, `tech-research`, `greenfield-build` | Same |
 | Templates | Context and spec templates | All templates |
@@ -251,7 +251,7 @@ the install commands, or run them yourself:
 /plugin install typescript-lsp@claude-plugins-official
 ```
 
-See [third-party.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/third-party.md)
+See [third-party.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/third-party.md)
 for the review policy behind the list.
 
 **Permissions and sandboxing.** Permission mode and sandboxing depend on your machine and
@@ -261,13 +261,13 @@ threat model, so the kit does not force either, and the installer does not write
 `rm -rf`, force-push, `git reset --hard`) and `env.CLAUDE_BUDGET_THRESHOLD`. Copy what you want
 from it into your own `settings.json`, in either mode. A plugin's `settings.json` does not apply
 these keys; see
-[plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/plugin-mode.md#limitation-plugin-settingsjson).
+[plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/plugin-mode.md#limitation-plugin-settingsjson).
 To opt in to a stricter `defaultMode` or sandbox, set them in your own `settings.json`.
 Filesystem sandboxing limits where Claude can write; do not rely on network sandboxing as a
 security control.
 
 Model tiers and effort per workflow phase are covered in
-[effort-guidelines.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/effort-guidelines.md).
+[effort-guidelines.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/effort-guidelines.md).
 
 ## Upgrading from 1.x
 
@@ -277,9 +277,9 @@ them up first. It only removes a file whose content matches a copy the kit shipp
 edited or replaced (for example an upstream Stripe or skill-creator skill installed at the same
 path) is listed as "kept (modified or not from the kit)" and left for you to review.
 
-The tables below match the CHANGELOG's [Migrating from 1.x](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/CHANGELOG.md#migrating-from-1x) section. They list what a 1.x release shipped; components that were added and removed again during the 2.0 cycle appear only in the CHANGELOG's *Removed* table.
-Current lists: [skills](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/skills.md),
-[agents](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/agents.md).
+The tables below match the CHANGELOG's [Migrating from 1.x](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/CHANGELOG.md#migrating-from-1x) section. They list what a 1.x release shipped; components that were added and removed again during the 2.0 cycle appear only in the CHANGELOG's *Removed* table.
+Current lists: [skills](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/skills.md),
+[agents](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/agents.md).
 
 ### Commands
 

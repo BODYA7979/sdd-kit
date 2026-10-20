@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "SDD Kit: spec-driven development for Claude Code. A core plugin (/sdd front door, workflows, agents, skills, hooks) plus optional ops, ios, drupal, and design add-ons. Laravel and Next.js support ships in core today.",
-    "version": "2.1.0"
+    "version": "2.1.1"
   },
   "plugins": [
     {

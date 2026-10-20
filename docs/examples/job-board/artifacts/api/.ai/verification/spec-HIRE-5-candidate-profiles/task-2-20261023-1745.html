@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verification: spec-HIRE-5-candidate-profiles, task 2 · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/.ai/verification/spec-HIRE-5-candidate-profiles/task-2-20261023-1745.md</p>
+  <article class="doc-body">
+<h2 id="verification-spec-hire-5-candidate-profiles-task-2">Verification: spec-HIRE-5-candidate-profiles, task 2</h2>
+<p><strong>Task</strong>: 2. Show and upsert endpoints with policy and tests (laravel)
+<strong>Repo</strong>: api/ (branch <code>feature/HIRE-5-candidate-profiles</code>)
+<strong>Covers</strong>: AC-1, AC-2, AC-3, AC-4, AC-5, MNC-1, MNC-2
+<strong>Run at</strong>: 2026-10-23 17:45 (local), by <code>/execute-task --spec=HIRE-5</code> (session started in <code>api/</code> with <code>--add-dir ../web</code>)</p>
+<h3 id="tdd">TDD</h3>
+<div class="table-wrap"><table><thead><tr><th>Phase</th><th>Result</th></tr></thead><tbody><tr><td>RED</td><td>7 tests in <code>tests/Feature/Profiles/</code> written first; 7 failing (404 route not found)</td></tr><tr><td>GREEN</td><td>DTOs, repository + binding, service, policy, exception, 2 controllers, <code>routes/api/v1/profiles.php</code>; 7/7 passing</td></tr><tr><td>REFACTOR</td><td>Moved the 404 into <code>CandidateProfileService::findForUser</code> (controller had a null check)</td></tr></tbody></table></div>
+<h3 id="files">Files</h3>
+<ul><li>Created: <code>app/DTOs/UpsertCandidateProfileDTO.php</code>, <code>app/DTOs/CandidateProfileDTO.php</code>, <code>app/Contracts/CandidateProfileRepositoryInterface.php</code>, <code>app/Repositories/CandidateProfileRepository.php</code>, <code>app/Services/CandidateProfileService.php</code>, <code>app/Policies/CandidateProfilePolicy.php</code>, <code>app/Exceptions/ProfileNotFoundException.php</code>, <code>app/Http/Controllers/Profiles/ShowMyProfileController.php</code>, <code>app/Http/Controllers/Profiles/UpsertMyProfileController.php</code>, <code>routes/api/v1/profiles.php</code>, <code>tests/Feature/Profiles/ShowMyProfileTest.php</code>, <code>tests/Feature/Profiles/UpsertMyProfileTest.php</code></li><li>Modified: <code>app/Providers/RepositoryServiceProvider.php</code> (one binding), <code>docs/api/api-contracts.md</code> (two endpoints)</li></ul>
+<h3 id="verification-gates">Verification gates</h3>
+<pre><code>[PASS] 1. Code Style (Pint)               ./vendor/bin/pint --test
+[PASS] 2. Static Analysis (PHPStan L5)    ./vendor/bin/phpstan analyse --no-progress   0 errors
+[PASS] 3. No Debug Statements             grep dd(/dump( in app/: none
+[PASS] 4. Tests Passing (all)             php artisan test   Profiles 7/7, full suite green
+[PASS] 5. Coverage (&gt;= 80%)               php artisan test --coverage --min=80   93.4%
+                                          (first attempt: FAIL, unreachable - no coverage driver; pcov installed, re-run)
+[SKIP] 6. Type Safety (tsc)               no .ts/.tsx changed in this task
+[SKIP] 7. Accessibility                   no UI changed in this task</code></pre>
+<h3 id="must-not-change">Must NOT change</h3>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>Guard</th><th>Result</th></tr></thead><tbody><tr><td>MNC-1</td><td><code>tests/Feature/Auth/LoginTest.php::returns the current user</code> (unchanged file)</td><td>PASS</td></tr><tr><td>MNC-2</td><td><code>tests/Feature/Auth/PublicEndpointsGuardTest.php::keeps job search, job detail and company profile public</code> (unchanged file)</td><td>PASS</td></tr></tbody></table></div>
+<h3 id="traceability-updated">Traceability updated</h3>
+<p>AC-1 to AC-5, MNC-1 and MNC-2 now name the real tests in <code>tasks.md</code>.</p>
+<p><strong>Result</strong>: Task 2 COMPLETE. Next: task 3 (web/).</p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/.ai/verification/spec-HIRE-5-candidate-profiles/task-2-20261023-1745.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

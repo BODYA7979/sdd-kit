@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schema: companyreviews · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/docs/schemas/company-reviews.md</p>
+  <article class="doc-body">
+<h2 id="schema-companyreviews">Schema: company_reviews</h2>
+<h3 id="purpose">Purpose</h3>
+<p>Candidate reviews of companies. Every review passes admin moderation before it becomes public (BR-41, BR-42). Introduced by spec-HIRE-4-company-reviews.</p>
+<h3 id="fields">Fields</h3>
+<div class="table-wrap"><table><thead><tr><th>Column</th><th>Type</th><th>Nullable</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td>id</td><td>uuid</td><td>No</td><td>auto (HasUuids)</td><td>Primary key (INV-03)</td></tr><tr><td>company_id</td><td>uuid</td><td>No</td><td>—</td><td>Reviewed company. FK <code>companies.id</code>, cascade on delete</td></tr><tr><td>candidate_id</td><td>bigint</td><td>No</td><td>—</td><td>Author. FK <code>users.id</code>, cascade on delete. Always a user with role <code>candidate</code> (BR-40)</td></tr><tr><td>rating</td><td>unsigned tinyint</td><td>No</td><td>—</td><td>1-5 inclusive</td></tr><tr><td>title</td><td>string(120)</td><td>No</td><td>—</td><td>5-120 chars, validated in <code>SubmitCompanyReviewDTO</code></td></tr><tr><td>body</td><td>text</td><td>No</td><td>—</td><td>20-2000 chars, validated in <code>SubmitCompanyReviewDTO</code></td></tr><tr><td>status</td><td>string(20)</td><td>No</td><td><code>pending</code></td><td><code>App\Enums\ReviewStatus</code>: <code>pending</code>, <code>approved</code>, <code>rejected</code></td></tr><tr><td>moderated_by</td><td>bigint</td><td>Yes</td><td>null</td><td>Admin who decided. FK <code>users.id</code>, null on delete</td></tr><tr><td>moderated_at</td><td>timestamp</td><td>Yes</td><td>null</td><td>When the decision was recorded (UTC, INV-04)</td></tr><tr><td>rejection_reason</td><td>string(255)</td><td>Yes</td><td>null</td><td>Required when status is <code>rejected</code> (5-255 chars). Shown to the author only</td></tr><tr><td>created_at</td><td>timestamp</td><td>Yes</td><td>null</td><td>Submission time. Public lists sort on it, newest first</td></tr><tr><td>updated_at</td><td>timestamp</td><td>Yes</td><td>null</td><td>Last change</td></tr></tbody></table></div>
+<h3 id="relationships">Relationships</h3>
+<ul><li>belongs_to: companies (foreign_key: company_id)</li><li>belongs_to: users as candidate (foreign_key: candidate_id)</li><li>belongs_to: users as moderator (foreign_key: moderated_by)</li><li>companies has_many company_reviews (<code>Company::reviews()</code>)</li></ul>
+<h3 id="indexes">Indexes</h3>
+<ul><li>PRIMARY: id</li><li>UNIQUE: (company_id, candidate_id) (purpose: one review per candidate per company, whatever its status; BR-40)</li><li>INDEX: (company_id, status) (purpose: the public list and the average read approved rows of one company)</li></ul>
+<h3 id="constraints">Constraints</h3>
+<ul><li>rating: 1-5, enforced by validation (SQLite has no unsigned range check).</li><li>status transitions: <code>pending</code> → <code>approved</code> or <code>pending</code> → <code>rejected</code> only. No transition out of a decided state (BR-44). The repository updates with <code>WHERE status = &#39;pending&#39;</code>, so concurrent decisions cannot overwrite each other.</li><li>rejection_reason: set only together with status <code>rejected</code>.</li></ul>
+<h3 id="enums">Enums</h3>
+<pre><code class="language-php">enum ReviewStatus: string
+{
+    case Pending = &#39;pending&#39;;
+    case Approved = &#39;approved&#39;;
+    case Rejected = &#39;rejected&#39;;
+}</code></pre>
+<h3 id="notes">Notes</h3>
+<ul><li>Public responses never include candidate_id or the candidate&#39;s name. The author is shown as &quot;Verified candidate&quot; (BR-42). Only the admin queue (<code>GET /api/v1/admin/reviews</code>) shows <code>candidate_name</code>.</li><li>The company rating is computed on read from approved rows (BR-43). Nothing is denormalized onto <code>companies</code>, and <code>GET /api/v1/companies/{slug}</code> is unchanged (HIRE-4 MNC-1, decision D1).</li><li>Moderation state lives on this table rather than in a separate moderation table (decision D2).</li></ul>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/docs/schemas/company-reviews.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

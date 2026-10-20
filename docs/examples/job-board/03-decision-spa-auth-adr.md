@@ -53,7 +53,7 @@ CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ../web
 Run `/memory` once and check that both `api/CLAUDE.md` and `web/CLAUDE.md` are listed.
 
 > In plugin mode the entry point is namespaced: type `/sdd-kit:sdd` wherever this chapter shows `/sdd`
-> (see [INSTALLATION.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/INSTALLATION.md)).
+> (see [INSTALLATION.md](../../reference/installation.md)).
 
 ## Run /sdd and confirm the decision route
 
@@ -101,7 +101,7 @@ Alex picks **decision**. `/sdd` then gathers the inputs a background workflow ca
 ```
 
 Before launching, `/sdd` shows the exact call, as the decision row of its Step 4 table and
-[references/tech-research.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/plugins/sdd-kit/skills/sdd/references/tech-research.md) prescribe:
+[references/tech-research.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/sdd/references/tech-research.md) prescribe:
 
 ```js
 Workflow({
@@ -362,9 +362,9 @@ decision is in context for every future session.
 
 ## Further reading
 
-- [src/docs/USAGE-EXAMPLES.md, "3. Technology decision"](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/USAGE-EXAMPLES.md#3-technology-decision)
+- [src/docs/USAGE-EXAMPLES.md, "3. Technology decision"](../../reference/usage-examples.md#3-technology-decision)
   covers the general version of this flow.
-- [src/skills/sdd/references/tech-research.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/plugins/sdd-kit/skills/sdd/references/tech-research.md)
+- [src/skills/sdd/references/tech-research.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/sdd/references/tech-research.md)
   lists the route's arguments, phases, outputs and done condition.
 - [docs/multi-repo.md](../../reference/multi-repo.md) explains why `--add-dir` needs the environment variable.
 

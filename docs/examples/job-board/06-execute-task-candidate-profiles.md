@@ -10,7 +10,7 @@ In chapters [04](04-feature-accounts-and-roles.md) and [05](05-feature-company-r
 | Branch | `feature/HIRE-5-candidate-profiles` in `api/` and `web/` |
 | Dates | 2026-10-23 (spec, approval, tasks 1-2) and 2026-10-24 (tasks 3-4) |
 
-Use `/execute-task` instead of `ship-feature` when you want to see each red test and each diff before moving on, when the work spans days, or when you are learning a codebase. The kit's short version of this flow is [USAGE-EXAMPLES.md, scenario 7](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/USAGE-EXAMPLES.md#7-plan-interactively-build-task-by-task).
+Use `/execute-task` instead of `ship-feature` when you want to see each red test and each diff before moving on, when the work spans days, or when you are learning a codebase. The kit's short version of this flow is [USAGE-EXAMPLES.md, scenario 7](../../reference/usage-examples.md#7-plan-interactively-build-task-by-task).
 
 > Agent output in this chapter is **simulated** and abridged. The commands, flags, file paths and file formats are the kit's real ones.
 

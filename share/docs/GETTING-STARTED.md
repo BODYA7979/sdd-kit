@@ -65,7 +65,7 @@ or copied into your project's `.claude/` without cloning (from your project root
 npx github:stasmarkov/sdd-kit install --project
 ```
 
-Both modes, add-ons, and a clone-based install are in [INSTALLATION.md](INSTALLATION.md). This release targets a Laravel API with a Next.js frontend; see [Stacks and roadmap](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/README.md).
+Both modes, add-ons, and a clone-based install are in [INSTALLATION.md](INSTALLATION.md). This release targets a Laravel API with a Next.js frontend; see [Stacks and roadmap](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/README.md).
 
 Start Claude Code in your project root and run the health check:
 
@@ -124,7 +124,7 @@ Create `docs/schemas/` (one file per table, written before its migration) and `d
 
 After a context compaction, a hook re-injects the top of `docs/context/business-rules.md` and `docs/context/architecture.md` and the number of specs with pending tasks, so a long session keeps its rules. The API contract is not re-injected; Claude re-reads it when it touches an endpoint.
 
-If your backend and frontend live in separate repositories, set up a workspace as described in [multi-repo.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/multi-repo.md) before your first ticket.
+If your backend and frontend live in separate repositories, set up a workspace as described in [multi-repo.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/multi-repo.md) before your first ticket.
 
 ### Starting a new product
 
@@ -150,7 +150,7 @@ With no code yet, start with `/product-brief`: it turns the idea into a brief (u
 Route: feature. Adds a new behavior (refund guard on top-up orders); no existing behavior is broken.
 ```
 
-You confirm it or pick another route. The routes are trivial, bug, decision, feature, shipped code, and new app. The full route tree is in the [README](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/README.md). Nothing launches until you confirm.
+You confirm it or pick another route. The routes are trivial, bug, decision, feature, shipped code, and new app. The full route tree is in the [README](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/README.md). Nothing launches until you confirm.
 
 **2. Inputs up front.** Background workflows can't stop to ask questions, so `/sdd` asks two to four now: single repo or backend and frontend paths, the dev URL for browser checks, and anything specific to the route.
 
@@ -279,12 +279,12 @@ Folder naming, how spec references resolve, and the full layout are in [specific
 
 | Read | When |
 |------|------|
-| [Hireboard worked example](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/examples/job-board/README.md) | See every `/sdd` route on one project, from an empty folder to a team: 12 chapters with real commands and tested code. Start with chapter 04 for a full feature |
-| [Interactive guide](https://github.com/stasmarkov/sdd-kit/tree/v2.1.0/docs) | The same material, clickable, with the example's spec board. Open `docs/guide/index.html` from a clone in a browser, or run `npx github:stasmarkov/sdd-kit guide` |
+| [Hireboard worked example](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/README.md) | See every `/sdd` route on one project, from an empty folder to a team: 12 chapters with real commands and tested code. Start with chapter 04 for a full feature |
+| [Interactive guide](https://github.com/stasmarkov/sdd-kit/tree/v2.1.1/docs) | The same material, clickable, with the example's spec board. Open `docs/guide/index.html` from a clone in a browser, or run `npx github:stasmarkov/sdd-kit guide` |
 | [USAGE-EXAMPLES.md](USAGE-EXAMPLES.md) | Real scenarios, phases of each workflow, `Workflow()` arguments |
 | [INSTALLATION.md](INSTALLATION.md) | Upgrading, add-ons, MCP servers, troubleshooting |
-| [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/plugin-mode.md) | Plugin versus file-copy, add-on plugins, namespacing |
-| [effort-guidelines.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/effort-guidelines.md) | Model tiers, effort levels, controlling cost |
-| [multi-repo.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/multi-repo.md) | Separate backend and frontend repositories |
-| [third-party.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/third-party.md) | Recommended third-party skills, LSP plugins |
-| [skill index](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/skills.md), [agent index](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/reference/agents.md) | Every skill and agent with a one-line description |
+| [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/plugin-mode.md) | Plugin versus file-copy, add-on plugins, namespacing |
+| [effort-guidelines.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/effort-guidelines.md) | Model tiers, effort levels, controlling cost |
+| [multi-repo.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/multi-repo.md) | Separate backend and frontend repositories |
+| [third-party.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/third-party.md) | Recommended third-party skills, LSP plugins |
+| [skill index](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/skills.md), [agent index](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/agents.md) | Every skill and agent with a one-line description |

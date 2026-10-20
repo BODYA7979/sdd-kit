@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Company careers page · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/web/.ai/specs/spec-HIRE-7-company-careers-page/spec-lite.md</p>
+  <article class="doc-body">
+<hr>
+<p>id: spec-HIRE-7-company-careers-page
+title: Company careers page
+type: feature
+size: S
+priority: P2
+status: done
+ticket: HIRE-7
+stakeholders: [Maya Chen]
+approved_by: Maya Chen
+approved_at: 2026-10-28T10:15:00Z
+created: 2026-10-28
+stacks: [nextjs]</p>
+<hr>
+<h2 id="company-careers-page">Company careers page</h2>
+<h3 id="summary">Summary</h3>
+<p>Visitors get a public careers page per company at <code>/companies/&lt;slug&gt;</code>. It shows the company
+profile, its open jobs and its rating, and job detail links the company name to it. Candidates
+can size up an employer in one place before applying. Everything the page needs is already served
+by the API, so this is a web-only change.</p>
+<h3 id="context">Context</h3>
+<ul><li><strong>Problem</strong>: job detail shows the company name, but there is nowhere to see the company itself
+or its other openings. Company reviews (HIRE-4) live on <code>/companies/&lt;slug&gt;/reviews</code>, which
+nothing links to from the browse journey.</li><li><strong>User impact</strong>: visitors and candidates compare employers without leaving Hireboard.</li></ul>
+<h3 id="scope">Scope</h3>
+<h4 id="in-scope">In scope</h4>
+<ul><li>New page <code>app/companies/[slug]/page.tsx</code>, with no <code>loading.tsx</code> for the segment (see AC-2).</li><li>Rating summary (average + approved review count) with a link to <code>/companies/&lt;slug&gt;/reviews</code>.</li><li>Company name on job detail links to the careers page.</li></ul>
+<h4 id="out-of-scope">Out of scope</h4>
+<ul><li>Any change in <code>api/</code> (new endpoints, new fields, eager-loaded counts).</li><li>Editing company details (employer self-service is a later ticket).</li><li>Pagination of the company&#39;s jobs beyond the first page; a &quot;See all&quot; link to
+<code>/jobs?company=&lt;slug&gt;</code> covers larger companies.</li></ul>
+<h3 id="must-not-change">Must NOT change</h3>
+<ul><li><strong>MNC-1</strong>: No change in <code>api/</code>. <code>git -C api diff --stat main</code> is empty after the build.</li><li><strong>MNC-2</strong>: The <code>/jobs</code> page (filters, results, ordering, empty state) is unchanged.</li></ul>
+<h3 id="acceptance-criteria">Acceptance criteria</h3>
+<ul><li><strong>AC-1</strong>: WHEN anyone opens <code>/companies/&lt;slug&gt;</code> for an existing company THE SYSTEM SHALL show
+its name, location, website and description, and list its open jobs from
+<code>GET /api/v1/jobs?company=&lt;slug&gt;</code>.</li><li><strong>AC-2</strong>: IF the slug does not match a company THEN THE SYSTEM SHALL render the app&#39;s not-found page
+with <code>noindex</code> meta and an HTTP 404 status. The page awaits <code>getCompany()</code> and calls
+<code>notFound()</code> before anything streams, so the route has no <code>loading.tsx</code>.</li><li><strong>AC-3</strong>: WHEN the careers page renders THE SYSTEM SHALL show the average rating and the number
+of approved reviews from the <code>listCompanyReviews</code> meta, or &quot;No reviews yet&quot; when there are none,
+with a link to <code>/companies/&lt;slug&gt;/reviews</code>. Job detail SHALL link the company name to
+<code>/companies/&lt;slug&gt;</code>.</li></ul>
+<h3 id="boundaries">Boundaries</h3>
+<ul><li><strong>Always</strong>: Server Components; all calls through <code>lib/api/*</code> fetchers and <code>lib/api/client.ts</code>;
+<code>cache: &#39;no-store&#39;</code>; Tailwind utility classes; reuse <code>JobCard</code>.</li><li><strong>Ask first</strong>: any change in <code>api/</code>; a new dependency; a new endpoint in <code>lib/api/endpoints.ts</code>.</li><li><strong>Never</strong>: call the API from the browser; change the <code>/jobs</code> page or <code>JobFilters</code>; weaken an
+existing test.</li></ul>
+<h3 id="technical-context">Technical context</h3>
+<ul><li><strong>Related code</strong>: <code>lib/api/jobs.ts</code> (<code>getCompany</code>, <code>searchJobs</code>), <code>lib/api/reviews.ts</code>
+(<code>listCompanyReviews</code>), <code>components/job-card.tsx</code>, <code>app/jobs/[id]/page.tsx</code>.</li><li><strong>Already implemented</strong>:<ul><li><code>GET /api/v1/companies/{slug}</code> returns <code>Company</code> with <code>open_jobs_count</code> (HIRE-1).</li><li><code>GET /api/v1/jobs?company=&lt;slug&gt;</code> filters open postings by company (HIRE-1).</li><li><code>GET /api/v1/companies/{slug}/reviews</code> returns <code>meta.average_rating</code> and <code>meta.total</code> (HIRE-4).</li><li><code>showCompany</code>, <code>searchJobs</code> and <code>listCompanyReviews</code> are already in <code>lib/api/endpoints.ts</code>.</li></ul></li><li><strong>Approach</strong>: one Server Component that loads the three calls in parallel with <code>Promise.all</code>,
+calls <code>notFound()</code> when <code>getCompany</code> returns null, and treats a 404 from the reviews call as
+&quot;no summary&quot; so an unknown slug still reaches <code>notFound()</code>.</li><li><strong>Repos</strong>: <code>web/</code> changes; <code>../api</code> is read-only context.</li></ul>
+<h3 id="open-questions">Open questions</h3>
+<ul class="contains-task-list"><li class="task"><input type="checkbox" disabled checked> Q1: What does the rating summary show for a company with no approved reviews? —
+<strong>Answered</strong> (Maya Chen): the text &quot;No reviews yet&quot;, still linking to the reviews page so the
+first candidate can write one.</li></ul>
+<h3 id="dependencies">Dependencies</h3>
+<ul><li><strong>Requires</strong>: spec-HIRE-4-company-reviews (reviews list meta), HIRE-1 job search filters.</li><li><strong>Blocks</strong>: none.</li></ul>
+<hr>
+<p>Next: <code>/sdd web/.ai/specs/spec-HIRE-7-company-careers-page</code> (approval → build)</p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/web/.ai/specs/spec-HIRE-7-company-careers-page/spec-lite.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

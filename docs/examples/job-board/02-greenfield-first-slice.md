@@ -463,7 +463,7 @@ inside `api/` or `web/` (chapters 03, 07, 10) need each repo's own conventions, 
 > **Friction F5: plugin mode installs no project context.** The kit's plugin ships agents,
 > skills, workflows and hooks, but no `CLAUDE.md`, `AGENTS.md` or `.claude/rules/`. Copy the
 > templates by hand, as
-> [INSTALLATION.md, "Project context is not installed"](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/INSTALLATION.md#project-context-is-not-installed)
+> [INSTALLATION.md, "Project context is not installed"](../../reference/installation.md#project-context-is-not-installed)
 > describes. **File-copy users** run `~/tools/sdd-kit/install.sh --project`
 > inside `api/` and inside `web/` now instead. The installer creates `AGENTS.md` and
 > `.claude/rules/` when they're missing, and a `CLAUDE.md` when none exists. Delete the
@@ -481,7 +481,7 @@ done
 
 Then fill them in. The templates say to keep `CLAUDE.md` under 200 lines, put tool-neutral
 facts in `AGENTS.md` (imported with `@AGENTS.md`), and state each fact once.
-[GETTING-STARTED.md, section 2](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/GETTING-STARTED.md#2-give-claude-your-project-context)
+[GETTING-STARTED.md, section 2](../../reference/getting-started.md#2-give-claude-your-project-context)
 explains the reasoning.
 
 **`api/AGENTS.md`** ([artifact](artifacts/api/AGENTS.md)): the stack table, the three gate
@@ -691,7 +691,7 @@ Files from this chapter:
   `lib/api/{client,endpoints,jobs}.ts`, `lib/search-params.ts` + test, `types/api/{common,jobs}.ts`
 
 For a shorter `new app` example without split repos, see
-[USAGE-EXAMPLES.md, "New app"](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/USAGE-EXAMPLES.md#5-new-app). For tier and
+[USAGE-EXAMPLES.md, "New app"](../../reference/usage-examples.md#5-new-app). For tier and
 cost settings (`args.models`), see [docs/effort-guidelines.md](../../reference/effort-guidelines.md).
 
 ## What you have now

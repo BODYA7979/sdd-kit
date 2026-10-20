@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-repo workspaces · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">reference/multi-repo.md</p>
+  <article class="doc-body">
+<h2 id="multi-repo-workspaces">Multi-repo workspaces</h2>
+<p>Use this setup when the backend (Laravel API) and frontend (Next.js) are separate git repositories,
+each with its own CI and its own <code>CLAUDE.md</code>. You get one Claude session that sees both
+repos and the contract between them.</p>
+<h3 id="layout">Layout</h3>
+<pre><code>project/                    no .git here, on purpose
+├── CLAUDE.md               imports both repos + cross-repo rules
+├── be/                     Laravel API: own .git, CLAUDE.md, AGENTS.md, .claude/, .ai/specs/
+└── fe/                     Next.js: own .git, CLAUDE.md, AGENTS.md, .claude/, .ai/specs/</code></pre>
+<ol><li>Create the parent folder and clone both repos into it (<code>be/</code> and <code>fe/</code>, or real names).</li><li>Install the framework into <strong>each repo</strong> as usual (<code>./install.sh --project</code> inside <code>be/</code> and <code>fe/</code>,
+or enable the plugin once).</li><li>Copy <code>src/templates/multi-repo/CLAUDE.md</code> to <code>project/CLAUDE.md</code> and fill in the placeholders.</li><li>Start Claude from <code>project/</code>. Run <code>/memory</code> and confirm that both <code>be/CLAUDE.md</code> and
+<code>fe/CLAUDE.md</code> show up as loaded.</li></ol>
+<p>Starting from the parent gives one session the same context as starting in either repo,
+plus the root file. Keep the root file small. It holds only what neither repo knows alone:</p>
+<ul><li><strong>Contract:</strong> where it lives and which side is authoritative (normally the backend).</li><li><strong>Cross-repo routing table:</strong> &quot;changing a DTO → read the backend Resource, then update the frontend type mirror&quot;.</li><li><strong>Rule of thumb:</strong> if a backend change could be visible to the browser, assume the frontend has to change too.
+Grep the frontend before you call the backend task done.</li><li><strong>Process:</strong> commit in each repo separately, use matching branch names, never commit from the root.</li></ul>
+<h3 id="configuration-traps">Configuration traps</h3>
+<p>Each of these produces the same symptom: <em>&quot;why does it ignore the frontend conventions?&quot;</em>
+<code>/memory</code> shows what is actually loaded.</p>
+<div class="table-wrap"><table><thead><tr><th>Mechanism</th><th>What it really does</th></tr></thead><tbody><tr><td><code>permissions.additionalDirectories</code> in settings</td><td>Grants <strong>file access only</strong>. It doesn&#39;t load the sibling&#39;s <code>CLAUDE.md</code>, rules, or skills.</td></tr><tr><td><code>claude --add-dir ../fe</code></td><td>Loads the sibling&#39;s skills. Its <code>CLAUDE.md</code> loads only when <code>CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1</code> is set.</td></tr><tr><td><code>@../fe/CLAUDE.md</code> import from inside a repo</td><td>Imports from outside the working directory need a one-time approval. If you decline, they are <strong>silently disabled</strong>.</td></tr></tbody></table></div>
+<p>The parent-folder layout avoids all three: both repos sit under the working directory, so the
+root <code>@be/CLAUDE.md</code> and <code>@fe/CLAUDE.md</code> imports are local.</p>
+<p>If you have to start inside one repo, use <code>--add-dir</code> together with the env var:</p>
+<pre><code class="language-bash">cd be &amp;&amp; CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ../fe</code></pre>
+<h3 id="workflows-and-specs">Workflows and specs</h3>
+<ul><li>Workflows detect both repos from the parent folder. To be explicit, pass
+<code>{ repos: { backend: &quot;be&quot;, frontend: &quot;fe&quot; } }</code> to <code>ship-feature</code>, <code>fix-bug</code>, <code>create-spec</code>,
+<code>qa-and-docs</code>, or <code>greenfield-build</code>. <code>/sdd</code> asks for the repos when it can&#39;t detect them.</li><li>Each repo&#39;s gates (tests, lint, types, build) run in that repo. A failure in one blocks the change.</li><li><strong>The spec lives in the repo that starts the change</strong> (<code>be/.ai/specs/...</code> for most API-driven
+features). It lists every affected repo with per-repo tasks. Don&#39;t copy it into the other repo.</li><li><code>resume_hint</code> in the session state (<code>.ai/session/spec-&lt;id&gt;-state.json</code>) records where work
+stopped, including which repo is next. A new session picks it up with
+<code>/execute-task --spec=&lt;id&gt; --continue</code>.</li><li>See every spec across both repos on one board from the workspace root:
+<code>/spec-board be/.ai/specs fe/.ai/specs</code>.</li></ul>
+<h3 id="process">Process</h3>
+<ul><li>Commit with <code>git -C be ...</code> / <code>git -C fe ...</code>. The root has no <code>.git</code>, and that&#39;s how it should stay.</li><li>Use the same branch name in both repos (<code>feature/&lt;ticket&gt;-&lt;slug&gt;</code>). <code>/open-pr --spec=&lt;id&gt;</code>
+opens one PR per changed repo, backend first, and cross-links them.</li><li>Merge order: backend first for additive changes. For breaking changes, use expand/contract:
+add the new shape, move the frontend over, then remove the old shape.</li></ul>
+<h3 id="make-the-contract-a-sensor">Make the contract a sensor</h3>
+<p>Prose contracts drift. A doc that says &quot;148 endpoints&quot; is wrong by the next sprint. Prefer a check
+that fails:</p>
+<ul><li>an OpenAPI diff in CI,</li><li>a script that compares <code>php artisan route:list --json</code> with the frontend API registry,</li><li>generated frontend types from the backend schema instead of hand-written mirrors.</li></ul>
+<p>Hand-maintained type mirrors cause the most cross-repo bugs. A typical example: frontend enum
+literals that type-check but don&#39;t match the backend values.</p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/multi-repo.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

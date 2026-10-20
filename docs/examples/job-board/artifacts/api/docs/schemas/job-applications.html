@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jobapplications · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/docs/schemas/job-applications.md</p>
+  <article class="doc-body">
+<h2 id="jobapplications">job_applications</h2>
+<p>A candidate&#39;s application to one job posting. Written before the migration
+(<code>2026_10_24_090000_create_job_applications_table</code>) as part of HIRE-6
+(<code>.ai/specs/spec-HIRE-6-job-applications/</code>).</p>
+<p>Model: <code>App\Models\JobApplication</code> (<code>HasUuids</code>, <code>HasFactory</code>).</p>
+<h3 id="columns">Columns</h3>
+<div class="table-wrap"><table><thead><tr><th>Column</th><th>Type</th><th>Null</th><th>Default</th><th>Notes</th></tr></thead><tbody><tr><td><code>id</code></td><td>uuid</td><td>no</td><td>generated</td><td>Primary key (INV-03)</td></tr><tr><td><code>job_posting_id</code></td><td>uuid</td><td>no</td><td></td><td>FK <code>job_postings.id</code>, cascade on delete</td></tr><tr><td><code>candidate_id</code></td><td>bigint unsigned</td><td>no</td><td></td><td>FK <code>users.id</code>, cascade on delete. Always a user with role <code>candidate</code></td></tr><tr><td><code>cover_letter</code></td><td>text</td><td>yes</td><td>null</td><td>Max 2000 characters, validated in <code>SubmitApplicationDTO</code></td></tr><tr><td><code>created_at</code></td><td>timestamp</td><td>yes</td><td></td><td>UTC. Serialized as <code>submitted_at</code></td></tr><tr><td><code>updated_at</code></td><td>timestamp</td><td>yes</td><td></td><td>UTC. Applications are never edited in v1</td></tr></tbody></table></div>
+<h3 id="indexes">Indexes</h3>
+<div class="table-wrap"><table><thead><tr><th>Name</th><th>Columns</th><th>Why</th></tr></thead><tbody><tr><td>primary</td><td><code>id</code></td><td></td></tr><tr><td><code>job_applications_job_posting_id_candidate_id_unique</code></td><td><code>job_posting_id, candidate_id</code></td><td>BR-32. The database, not the service pre-check, is what makes a concurrent duplicate impossible</td></tr><tr><td><code>job_applications_candidate_id_created_at_index</code></td><td><code>candidate_id, created_at</code></td><td><code>GET /api/v1/me/applications</code>, newest first</td></tr></tbody></table></div>
+<p>No separate foreign-key indexes are needed: the unique index leads with <code>job_posting_id</code>
+and the second index leads with <code>candidate_id</code>, so both foreign keys are covered.</p>
+<h3 id="relations">Relations</h3>
+<div class="table-wrap"><table><thead><tr><th>From</th><th>Relation</th><th>To</th><th>Keys</th></tr></thead><tbody><tr><td><code>JobApplication</code></td><td>belongsTo <code>jobPosting</code></td><td><code>JobPosting</code></td><td><code>job_posting_id</code></td></tr><tr><td><code>JobApplication</code></td><td>belongsTo <code>candidate</code></td><td><code>User</code></td><td><code>candidate_id</code></td></tr><tr><td><code>JobApplication</code></td><td>hasOne <code>candidateProfile</code></td><td><code>CandidateProfile</code></td><td><code>candidate_profiles.user_id = job_applications.candidate_id</code></td></tr><tr><td><code>JobPosting</code></td><td>hasMany <code>applications</code></td><td><code>JobApplication</code></td><td><code>job_posting_id</code></td></tr></tbody></table></div>
+<p><code>User</code> has no relation to applications (see <code>users.md</code>); repositories query by user id.</p>
+<h3 id="rules-this-table-enforces-or-supports">Rules this table enforces or supports</h3>
+<div class="table-wrap"><table><thead><tr><th>Rule</th><th>Where</th></tr></thead><tbody><tr><td>BR-30 profile required before applying</td><td><code>JobApplicationService::submit()</code> (422 <code>profile_required</code>)</td></tr><tr><td>BR-31 only open postings accept applications</td><td><code>JobApplicationService::submit()</code> (422 <code>job_not_open</code>)</td></tr><tr><td>BR-32 one application per candidate per posting</td><td>unique index + service pre-check; <code>JobApplicationRepository::create()</code> maps the constraint violation to 409 <code>already_applied</code></td></tr><tr><td>BR-33 employers see applications to their own company&#39;s postings, closed included</td><td><code>JobApplicationRepository::paginateForCompanyOwner()</code> filters on <code>companies.owner_id</code></td></tr><tr><td>BR-21 employers see only name, email and headline</td><td><code>JobApplicationDTO::toEmployerArray()</code></td></tr></tbody></table></div>
+<h3 id="personal-data">Personal data</h3>
+<p><code>cover_letter</code> and the joined candidate name, email and headline are personal data. They are
+returned only to the applicant (<code>/me/applications</code>) and to the owning employer
+(<code>/employer/applications</code>), never from a public endpoint. Deleting a user deletes their
+applications (cascade).</p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/docs/schemas/job-applications.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

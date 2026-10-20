@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual test plan: job applications (HIRE-6) · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/.ai/specs/spec-HIRE-6-job-applications/manual-test.md</p>
+  <article class="doc-body">
+<h2 id="manual-test-plan-job-applications-hire-6">Manual test plan: job applications (HIRE-6)</h2>
+<p>Spec: <code>spec-HIRE-6-job-applications</code>. Run against a freshly seeded local database. Steps 1-5
+take about ten minutes.</p>
+<h3 id="preconditions">Preconditions</h3>
+<pre><code class="language-bash"># terminal 1
+cd ~/work/hireboard/api &amp;&amp; php artisan migrate:fresh --seed &amp;&amp; php artisan serve --port=8000
+# terminal 2
+cd ~/work/hireboard/web &amp;&amp; npm run dev</code></pre>
+<p>Get the id of an open Acme Robotics posting and keep it as <code>JOB_ID</code>:</p>
+<pre><code class="language-bash">curl -s &#39;http://localhost:8000/api/v1/jobs?company=acme-robotics&#39; | jq -r &#39;.data[0].id&#39;</code></pre>
+<p>Accounts (password <code>password</code>): <code>employer@acme.test</code> (owns Acme Robotics). Step 2 creates a new
+candidate so the run never depends on whether a seeded candidate already has a profile.</p>
+<p>Use a private browser window so no earlier session cookie is present.</p>
+<h3 id="step-1--guests-can-still-read-the-job-applying-asks-them-to-sign-in-mnc-2">Step 1 — Guests can still read the job, applying asks them to sign in (MNC-2)</h3>
+<ol><li>Open <code>http://localhost:3000/jobs/JOB_ID</code> without signing in.
+<strong>Expected</strong>: the job detail renders with the company name and an <strong>Apply</strong> link. No redirect.</li><li>Click <strong>Apply</strong>.
+<strong>Expected</strong>: redirect to <code>/login?next=%2Fjobs%2FJOB_ID%2Fapply</code>.</li></ol>
+<h3 id="step-2--a-candidate-without-a-profile-is-sent-to-create-one-ac-2-ac-8">Step 2 — A candidate without a profile is sent to create one (AC-2, AC-8)</h3>
+<ol><li>Open <code>http://localhost:3000/register</code>. Select <strong>Looking for a job</strong> and register with name <code>Pat Applicant</code>,
+email <code>pat.applicant@example.test</code>, password <code>password123</code>.
+<strong>Expected</strong>: you are signed in and land on <code>/dashboard</code>.</li><li>Open <code>http://localhost:3000/jobs/JOB_ID/apply</code>, leave the cover letter empty and click
+<strong>Send application</strong>.
+<strong>Expected</strong>: the page stays on the form and shows &quot;Create your candidate profile before you
+apply.&quot; with a <strong>Go to your profile</strong> link to <code>/profile</code>. Nothing is listed on <code>/applications</code>.</li></ol>
+<h3 id="step-3--with-a-profile-the-application-goes-through-ac-1-ac-8">Step 3 — With a profile, the application goes through (AC-1, AC-8)</h3>
+<ol><li>Click <strong>Go to your profile</strong>. Enter the headline <code>Embedded C++ engineer</code>, fill the other
+required fields with any valid values, and save.
+<strong>Expected</strong>: &quot;Profile saved&quot;.</li><li>Open <code>http://localhost:3000/jobs/JOB_ID/apply</code>, enter the cover letter
+<code>I built ROS 2 drivers for warehouse robots for three years.</code> and click <strong>Send application</strong>.
+<strong>Expected</strong>: redirect to <code>/applications?applied=1</code> with the green banner &quot;Application sent.
+The employer can now see it.&quot; The posting is listed first with today&#39;s date and links to the
+job and to <code>/companies/acme-robotics</code>.</li></ol>
+<h3 id="step-4--a-second-application-to-the-same-job-is-refused-ac-4">Step 4 — A second application to the same job is refused (AC-4)</h3>
+<ol><li>Open <code>http://localhost:3000/jobs/JOB_ID/apply</code> again and click <strong>Send application</strong>.
+<strong>Expected</strong>: &quot;You have already applied to this job.&quot; and still exactly one entry on
+<code>/applications</code>.</li></ol>
+<h3 id="step-5--the-employer-sees-the-applicant-and-only-their-own-applicants-ac-7">Step 5 — The employer sees the applicant, and only their own applicants (AC-7)</h3>
+<ol><li>Click <strong>Sign out</strong> in the account navigation. Sign in as <code>employer@acme.test</code>.</li><li>Open <code>http://localhost:3000/employer/applications</code>.
+<strong>Expected</strong>: Pat Applicant is listed with the headline &quot;Embedded C++ engineer&quot;, a
+<code>mailto:pat.applicant@example.test</code> link, the cover letter and the job title. No skills, bio or
+years of experience are shown. Applications to Northwind Health or Blue Fern Studio postings
+never appear here.</li></ol>
+<h3 id="rollback">Rollback</h3>
+<p>The change is additive: one new table and three new endpoints. To roll back locally, revert the
+merge commits in <code>web</code> and then <code>api</code>, and run <code>php artisan migrate:rollback --step=1</code> in <code>api/</code>.</p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/.ai/specs/spec-HIRE-6-job-applications/manual-test.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

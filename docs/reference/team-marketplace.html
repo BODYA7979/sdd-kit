@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team marketplace · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">reference/team-marketplace.md</p>
+  <article class="doc-body">
+<h2 id="team-marketplace">Team marketplace</h2>
+<p>How a team or organization rolls this framework out through its own plugin marketplace: one catalog repo you control, the core plugin plus the add-ons you approve, each pinned to a reviewed version, enabled per project, and optionally enforced with managed settings.</p>
+<p>Why a team marketplace instead of pointing everyone at this repository:</p>
+<ul><li><strong>Pinned, reviewed versions.</strong> Everyone runs the release you tested, not whatever was pushed last.</li><li><strong>One place to approve add-ons.</strong> The catalog lists only what the team has vetted (core, <code>ops</code>, <code>design</code>, ...), alongside your own internal plugins.</li><li><strong>Policy.</strong> Managed settings can allow only your marketplace and force-enable the core plugin.</li></ul>
+<p>Key names and source formats below follow the Claude Code docs: <a href="https://code.claude.com/docs/en/plugins/create-marketplace" target="_blank" rel="noopener noreferrer">Create a marketplace</a>, <a href="https://code.claude.com/docs/en/plugins/marketplace-reference" target="_blank" rel="noopener noreferrer">Marketplace reference</a>, and <a href="https://code.claude.com/docs/en/plugins/org" target="_blank" rel="noopener noreferrer">Manage plugins for your organization</a>.</p>
+<h3 id="1-create-the-marketplace-repo">1. Create the marketplace repo</h3>
+<pre><code>your-org/claude-marketplace/
+└── .claude-plugin/
+    └── marketplace.json</code></pre>
+<p>The catalog points at the kit&#39;s public distribution repository, <code>stasmarkov/sdd-kit</code>; it does not copy it. Every plugin there lives in <code>plugins/&lt;name&gt;/</code> (the core in <code>plugins/sdd-kit/</code>, add-ons in <code>plugins/sdd-kit-&lt;addon&gt;/</code>), so each entry uses a <code>git-subdir</code> source. Pin every entry with <code>ref</code> (a release tag) and <code>sha</code> (the full 40-character commit of that tag). When both are set, Claude Code checks out <code>sha</code>, so a moved or deleted tag cannot change what your team installs.</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;your-org-claude&quot;,
+  &quot;description&quot;: &quot;Approved Claude Code plugins for Your Org&quot;,
+  &quot;owner&quot;: { &quot;name&quot;: &quot;Platform Team&quot;, &quot;email&quot;: &quot;platform@your-org.example&quot; },
+  &quot;plugins&quot;: [
+    {
+      &quot;name&quot;: &quot;sdd-kit&quot;,
+      &quot;description&quot;: &quot;Spec-driven Laravel API + Next.js framework: /sdd, workflows, agents, skills, hooks.&quot;,
+      &quot;source&quot;: {
+        &quot;source&quot;: &quot;git-subdir&quot;,
+        &quot;url&quot;: &quot;stasmarkov/sdd-kit&quot;,
+        &quot;path&quot;: &quot;plugins/sdd-kit&quot;,
+        &quot;ref&quot;: &quot;v2.1.0&quot;,
+        &quot;sha&quot;: &quot;&lt;40-char commit sha of v2.1.0&gt;&quot;
+      }
+    },
+    {
+      &quot;name&quot;: &quot;sdd-kit-ops&quot;,
+      &quot;description&quot;: &quot;Deploy, rollback, feature flags, health checks, incident response.&quot;,
+      &quot;source&quot;: {
+        &quot;source&quot;: &quot;git-subdir&quot;,
+        &quot;url&quot;: &quot;stasmarkov/sdd-kit&quot;,
+        &quot;path&quot;: &quot;plugins/sdd-kit-ops&quot;,
+        &quot;ref&quot;: &quot;v2.1.0&quot;,
+        &quot;sha&quot;: &quot;&lt;40-char commit sha of v2.1.0&gt;&quot;
+      }
+    },
+    {
+      &quot;name&quot;: &quot;sdd-kit-design&quot;,
+      &quot;description&quot;: &quot;UI design add-on: ui-ux-advisor agent and design-ui skill.&quot;,
+      &quot;defaultEnabled&quot;: false,
+      &quot;source&quot;: {
+        &quot;source&quot;: &quot;git-subdir&quot;,
+        &quot;url&quot;: &quot;stasmarkov/sdd-kit&quot;,
+        &quot;path&quot;: &quot;plugins/sdd-kit-design&quot;,
+        &quot;ref&quot;: &quot;v2.1.0&quot;,
+        &quot;sha&quot;: &quot;&lt;40-char commit sha of v2.1.0&gt;&quot;
+      }
+    }
+  ]
+}</code></pre>
+<p>Notes:</p>
+<ul><li>Keep each entry&#39;s <code>name</code> identical to the <code>name</code> in that plugin&#39;s own <code>.claude-plugin/plugin.json</code>; the entry name is the install id (<code>&lt;name&gt;@your-org-claude</code>) and the key written to <code>enabledPlugins</code>.</li><li>Get the commit for a tag with <code>git ls-remote https://github.com/stasmarkov/sdd-kit refs/tags/v2.1.0</code> (use the <code>^{}</code> line for annotated tags).</li><li>If you fork the framework, point <code>repo</code> / <code>url</code> at your fork. A fork is the right choice when you carry local changes; otherwise reference upstream.</li><li>List only the add-ons you approve. <code>ios</code> and <code>drupal</code> can be added the same way (<code>path: plugins/sdd-kit-ios</code>, <code>plugins/sdd-kit-drupal</code>).</li><li><code>defaultEnabled: false</code> makes an add-on opt-in even after install.</li></ul>
+<p>Validate before pushing:</p>
+<pre><code class="language-bash">claude plugin validate ./claude-marketplace</code></pre>
+<p>Then test the full loop on your machine:</p>
+<pre><code class="language-bash">claude plugin marketplace add ./claude-marketplace
+claude plugin install sdd-kit@your-org-claude
+claude plugin details sdd-kit</code></pre>
+<p>Push the repo. Teammates register it with <code>claude plugin marketplace add your-org/claude-marketplace</code>. For a private repo, each user needs read access through their git credentials; CI needs a token (on GitHub Actions: export <code>GH_TOKEN</code> and run <code>gh auth setup-git</code>).</p>
+<h3 id="2-enable-plugins-per-project">2. Enable plugins per project</h3>
+<p>Commit this to each application repo&#39;s <code>.claude/settings.json</code>. Contributors get the marketplace registered after they accept the workspace trust dialog, and the listed plugins enabled for that project only:</p>
+<pre><code class="language-json">{
+  &quot;extraKnownMarketplaces&quot;: {
+    &quot;your-org-claude&quot;: {
+      &quot;source&quot;: { &quot;source&quot;: &quot;github&quot;, &quot;repo&quot;: &quot;your-org/claude-marketplace&quot; }
+    }
+  },
+  &quot;enabledPlugins&quot;: {
+    &quot;sdd-kit@your-org-claude&quot;: true,
+    &quot;sdd-kit-ops@your-org-claude&quot;: true
+  }
+}</code></pre>
+<p>Because the plugin entries point at an external source (this framework&#39;s repo), each contributor installs once per project:</p>
+<pre><code class="language-bash">claude plugin install sdd-kit@your-org-claude --scope project</code></pre>
+<p>Until then Claude Code reports <code>Plugin &quot;&lt;name&gt;&quot; is enabled in project settings but isn&#39;t installed</code>.</p>
+<p>Choose add-ons per project: a backend-only service might enable only the core plugin; a project with a production on-call rotation adds <code>-ops</code>; a design-heavy frontend adds <code>-design</code>. To switch a plugin off for one project when it is on elsewhere, set it to <code>false</code>.</p>
+<p>In headless runs (<code>claude -p</code>, CI), <code>extraKnownMarketplaces</code> from a repo&#39;s settings applies only in a folder whose trust was accepted. Installs run in the background, so set <code>CLAUDE_CODE_SYNC_PLUGIN_INSTALL=1</code> if the first turn needs the plugin. For containers that cannot clone at runtime, pre-build a seed with <code>CLAUDE_CODE_PLUGIN_CACHE_DIR</code> and point <code>CLAUDE_CODE_PLUGIN_SEED_DIR</code> at it.</p>
+<h3 id="3-enforce-with-managed-settings-organization-rollout">3. Enforce with managed settings (organization rollout)</h3>
+<p>Managed settings apply to every machine and cannot be overridden by users. Deliver them from the claude.ai admin console (server-managed settings), MDM, or a <code>managed-settings.json</code> at the platform&#39;s system path.</p>
+<p>This policy allows only the official marketplace and your org&#39;s repositories, registers your marketplace, force-enables the core plugin, and blocks sideloading:</p>
+<pre><code class="language-json">{
+  &quot;strictKnownMarketplaces&quot;: [
+    { &quot;source&quot;: &quot;github&quot;, &quot;repo&quot;: &quot;anthropics/claude-plugins-official&quot; },
+    { &quot;source&quot;: &quot;github&quot;, &quot;repo&quot;: &quot;your-org/*&quot; },
+    { &quot;source&quot;: &quot;skills-dir&quot; }
+  ],
+  &quot;extraKnownMarketplaces&quot;: {
+    &quot;your-org-claude&quot;: {
+      &quot;source&quot;: { &quot;source&quot;: &quot;github&quot;, &quot;repo&quot;: &quot;your-org/claude-marketplace&quot; },
+      &quot;autoUpdate&quot;: true
+    }
+  },
+  &quot;enabledPlugins&quot;: {
+    &quot;sdd-kit@your-org-claude&quot;: true
+  },
+  &quot;disableSideloadFlags&quot;: true
+}</code></pre>
+<p>What each key does:</p>
+<div class="table-wrap"><table><thead><tr><th>Key</th><th>Effect</th></tr></thead><tbody><tr><td><code>strictKnownMarketplaces</code></td><td>Allowlist of marketplace <strong>sources</strong>. Anything else fails with <code>is blocked by enterprise policy</code>. <code>[]</code> blocks every source, including the official one. It does not register anything by itself. Entries match exactly on <code>repo</code>, <code>ref</code>, and <code>path</code>; <code>your-org/*</code> matches every repo under that owner; <code>hostPattern</code> covers a GitHub Enterprise or GitLab host</td></tr><tr><td><code>{ &quot;source&quot;: &quot;skills-dir&quot; }</code></td><td>Keeps plugins under <code>~/.claude/skills/</code> and <code>.claude/skills/</code> loading while an allowlist is set. Drop it to block them</td></tr><tr><td><code>extraKnownMarketplaces</code></td><td>Registers the marketplace on every machine. Its source must pass the allowlist. <code>autoUpdate</code> set here overrides the user&#39;s toggle</td></tr><tr><td><code>enabledPlugins</code></td><td><code>true</code> force-enables (users cannot disable it), <code>false</code> blocks the plugin at every scope and hides it. Use <code>false</code> to block one plugin inside an allowed marketplace</td></tr><tr><td><code>disableSideloadFlags</code></td><td>Rejects <code>--plugin-dir</code>, <code>--plugin-url</code>, and similar flags, which the allowlist does not cover</td></tr></tbody></table></div>
+<p>The allowlist matches the <strong>marketplace</strong> source (<code>your-org/claude-marketplace</code>), not the plugin sources inside it, so the catalog may reference this framework&#39;s public repository while users can only add your org&#39;s marketplaces.</p>
+<p>To roll out to a single repository&#39;s contributors instead of the whole fleet, use the project settings from section 2.</p>
+<h3 id="4-update-and-pinning-policy">4. Update and pinning policy</h3>
+<p>Recommended policy:</p>
+<ol><li><strong>Pin every entry</strong> to a release tag plus its commit <code>sha</code>. Never point entries at a branch (<code>main</code>) in the team catalog.</li><li><strong>Upgrade through a pull request to the marketplace repo.</strong> The PR bumps <code>ref</code> and <code>sha</code> for the plugins being upgraded and links the framework&#39;s CHANGELOG for that range.</li><li><strong>Gate the PR on evidence.</strong> Before merging, run the framework&#39;s eval suite at the new version (see evals.md): median of at least 5 runs per case, compared against the current pinned version and the no-plugin baseline. A lower median blocks the upgrade until explained.</li><li><strong>Pilot first.</strong> For larger upgrades, run two marketplaces — e.g. <code>your-org-claude-latest</code> (new ref) for a pilot group and <code>your-org-claude</code> (current ref) for everyone else — and assign them per group with separate endpoint-managed settings. Promote by moving the stable catalog to the new ref.</li><li><strong>Upgrade core and add-ons together.</strong> The add-ons are released from the same repository and version; keep their <code>ref</code> equal to the core&#39;s.</li><li><strong>Rerun evals on every model release</strong>, not only framework releases: a model change can regress behavior under an unchanged pin.</li><li><strong>Review quarterly.</strong> Remove add-ons nobody enabled in the last two months.</li></ol>
+<p>How users receive an upgrade once the catalog changes:</p>
+<ul><li>With <code>autoUpdate: true</code> on the marketplace, Claude Code refreshes it in the background and installs the new pinned version; a restart applies it.</li><li>Manually: <code>claude plugin marketplace update your-org-claude</code>, then <code>claude plugin update sdd-kit@your-org-claude</code>, then restart.</li><li>Turning off all auto-updates for a fleet: set <code>&quot;env&quot;: { &quot;DISABLE_AUTOUPDATER&quot;: &quot;1&quot; }</code> in managed settings (add <code>&quot;FORCE_AUTOUPDATE_PLUGINS&quot;: &quot;1&quot;</code> to keep plugin updates while freezing Claude Code itself).</li></ul>
+<p>The plugin&#39;s own <code>version</code> in <code>plugin.json</code> also pins: users stay on a version until it changes, so every framework release must bump it (the tag and <code>version</code> should agree; <code>claude plugin tag</code> creates a <code>{name}--v{version}</code> tag and checks that <code>plugin.json</code> and the marketplace entry match).</p>
+<h3 id="verify-the-rollout">Verify the rollout</h3>
+<ul><li>Interactive: run <code>/plugin</code>; your marketplace and the enabled plugins are listed.</li><li>CI: <code>claude -p &quot;ok&quot; --output-format stream-json --verbose</code> and check the <code>plugins</code> list in the <code>init</code> event.</li><li>Policy problems: <code>/status</code> should list <code>Enterprise managed settings</code> under setting sources; blocked sources show <code>is not in the allowed marketplace list</code> or <code>is blocked by enterprise policy</code>.</li></ul>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/team-marketplace.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

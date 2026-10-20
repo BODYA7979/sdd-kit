@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>06 — Build task by task and resume: candidate profiles with /execute-task (HIRE-5) · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/06-execute-task-candidate-profiles.md</p>
+  <article class="doc-body">
+<h2 id="06--build-task-by-task-and-resume-candidate-profiles-with-execute-task-hire-5">06 — Build task by task and resume: candidate profiles with /execute-task (HIRE-5)</h2>
+<p>In chapters <a href="04-feature-accounts-and-roles.html">04</a> and <a href="05-feature-company-reviews-full-spec.html">05</a>, approved specs went straight into <code>ship-feature</code>, which builds the whole feature in the background. This chapter uses the interactive alternative. Maya approves the spec without building it, then Alex runs <code>/execute-task</code> one task at a time, with TDD and a verification report after each task. He stops halfway at the end of the day and picks up the next morning in a fresh session from the saved state.</p>
+<div class="table-wrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Ticket</td><td>HIRE-5 &quot;Candidate profiles&quot; (no tracker, so the text is pasted, F8)</td></tr><tr><td>Route</td><td><code>feature</code>: write-spec, then human approval (<strong>Approve only</strong>), then <code>/execute-task</code></td></tr><tr><td>Spec</td><td><code>api/.ai/specs/spec-HIRE-5-candidate-profiles/</code> (M, 4 tasks)</td></tr><tr><td>Branch</td><td><code>feature/HIRE-5-candidate-profiles</code> in <code>api/</code> and <code>web/</code></td></tr><tr><td>Dates</td><td>2026-10-23 (spec, approval, tasks 1-2) and 2026-10-24 (tasks 3-4)</td></tr></tbody></table></div>
+<p>Use <code>/execute-task</code> instead of <code>ship-feature</code> when you want to see each red test and each diff before moving on, when the work spans days, or when you are learning a codebase. The kit&#39;s short version of this flow is <a href="../../reference/usage-examples.html#7-plan-interactively-build-task-by-task">USAGE-EXAMPLES.md, scenario 7</a>.</p>
+<blockquote><p>Agent output in this chapter is <strong>simulated</strong> and abridged. The commands, flags, file paths and file formats are the kit&#39;s real ones.</p></blockquote>
+<hr>
+<h3 id="1-branches-and-the-spec">1. Branches and the spec</h3>
+<p>Both repos get the same branch name (<a href="../../reference/multi-repo.html#process">docs/multi-repo.md, Process</a>):</p>
+<pre><code class="language-bash">cd ~/work/hireboard
+git -C api switch -c feature/HIRE-5-candidate-profiles
+git -C web switch -c feature/HIRE-5-candidate-profiles</code></pre>
+<p><code>write-spec</code> creates the spec folder under <code>./.ai/specs</code> relative to the session&#39;s working directory. The spec belongs in <code>api/</code>, the repo that starts the change, so Alex starts this session inside <code>api/</code> and adds <code>web/</code> (F3):</p>
+<pre><code class="language-bash">cd ~/work/hireboard/api
+CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ../web</code></pre>
+<p>Chapter 04 ran <code>/sdd</code> from the workspace root instead and checked that the hand-off path started with <code>api/</code>. Both approaches work. Starting inside the repo means the folder can&#39;t land in the wrong place.</p>
+<pre><code>/sdd HIRE-5</code></pre>
+<pre><code class="language-text">(simulated)
+No spec found for HIRE-5 in .ai/specs/. No tracker tool (Jira/Linear MCP or CLI) is available
+in this session, so please paste the ticket text.</code></pre>
+<p>Alex pastes the ticket:</p>
+<pre><code class="language-text">HIRE-5 Candidate profiles
+Candidates create and edit a private profile (headline, location, bio, skills, years of
+experience, open to work).</code></pre>
+<pre><code class="language-text">(simulated)
+Route: feature. Adds new behavior (a new table and endpoints), and no technology choice is open.
+  &gt; feature (recommended)
+    trivial
+Repos: backend &quot;.&quot;, frontend &quot;../web&quot; (detected from --add-dir). Dev URL: http://localhost:3000
+
+Running Skill(&quot;write-spec&quot;, &quot;--ticket=HIRE-5 Candidates create and edit a private profile ...&quot;)
+
+Size: M. New table and two API endpoints plus a web page, 4 tasks.
+Investigation:
+  - exists: Sanctum auth, UserRole, User::isCandidate(), requireUser(), (account) layout with a
+    &quot;Profile&quot; nav link for candidates, middleware matcher &#39;/profile/:path*&#39; (HIRE-3)
+  - pattern to follow: CompanyReviewPolicy (role gate), SubmitCompanyReviewDTO (validated input),
+    app/companies/[slug]/reviews/actions.ts (422 -&gt; field errors)
+  - business rules already recorded: BR-20 (one profile, candidates only), BR-21 (private),
+    BR-30 (needed before applying, used by HIRE-6)
+Wrote .ai/specs/spec-HIRE-5-candidate-profiles/  spec-lite.md, tasks.md  (status: draft)</code></pre>
+<p>The ticket and BR-20/BR-21 already say what the profile holds and who sees it, so <code>write-spec</code> skips its clarifying questions and moves on to the clarity gate. This is a fresh agent that reads only the spec folder:</p>
+<pre><code class="language-text">(simulated)
+Clarity gate (fresh context, spec folder only): 2 raised
+  [ ] Q1: Are &quot;PHP&quot; and &quot;php&quot; the same skill? Is a duplicate merged or rejected?
+  [ ] Q2: Can an employer read a candidate&#39;s profile directly, e.g. from an application?</code></pre>
+<p>Alex asks Maya Chen, the product owner, and records her answers:</p>
+<ul><li><strong>Q1</strong>: Yes, it is the same skill. Skills are trimmed and compared case-insensitively, and a duplicate is rejected with 422 on that item (<code>skills.N</code>). The answer goes into AC-3.</li><li><strong>Q2</strong>: No. Per BR-21 there is no employer-facing profile endpoint. HIRE-6 shows name, email and headline inside an application only. The answer goes into Scope and Boundaries.</li></ul>
+<pre><code class="language-text">(simulated)
+Spec:   .ai/specs/spec-HIRE-5-candidate-profiles/   (size M, status draft)
+Files:  spec-lite.md, tasks.md (4 tasks)
+Clarity gate: 2 raised, 2 resolved — ready for approval</code></pre>
+<p>The criteria in <a href="artifacts/api/.ai/specs/spec-HIRE-5-candidate-profiles/spec-lite.html"><code>spec-lite.md</code></a>, in short:</p>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>Criterion</th></tr></thead><tbody><tr><td>AC-1</td><td>GET before the profile exists returns 404 <code>profile_not_found</code></td></tr><tr><td>AC-2</td><td>PUT upserts, then GET returns the profile</td></tr><tr><td>AC-3</td><td>Headline 3-120 chars, up to 20 unique skills (ignoring case) of up to 40 chars each, years 0-60, otherwise 422</td></tr><tr><td>AC-4</td><td>Employer or admin gets 403</td></tr><tr><td>AC-5</td><td>Guest gets 401</td></tr><tr><td>AC-6</td><td>Web: <code>/profile</code> pre-fills, saves and shows &quot;Profile saved&quot; (manual)</td></tr><tr><td>MNC-1</td><td><code>/api/v1/auth/me</code> unchanged</td></tr><tr><td>MNC-2</td><td>Public endpoints unchanged</td></tr></tbody></table></div>
+<blockquote><p><strong>About the file set.</strong> For an M spec with a UI, <code>write-spec</code> normally adds <code>manual-test.md</code>. In <code>ship-feature</code>, the TestPlan phase fills it in. <code>/execute-task</code> has no TestPlan phase, and this journey is a single screen, so the spec keeps its one manual check inside task 4 as step 4.4. The AC-6 Traceability row points to that step.</p></blockquote>
+<h3 id="2-approve-only">2. Approve only</h3>
+<p><code>/sdd</code> continues straight into its Step 4b approval gate in the same conversation:</p>
+<pre><code class="language-text">(simulated)
+Spec: .ai/specs/spec-HIRE-5-candidate-profiles/spec-lite.md
+Scope: private candidate profile, GET/PUT /api/v1/me/profile, /profile page
+Must NOT change: /auth/me shape; public endpoints stay tokenless and unchanged
+Boundaries: never an endpoint that takes a profile or user id; ask before touching users
+6 acceptance criteria (5 API tests, 1 manual)
+
+How do you want to proceed?
+    Approve and build
+  &gt; Approve only
+    Request changes
+    Stop here (draft)
+Approved by? (git config user.name says &quot;Alex Rivera&quot;)  &gt; Maya Chen</code></pre>
+<p>Maya approves the spec in the session, sitting next to Alex. Approval only counts when it is given in the current <code>/sdd</code> conversation (F7). <code>/sdd</code> writes the frontmatter and launches nothing:</p>
+<pre><code class="language-yaml">status: approved
+approved_by: Maya Chen
+approved_at: 2026-10-23T08:30:00Z</code></pre>
+<pre><code class="language-text">(simulated)
+Route:    feature (confirmed)
+Ticket:   HIRE-5
+Spec:     .ai/specs/spec-HIRE-5-candidate-profiles/ (approved by Maya Chen, 2026-10-23T08:30:00Z)
+Launched: nothing (Approve only). Build task by task: /execute-task --spec=HIRE-5
+Ticket link-back: skipped (no tracker tool)</code></pre>
+<p>The suggested <code>--spec=HIRE-5</code> is exactly what Alex types next. <code>/execute-task</code> looks in <code>./.ai/specs</code>, so the build session also starts inside <code>api/</code>, with <code>web/</code> added so both repos are in scope.</p>
+<h3 id="3-day-one-tasks-1-and-2-in-api">3. Day one: tasks 1 and 2 in <code>api/</code></h3>
+<p>Alex starts a new session inside <code>api/</code>, with <code>web/</code> added. Starting inside the owning repo, as in step 1, keeps the spec resolver simple and puts the session state and reports in that repo (F3):</p>
+<pre><code class="language-bash">cd ~/work/hireboard/api
+CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ../web</code></pre>
+<pre><code>/execute-task --spec=HIRE-5</code></pre>
+<blockquote><p><strong>F2: where the spec resolver looks.</strong> <code>/execute-task</code> resolves <code>--spec</code> against <code>./.ai/specs</code> in the session&#39;s working directory and accepts a folder name, number, ticket key or timestamp id, not a repo-relative path. That is why this session starts in <code>api/</code> and uses <code>--spec=HIRE-5</code>. The workflows (<code>ship-feature</code> and others) are the ones that accept a repo-relative folder from the workspace root.</p></blockquote>
+<h4 id="task-1-schema-first">Task 1: schema first</h4>
+<pre><code class="language-text">(simulated)
+Execute Task: Spec spec-HIRE-5-candidate-profiles - Candidate profiles
+Status: approved -&gt; in-progress (spec-lite.md frontmatter)
+Progress: ░░░░░░░░░░ 0/4 (0%)
+
+Current Task: 1. Schema doc, migration, model and factory for candidate_profiles (laravel)
+Type: database -&gt; loading api/docs/schemas/ and the schema-first conventions only
+
+Schema first: wrote api/docs/schemas/candidate-profiles.md
+  uuid id (INV-03), user_id unique FK cascade (BR-20), json skills, tinyint years_experience
+Migration: api/database/migrations/2026_10_23_090000_create_candidate_profiles_table.php
+Model:     api/app/Models/CandidateProfile.php (HasUuids; casts skills array, open_to_work bool)
+Factory:   api/database/factories/CandidateProfileFactory.php (user_id -&gt; User::factory()-&gt;candidate())
+Check:     cd api &amp;&amp; php artisan migrate:fresh --seed   OK (local SQLite)
+
+Verification Gates (api/):
+  [PASS] 1. Code Style (Pint)
+  [PASS] 2. Static Analysis (PHPStan)
+  [PASS] 3. No Debug Statements
+  [PASS] 4. Tests Passing (33/33)
+  [SKIP] 5-7. no business logic / TS / UI changed (logged)
+
+Task 1 COMPLETE
+Report: .ai/verification/spec-HIRE-5-candidate-profiles/task-1-20261023-1210.md
+Session state saved.
+Next: Task 2 - Show and upsert endpoints with policy and tests (laravel)</code></pre>
+<p>The schema doc is written before the migration, and that order is the schema-first rule. The finished doc is <a href="artifacts/api/docs/schemas/candidate-profiles.html"><code>artifacts/api/docs/schemas/candidate-profiles.md</code></a>, and the migration follows it column by column:</p>
+<pre><code class="language-php">Schema::create(&#39;candidate_profiles&#39;, function (Blueprint $table) {
+    $table-&gt;uuid(&#39;id&#39;)-&gt;primary();
+    $table-&gt;foreignId(&#39;user_id&#39;)-&gt;unique()-&gt;constrained()-&gt;cascadeOnDelete();
+    $table-&gt;string(&#39;headline&#39;, 120);
+    // ...
+    $table-&gt;json(&#39;skills&#39;);
+    $table-&gt;unsignedTinyInteger(&#39;years_experience&#39;);
+    $table-&gt;boolean(&#39;open_to_work&#39;)-&gt;default(true);
+    $table-&gt;timestamps();
+});</code></pre>
+<p>If you are writing a migration by hand outside a spec, <code>/migrate-db --create=candidate_profiles</code> follows the same schema-doc-first steps. Run it yourself, because it executes migrations and is user-invoked only, so <code>execute-task</code> cannot call it for you.</p>
+<h4 id="task-2-red-then-green">Task 2: red, then green</h4>
+<p>By default, <code>execute-task</code> pauses after each task. Alex reads the task 1 diff and runs the same command again. It picks the first <code>- [ ] N.</code> line in <code>tasks.md</code>:</p>
+<pre><code>/execute-task --spec=HIRE-5</code></pre>
+<pre><code class="language-text">(simulated)
+Progress: ███░░░░░░░ 1/4 (25%)
+Current Task: 2. Show and upsert endpoints with policy and tests (laravel)
+
+RED Phase (test-writer): 7 tests, 7 failing
+  tests/Feature/Profiles/ShowMyProfileTest.php
+    x returns 404 profile_not_found before the profile exists      (AC-1)  404 route not found
+    x returns the candidate profile                                 (AC-2)
+  tests/Feature/Profiles/UpsertMyProfileTest.php
+    x creates the profile on first save                            (AC-2)
+    x updates the existing profile                                 (AC-2)
+    x validates headline, skills and years of experience           (AC-3)
+    x forbids employers                                            (AC-4)
+    x requires authentication                                      (AC-5)
+
+GREEN Phase (laravel-backend-dev):
+  DTOs        UpsertCandidateProfileDTO (rules: skills.* distinct:ignore_case), CandidateProfileDTO
+  Contract    CandidateProfileRepositoryInterface (findByUserId, upsertForUser)
+  Repository  CandidateProfileRepository, bound in RepositoryServiceProvider::$bindings
+  Service     CandidateProfileService (findForUser -&gt; ProfileNotFoundException, upsert)
+  Policy      CandidateProfilePolicy::manage (candidates only)
+  HTTP        Profiles\ShowMyProfileController, Profiles\UpsertMyProfileController,
+              routes/api/v1/profiles.php
+  Docs        docs/api/api-contracts.md: GET/PUT /api/v1/me/profile
+  7/7 passing
+
+REFACTOR Phase: moved the 404 from the controller into CandidateProfileService::findForUser
+
+Verification Gates (api/): Pint PASS, PHPStan PASS, debug scan PASS, tests 40/40 PASS
+Must NOT change: LoginTest &#39;returns the current user&#39; PASS, PublicEndpointsGuardTest PASS
+
+Task 2 COMPLETE
+Report: .ai/verification/spec-HIRE-5-candidate-profiles/task-2-20261023-1745.md
+Traceability: AC-1..AC-5, MNC-1, MNC-2 -&gt; real test names
+Session state saved.
+Next: Task 3 - Types, fetchers and saveProfileAction (nextjs)</code></pre>
+<p>The full report is <a href="artifacts/api/.ai/verification/spec-HIRE-5-candidate-profiles/task-2-20261023-1745.html"><code>task-2-20261023-1745.md</code></a>. It records the TDD phases, every gate (skipped gates come with a reason, never silently omitted), the MNC guards and the files touched.</p>
+<p>A few lines carry the business rules. AC-3 and the Q1 answer live in the input DTO&#39;s rules, keyed by the snake_case input names:</p>
+<pre><code class="language-php">// app/DTOs/UpsertCandidateProfileDTO.php
+&#39;skills&#39; =&gt; [&#39;present&#39;, &#39;array&#39;, &#39;max:20&#39;],
+&#39;skills.*&#39; =&gt; [&#39;required&#39;, &#39;string&#39;, &#39;max:40&#39;, &#39;distinct:ignore_case&#39;],
+&#39;years_experience&#39; =&gt; [&#39;required&#39;, &#39;integer&#39;, &#39;between:0,60&#39;],</code></pre>
+<p>BR-21 (the profile is private) is a matter of shape: no route takes an id, and the profile always comes from the token&#39;s user:</p>
+<pre><code class="language-php">// app/Http/Controllers/Profiles/ShowMyProfileController.php
+$this-&gt;authorize(&#39;manage&#39;, CandidateProfile::class);
+
+$profile = $this-&gt;profiles-&gt;findForUser((int) $request-&gt;user()-&gt;id);
+
+return $this-&gt;resource($profile-&gt;toApiArray());</code></pre>
+<p>The two lines added to files owned by <a href="02-greenfield-first-slice.html">chapter 02</a>, which already contain them in their final state:</p>
+<pre><code class="language-diff"> // app/Providers/RepositoryServiceProvider.php, $bindings
++    CandidateProfileRepositoryInterface::class =&gt; CandidateProfileRepository::class,</code></pre>
+<pre><code class="language-diff"> // web/lib/api/endpoints.ts (added in task 3)
++  showMyProfile: { method: &#39;GET&#39;, path: &#39;/api/v1/me/profile&#39; },
++  upsertMyProfile: { method: &#39;PUT&#39;, path: &#39;/api/v1/me/profile&#39; },</code></pre>
+<p>The rest of the API code is in <a href="https://github.com/stasmarkov/sdd-kit/tree/v2.1.1/docs/examples/job-board/artifacts/api/app" target="_blank" rel="noopener noreferrer"><code>artifacts/api/app/</code></a>: <code>Services/CandidateProfileService.php</code>, <code>Repositories/CandidateProfileRepository.php</code>, <code>Policies/CandidateProfilePolicy.php</code>, <code>Exceptions/ProfileNotFoundException.php</code>, plus the routes file <a href="artifacts/api/routes/api/v1/profiles.php"><code>routes/api/v1/profiles.php</code></a> and the tests in <a href="https://github.com/stasmarkov/sdd-kit/tree/v2.1.1/docs/examples/job-board/artifacts/api/tests/Feature/Profiles" target="_blank" rel="noopener noreferrer"><code>tests/Feature/Profiles/</code></a>.</p>
+<p>If a gate had failed, the task would stay unchecked, the failure would go into the state file, and <code>execute-task</code> would stop. After fixing it, Alex would re-run just that task:</p>
+<pre><code>/execute-task --spec=HIRE-5 --task=2</code></pre>
+<h3 id="4-end-of-day-close-the-session">4. End of day: close the session</h3>
+<p>It is 17:50. The API half is green and the web half has not started. Alex leaves the changes uncommitted in <code>api/</code> for the review in step 7, and quits Claude Code. Nothing is lost, because <code>execute-task</code> wrote its state after each task:</p>
+<p><a href="artifacts/api/.ai/session/spec-HIRE-5-candidate-profiles-state.json"><code>api/.ai/session/spec-HIRE-5-candidate-profiles-state.json</code></a></p>
+<pre><code class="language-json">{
+  &quot;spec_id&quot;: &quot;spec-HIRE-5-candidate-profiles&quot;,
+  &quot;spec_folder&quot;: &quot;spec-HIRE-5-candidate-profiles&quot;,
+  &quot;spec_path&quot;: &quot;.ai/specs/spec-HIRE-5-candidate-profiles&quot;,
+  &quot;current_task&quot;: 3,
+  &quot;total_tasks&quot;: 4,
+  &quot;completed_tasks&quot;: [1, 2],
+  &quot;last_updated&quot;: &quot;2026-10-23T15:52:00Z&quot;,
+  &quot;resume_hint&quot;: &quot;Tasks 1-2 done in api/ (profile API green). Next: task 3 in web/ - types/api/profiles.ts, lib/api/profiles.ts, saveProfileAction&quot;
+}</code></pre>
+<p>(The artifact also lists the two verification reports and an empty <code>failures</code> array.) The <code>resume_hint</code> names the next repo. In a split workspace, that is the one thing a fresh session cannot guess from <code>tasks.md</code> alone.</p>
+<blockquote><p><strong>F3: where the state lives.</strong> The state file and the verification reports are written relative to the session&#39;s working directory, so they land in <code>api/.ai/session/</code> and <code>api/.ai/verification/</code>, inside the repo that owns the spec. Alex can commit them with the spec or keep them local, and a teammate can resume from the same files. The <code>web/</code> gate results for tasks 3 and 4 are recorded in the same <code>api/.ai/verification/</code> folder, because the session started there. Starting at the workspace root would put them in the untracked root <code>.ai/</code> instead, and <code>/execute-task</code> would not find the spec at all (F2). See <a href="../../reference/multi-repo.html#configuration-traps">docs/multi-repo.md</a>.</p></blockquote>
+<h3 id="5-next-morning-resume-in-a-fresh-session">5. Next morning: resume in a fresh session</h3>
+<p>On 2026-10-24, Alex opens a fresh Claude Code session in <code>api/</code>, the same way as the day before, and continues from the saved state:</p>
+<pre><code class="language-bash">cd ~/work/hireboard/api
+CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ../web</code></pre>
+<pre><code>/execute-task --spec=HIRE-5 --continue</code></pre>
+<pre><code class="language-text">(simulated)
+Resuming Spec: Candidate profiles (spec-HIRE-5-candidate-profiles)
+Progress: 2/4 tasks complete (50%)
+Last activity: 15 hours ago
+Last completed: Task 2 (Show and upsert endpoints with policy and tests)
+Resume hint: &quot;Tasks 1-2 done in api/ (profile API green). Next: task 3 in web/ -
+              types/api/profiles.ts, lib/api/profiles.ts, saveProfileAction&quot;
+
+Next Task: Task 3 - Types, fetchers and saveProfileAction (nextjs)
+
+Ready to continue? [Yes] [Show task details] [Start over]</code></pre>
+<h4 id="task-3-the-web-data-layer">Task 3: the web data layer</h4>
+<pre><code class="language-text">(simulated)
+Current Task: 3. Types, fetchers and saveProfileAction (nextjs)
+Type: frontend -&gt; loading web/CLAUDE.md conventions, lib/api/client.ts, types/api/common.ts
+
+  web/types/api/profiles.ts          CandidateProfile, CandidateProfileInput (mirror the API shape)
+  web/lib/api/endpoints.ts           + showMyProfile, upsertMyProfile
+  web/lib/api/profiles.ts            getMyProfile() -&gt; null on profile_not_found; saveMyProfile(input)
+  web/app/(account)/profile/actions.ts
+                                     saveProfileAction: 422 errors -&gt; fields (&quot;skills.1&quot; -&gt; skills),
+                                     401 -&gt; redirect(&#39;/login?next=/profile&#39;)
+
+Verification Gates (web/): npm run lint PASS, npx tsc --noEmit PASS, npm test 3/3 PASS
+Task 3 COMPLETE. Report: .ai/verification/spec-HIRE-5-candidate-profiles/task-3-20261024-0920.md
+Next: Task 4 - /profile page and ProfileForm (nextjs)</code></pre>
+<p>The API reports item errors such as <code>skills.1</code> for the second skill, but the form has a single comma-separated skills input. The action folds item errors onto their field (<span class="ref" title="artifacts/web/app/(account)/profile/actions.ts"><code>actions.ts</code></span>):</p>
+<pre><code class="language-ts">for (const [key, messages] of Object.entries(errors ?? {})) {
+  const field = key.split(&#39;.&#39;)[0] as ProfileField;
+  if (FIELDS.includes(field) &amp;&amp; fieldErrors[field] === undefined &amp;&amp; messages.length &gt; 0) {
+    fieldErrors[field] = messages[0];
+  }
+}</code></pre>
+<p><code>getMyProfile()</code> in <a href="artifacts/web/lib/api/profiles.ts"><code>lib/api/profiles.ts</code></a> imports <code>server-only</code> and reads the token from the <code>hireboard_session</code> cookie on the Next.js server, so the browser never sees it (INV-05, <a href="artifacts/api/docs/adr/0001-spa-auth.html">ADR-0001</a>).</p>
+<h4 id="task-4-the-page">Task 4: the page</h4>
+<p>Alex runs the same command again:</p>
+<pre><code>/execute-task --spec=HIRE-5</code></pre>
+<pre><code class="language-text">(simulated)
+Current Task: 4. /profile page and ProfileForm (nextjs)
+  web/app/(account)/profile/page.tsx   requireUser([&#39;candidate&#39;]), dynamic = &#39;force-dynamic&#39;
+  web/components/profile-form.tsx      useActionState(saveProfileAction), field errors, &quot;Profile saved&quot;
+Verification Gates (web/): lint PASS, tsc PASS, npm test 3/3 PASS, npm run build PASS (new route /profile)
+Task 4 COMPLETE. Report: .ai/verification/spec-HIRE-5-candidate-profiles/task-4-20261024-1015.md</code></pre>
+<p>The page is small, because <code>requireUser</code> and the <code>(account)</code> layout (chapter 04) handle access and navigation:</p>
+<pre><code class="language-tsx">// app/(account)/profile/page.tsx
+export const dynamic = &#39;force-dynamic&#39;;
+
+export default async function ProfilePage() {
+  await requireUser([&#39;candidate&#39;]);
+  const profile = await getMyProfile();
+  // heading, &quot;You need a profile before you can apply&quot; note when profile is null
+  return &lt;ProfileForm profile={profile} /&gt;;
+}</code></pre>
+<p>The form (<a href="artifacts/web/components/profile-form.tsx"><code>components/profile-form.tsx</code></a>) keeps the values returned by the action in its state. React 19 resets an uncontrolled form after the action runs, and the inputs reset to those saved values instead of going blank.</p>
+<p>Before execute-task closes the spec, Alex runs the one manual row himself, step 4.4 in <code>tasks.md</code>. Signed in as <code>candidate@hireboard.test</code>, the empty form and the note appear. He saves &quot;Backend developer&quot; with skills &quot;PHP, Laravel&quot; and 4 years, sees &quot;Profile saved&quot;, reloads and finds the values pre-filled. Then he enters skills &quot;PHP, php&quot; and gets an error under Skills, with nothing saved. Signed in as <code>employer@acme.test</code>, <code>/profile</code> sends him away. The Done-when block counts a manual step only once someone has run it.</p>
+<pre><code class="language-text">(simulated)
+No remaining tasks.
+Traceability: 8/8 rows verified (7 by tests, AC-6 by tasks.md step 4.4)
+Gates: api green, web green
+spec-lite.md status: in-progress -&gt; done
+ALL TASKS COMPLETE</code></pre>
+<h4 id="other-ways-to-drive-the-same-tasks">Other ways to drive the same tasks</h4>
+<div class="table-wrap"><table><thead><tr><th>You want</th><th>Type</th></tr></thead><tbody><tr><td>Run the remaining tasks back to back and stop on the first failed gate</td><td><code>/execute-task --spec=HIRE-5 --auto-continue</code></td></tr><tr><td>Leave it unattended until the whole spec is green (built-in <code>/goal</code>, then continue)</td><td><code>/goal every task in .ai/specs/spec-HIRE-5-candidate-profiles/tasks.md is checked and the verification gates pass</code>, then <code>/execute-task --spec=HIRE-5 --continue</code></td></tr><tr><td>Re-check a finished spec without changing code (after a rebase, say)</td><td><code>/execute-task --spec=HIRE-5 --verify-only</code></td></tr><tr><td>Redo one task</td><td><code>/execute-task --spec=HIRE-5 --task=3</code></td></tr></tbody></table></div>
+<p><code>--auto-continue</code> stays inside one session and stops at the first red gate. <code>/goal</code> keeps Claude working until the condition holds, so give it a condition you can check (checked boxes and green gates), not &quot;make it good&quot;.</p>
+<h3 id="6-where-things-stand-progress">6. Where things stand: /progress</h3>
+<p><code>/progress</code> reads <code>./.ai/specs/*/tasks.md</code>, so it also depends on the working directory. The root has no specs, and until HIRE-7 (chapter 08) every spec lives in <code>api/</code>. Alex runs it there:</p>
+<pre><code class="language-bash">cd ~/work/hireboard/api &amp;&amp; claude</code></pre>
+<pre><code>/progress</code></pre>
+<pre><code class="language-text">(simulated)
+Progress Dashboard  (api/.ai/specs)
+
+Active Specs: 0       Total Tasks: 17       Completed: 17 (100%)
+
+ID                               Name                           Progress           Status
+spec-HIRE-3-accounts-and-roles   Accounts and roles             ██████████ 6/6     done
+spec-HIRE-4-company-reviews      Company reviews with moderation ██████████ 7/7    done
+spec-HIRE-5-candidate-profiles   Candidate profiles             ██████████ 4/4     done
+
+Next: no open spec tasks. Unmerged branches: feature/HIRE-5-candidate-profiles</code></pre>
+<p>Once <code>web/.ai/specs/</code> has specs (chapter 08), run <code>/progress</code> in <code>web/</code> as well. <code>/progress --spec=HIRE-5 --detailed</code> shows per-task files and tests.</p>
+<p>A spec is <code>done</code> when the <code>tasks.md</code> Done-when block holds: every task is checked, every Traceability row has a passing test or a manual step that was run, and the gates are green. <code>execute-task</code> checks exactly that before it flips <code>status</code>.</p>
+<h3 id="7-before-the-prs-what-you-skipped-and-a-quick-review">7. Before the PRs: what you skipped, and a quick review</h3>
+<p>Compared with <code>ship-feature</code> (<a href="05-feature-company-reviews-full-spec.html">chapter 05</a>), this run had no <strong>Converge</strong> (code-versus-spec gap audit), no <strong>Visual</strong> check, no <strong>Review</strong> panel with refutation votes, no <strong>Acceptance</strong> re-walk, no <strong>Docs</strong> update, and no <strong>TestPlan</strong> <code>manual-test.md</code>. You traded those for control and a resumable rhythm. So add a review yourself before opening the PRs. The kit&#39;s skill maps &quot;after <code>/execute-task</code> completes&quot; to the default adversarial <code>/deep-review</code>, and a profile is personal data under BR-21, so Alex does not settle for the critical-only <code>--depth=quick</code> here. The changes are still uncommitted, so he stages them and reviews each repo. <code>--staged</code> needs a git repo, so these sessions start inside the repos.</p>
+<pre><code class="language-bash">cd ~/work/hireboard/api &amp;&amp; git add -A &amp;&amp; claude</code></pre>
+<pre><code>/deep-review --staged</code></pre>
+<pre><code class="language-bash">cd ~/work/hireboard/web &amp;&amp; git add -A &amp;&amp; claude</code></pre>
+<pre><code>/deep-review --staged</code></pre>
+<pre><code class="language-text">(simulated)
+api/: depth adversarial (different model tier). Scope touches personal data, so security-auditor
+      ran in parallel and its findings were merged.
+      Verdict APPROVED. 0 critical, 0 major, 1 minor (note: bio is not length-capped in the
+      factory). Report: .ai/reviews/REVIEW-staged-20261024-104012.md
+web/: depth adversarial. Verdict APPROVED. 0 critical, 0 major.
+      Report: .ai/reviews/REVIEW-staged-20261024-104537.md</code></pre>
+<p>If you had committed task by task, review the branch instead: <code>/deep-review --depth=standard --branch=feature/HIRE-5-candidate-profiles --base=main</code>. Reserve <code>--depth=quick</code> for a small change where you want a fast safety net. A real finding and its fix are in <a href="07-applications-and-deep-review.html">chapter 07</a>.</p>
+<p>Commit and open one PR per repo, and merge api first, since the change is additive (<a href="../../reference/multi-repo.html#process">docs/multi-repo.md</a>):</p>
+<pre><code class="language-bash">git -C api commit -m &quot;feat(profiles): candidate profile API (HIRE-5)&quot;
+git -C web commit -m &quot;feat(profiles): candidate profile page (HIRE-5)&quot;
+git -C api push -u origin feature/HIRE-5-candidate-profiles
+git -C web push -u origin feature/HIRE-5-candidate-profiles</code></pre>
+<p>Both PRs are merged that morning, <code>api</code> first. Chapter 07 builds on a merged HIRE-5.</p>
+<h3 id="what-you-have-now">What you have now</h3>
+<ul><li>A private candidate profile: <code>GET/PUT /api/v1/me/profile</code> with 7 Pest tests, and a <code>/profile</code> page for candidates. This is the prerequisite HIRE-6 checks with <code>profile_required</code>.</li><li>A spec, <code>spec-HIRE-5-candidate-profiles</code>, that went draft → approved (Approve only) → in-progress → done, with every AC and MNC traced to a test or a manual step that was run.</li><li>The task-by-task loop and its files: <code>.ai/session/&lt;spec&gt;-state.json</code> with a <code>resume_hint</code> that names the next repo, per-task reports in <code>.ai/verification/&lt;spec&gt;/</code>, and why they land in <code>api/.ai/</code> when you start Claude inside the owning repo.</li></ul>
+<p>Next: <a href="07-applications-and-deep-review.html">07 — Job applications with ship-feature, then /deep-review before merge (HIRE-6)</a></p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/06-execute-task-candidate-profiles.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

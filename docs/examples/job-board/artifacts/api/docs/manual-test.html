@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual test: public browse journey (HIRE-1) · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/docs/manual-test.md</p>
+  <article class="doc-body">
+<h2 id="manual-test-public-browse-journey-hire-1">Manual test: public browse journey (HIRE-1)</h2>
+<p>Copy-paste steps to verify the first slice by hand. Written by greenfield-build&#39;s Handoff
+phase; the Acceptance phase walked the same steps. Later features have their own
+<code>manual-test.md</code> in their spec folder.</p>
+<h3 id="setup">Setup</h3>
+<pre><code class="language-bash">cd ~/work/hireboard/api &amp;&amp; php artisan migrate:fresh --seed &amp;&amp; php artisan serve --port=8000
+cd ~/work/hireboard/web &amp;&amp; npm run dev</code></pre>
+<h3 id="steps">Steps</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>Action</th><th>Expected</th></tr></thead><tbody><tr><td>1</td><td>Open http://localhost:3000</td><td>Redirects to <code>/jobs</code>. Heading &quot;Open jobs&quot;, &quot;8 jobs match your search.&quot;</td></tr><tr><td>2</td><td>Look at the order of the cards</td><td>Newest first: &quot;Senior Laravel Engineer&quot; (Acme Robotics) at the top, &quot;QA Engineer&quot; (Northwind Health) last</td></tr><tr><td>3</td><td>Look for &quot;Legacy PHP Maintainer&quot; and &quot;Head of Engineering&quot;</td><td>Neither appears (closed and draft postings are never public, BR-10)</td></tr><tr><td>4</td><td>Tick <strong>Remote only</strong>, press <strong>Search</strong></td><td>URL is <code>/jobs?remote=1</code>. 4 cards, each with a green &quot;Remote&quot; badge</td></tr><tr><td>5</td><td>Type <code>engineer</code> in Keyword, press <strong>Search</strong></td><td>URL has <code>q=engineer&amp;remote=1</code>. Only remote postings whose title or description contains &quot;engineer&quot;</td></tr><tr><td>6</td><td>Choose Type <strong>Contract</strong>, untick Remote, clear Keyword, press <strong>Search</strong></td><td>&quot;Full-Stack Developer&quot; (Blue Fern Studio) and &quot;QA Engineer&quot; (Northwind Health)</td></tr><tr><td>7</td><td>Open http://localhost:3000/jobs?company=acme-robotics</td><td>3 Acme Robotics postings and a &quot;Company: acme-robotics ×&quot; chip. Clicking × removes the filter</td></tr><tr><td>8</td><td>Open http://localhost:3000/jobs?employment_type=permanent&amp;page=0</td><td>The invalid values are ignored; all 8 jobs show (no error page)</td></tr><tr><td>9</td><td>Click the &quot;Senior Laravel Engineer&quot; card title</td><td><code>/jobs/&lt;uuid&gt;</code> shows title, &quot;Acme Robotics&quot; (a link to its careers page since HIRE-7), &quot;Berlin&quot;, &quot;Remote&quot;, &quot;Full-time&quot;, posted date, description and an <strong>Apply</strong> button</td></tr><tr><td>10</td><td>Open <code>/jobs/00000000-0000-0000-0000-000000000000</code></td><td>The &quot;Page not found&quot; page with a &quot;Browse open jobs&quot; link</td></tr><tr><td>11</td><td>Stop the API server and reload <code>/jobs</code></td><td>&quot;Jobs could not be loaded&quot; with a <strong>Try again</strong> button. Restart the API, press it, the list returns</td></tr></tbody></table></div>
+<h3 id="api-spot-checks">API spot checks</h3>
+<pre><code class="language-bash">curl -s &#39;http://localhost:8000/api/v1/jobs?per_page=100&#39; -H &#39;Accept: application/json&#39; | jq &#39;.meta.per_page&#39;   # 50
+curl -s &#39;http://localhost:8000/api/v1/companies/acme-robotics&#39; -H &#39;Accept: application/json&#39; | jq &#39;.data.open_jobs_count&#39;   # 3
+curl -s &#39;http://localhost:8000/api/v1/companies/nope&#39; -H &#39;Accept: application/json&#39; | jq &#39;.code&#39;   # &quot;company_not_found&quot;</code></pre>
+<p>Closed postings by direct id (step 3&#39;s &quot;Legacy PHP Maintainer&quot;) return 404 <code>job_not_found</code>
+too. That case was missed in this slice and fixed in HIRE-9.</p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/docs/manual-test.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

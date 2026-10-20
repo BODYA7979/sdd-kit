@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADR-0001: SPA auth between the Next.js frontend and the Laravel API · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/docs/adr/0001-spa-auth.md</p>
+  <article class="doc-body">
+<h2 id="adr-0001-spa-auth-between-the-nextjs-frontend-and-the-laravel-api">ADR-0001: SPA auth between the Next.js frontend and the Laravel API</h2>
+<ul><li><strong>Status:</strong> Accepted</li><li><strong>Date:</strong> 2026-10-20</li><li><strong>Deciders:</strong> Maya Chen (product owner), Alex Rivera (developer)</li><li><strong>Ticket:</strong> HIRE-2</li><li><strong>Recorded as:</strong> INV-05 in the workspace <code>CLAUDE.md</code>, <code>api/CLAUDE.md</code> and <code>web/CLAUDE.md</code></li></ul>
+<h3 id="context">Context</h3>
+<p>Hireboard is a Laravel 12 JSON API (<code>api/</code>, served on <code>http://localhost:8000</code> in development) and a
+Next.js 15 App Router frontend (<code>web/</code>, <code>http://localhost:3000</code>). They are separate repositories and
+will be deployed as separate services. The first slice (HIRE-1) is public and unauthenticated. HIRE-3
+adds candidate and employer accounts, and every later feature (reviews, profiles, applications,
+moderation) depends on knowing who the caller is and which role they have.</p>
+<p>Constraints from the existing code:</p>
+<ul><li><code>php artisan install:api</code> already installed Laravel Sanctum 4 and the <code>personal_access_tokens</code>
+migration. No other auth package is present.</li><li>The frontend already sends every backend call from the server through <code>lib/api/client.ts</code>, which
+imports <code>server-only</code> and reads <code>API_BASE_URL</code> (not a <code>NEXT_PUBLIC_</code> variable). The browser never
+calls the API directly.</li><li>Pages are Server Components. Mutations are Server Actions.</li><li>Feature tests use Pest 3. The team wants to authenticate in tests with <code>Sanctum::actingAs()</code> and no
+browser.</li><li>The team is two people. Production hostnames are not chosen yet.</li></ul>
+<h3 id="decision-drivers">Decision Drivers</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>Criterion</th><th>Weight</th></tr></thead><tbody><tr><td>C1</td><td>No token readable by browser JavaScript</td><td>must</td></tr><tr><td>C2</td><td>Works with web on :3000 and api on :8000 locally, and on separate hosts in production</td><td>must</td></tr><tr><td>C3</td><td>Fewest moving parts for a two-person team</td><td>should</td></tr><tr><td>C4</td><td>Testable in Pest without a browser (<code>Sanctum::actingAs</code>)</td><td>should</td></tr><tr><td>C5</td><td>Reusable later by a mobile client</td><td>nice</td></tr></tbody></table></div>
+<h3 id="options-considered">Options Considered</h3>
+<h4 id="a-sanctum-spa-cookie-auth-stateful-session-csrf-cookie--score-71">A. Sanctum SPA cookie auth (stateful session, CSRF cookie) — score 71</h4>
+<p>The browser calls the API directly. It first requests <code>/sanctum/csrf-cookie</code>, then logs in, and Laravel
+keeps a session cookie for the API domain.</p>
+<ul><li><strong>Pros:</strong> the session cookie is HttpOnly (C1 met); built into Sanctum; <code>Sanctum::actingAs</code> works (C4).</li><li><strong>Cons:</strong> the SPA and API must share the same top-level domain, so &quot;separate hosts&quot; only works as
+subdomains of one domain (C2 partly met); needs <code>SANCTUM_STATEFUL_DOMAINS</code>, CORS with
+<code>supports_credentials</code>, and the CSRF cookie round trip (C3); Server Components run on the Next.js
+server and do not receive the browser&#39;s API-domain cookie, so authenticated server rendering would
+need cookie forwarding, which works against the existing <code>lib/api/client.ts</code>.</li><li><strong>Fit:</strong> Sanctum is installed. Conflicts with the server-only API client from HIRE-1.</li></ul>
+<h4 id="b-sanctum-personal-access-tokens-held-by-the-nextjs-server-in-an-httponly-cookie-bff--score-88">B. Sanctum personal access tokens held by the Next.js server in an HttpOnly cookie (BFF) — score 88</h4>
+<p>Login and registration run in Server Actions. The Next.js server receives a Sanctum personal access
+token from the API and stores it in an HttpOnly cookie on the web origin. Every API call is made by the
+Next.js server with <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+<ul><li><strong>Pros:</strong> the token never reaches browser JavaScript (C1); the browser only talks to the web origin, so
+any API hostname works and no CORS is needed (C2); one package that is already installed, no CSRF
+cookie flow (C3); <code>Sanctum::actingAs</code> works unchanged (C4); the same token type serves a mobile
+client (C5).</li><li><strong>Cons:</strong> the Next.js server is in the path of every authenticated call; the app has to handle a
+revoked or expired token whose cookie still exists; token expiry has to be configured, because
+Sanctum tokens do not expire by default.</li><li><strong>Fit:</strong> matches the existing <code>lib/api/client.ts</code> (server-only, <code>API_BASE_URL</code>). Server Actions can set
+and delete cookies through <code>cookies()</code>.</li></ul>
+<h4 id="c-laravel-passport-oauth2-with-pkce--score-44">C. Laravel Passport OAuth2 with PKCE — score 44</h4>
+<ul><li><strong>Pros:</strong> full OAuth2 server; the right tool if third parties ever need delegated access (C5).</li><li><strong>Cons:</strong> a browser PKCE client holds the access token in JavaScript, which fails C1 unless the
+frontend becomes a confidential client on its own server; replaces the Sanctum setup from
+<code>install:api</code>; adds clients, keys, scopes and an authorization flow the product does not need (C3).</li><li><strong>Fit:</strong> poor. Hireboard is a first-party app with no third-party clients.</li></ul>
+<h4 id="d-authjs-credentials-provider-wrapping-sanctum-tokens--score-62">D. Auth.js credentials provider wrapping Sanctum tokens — score 62</h4>
+<ul><li><strong>Pros:</strong> encrypted HttpOnly session cookie (C1); no CORS (C2); Sanctum tokens remain usable by a
+mobile client (C5).</li><li><strong>Cons:</strong> the credentials provider works only with JWT sessions, so the Sanctum token lives inside the
+Auth.js session and two lifetimes have to be kept in step; one more dependency and its configuration
+for a team of two (C3); it is option B plus a library.</li><li><strong>Fit:</strong> compatible, but adds a layer over what <code>lib/api/client.ts</code> already does.</li></ul>
+<h3 id="decision">Decision</h3>
+<p><strong>Option B.</strong> The Next.js server holds a Sanctum personal access token in the HttpOnly cookie
+<code>hireboard_session</code>. The browser never sees the token and never calls the API directly.</p>
+<p>It is the only option that meets both must criteria without conditions, and it reuses what HIRE-1
+already put in place: Sanctum from <code>install:api</code> on the API side and the server-only API client on the
+web side. Option A is the runner-up. It loses on C2 (shared top-level domain), on C3 (stateful domains,
+credentialed CORS, CSRF round trip), and because authenticated Server Components would need cookie
+forwarding.</p>
+<h3 id="consequences">Consequences</h3>
+<p><strong>Positive</strong></p>
+<ul><li>Tokens are named <code>web</code> and expire 7 days after they are issued. The expiry is set per token when it
+is created, and the cookie <code>maxAge</code> is also 7 days, so both end together.</li><li>Logout deletes the current token on the API (<code>currentAccessToken()-&gt;delete()</code>) and clears the cookie
+on the web side.</li><li>No CORS configuration in <code>api/</code>, because the browser only talks to the web origin.</li><li>Every backend call goes through <code>web/lib/api/client.ts</code>, which adds the bearer token when one is
+present. No component calls <code>fetch</code> against the API directly.</li><li><code>Sanctum::actingAs()</code> covers authenticated Pest tests, and a mobile client can later use the same
+token endpoints.</li></ul>
+<p><strong>Negative</strong></p>
+<ul><li>Every authenticated request is an extra hop through the Next.js server.</li><li>HttpOnly prevents token theft through XSS. It does not stop injected script from acting through the
+user&#39;s session, so output escaping and input validation still matter.</li><li><code>middleware.ts</code> only checks that the cookie exists. A revoked or expired token still has a cookie, so
+pages must call <code>requireUser()</code>, which treats a 401 from <code>/api/v1/auth/me</code> as signed out and
+redirects to <code>/login</code>. The next login overwrites the stale cookie.</li><li>Expired tokens stay in <code>personal_access_tokens</code> until pruned. Schedule
+<code>php artisan sanctum:prune-expired --hours=24</code> once the app has a scheduler.</li><li>CSRF protection for mutations relies on Server Actions accepting only same-origin requests, plus
+<code>SameSite=Lax</code> on the cookie.</li></ul>
+<p><strong>Runner-up and why not:</strong> Sanctum SPA cookie auth. Revisit it if the frontend ever needs to call the
+API directly from client components and both services sit under one parent domain.</p>
+<h3 id="open-questions">Open Questions</h3>
+<ul class="contains-task-list"><li class="task"><input type="checkbox" disabled checked> Token lifetime and logout behavior: 7 days, logout revokes the current token only (Maya Chen,
+2026-10-20; recorded as BR-04).</li><li class="task"><input type="checkbox" disabled> Refresh or sliding expiry is deferred. Users sign in again after 7 days. Revisit if support
+requests show it is a problem.</li><li class="task"><input type="checkbox" disabled> Production hostnames are not chosen yet. The decision does not depend on them, but they set the
+<code>Secure</code> cookie domain.</li></ul>
+<h3 id="sources">Sources</h3>
+<ul><li>Laravel 12 Sanctum, API token authentication and token expiration:
+https://laravel.com/docs/12.x/sanctum#api-token-authentication,
+https://laravel.com/docs/12.x/sanctum#token-expiration</li><li>Laravel 12 Sanctum, SPA authentication (same top-level domain, stateful domains, CSRF cookie, CORS
+credentials): https://laravel.com/docs/12.x/sanctum#spa-authentication</li><li>Laravel 12 Sanctum, testing with <code>Sanctum::actingAs</code>: https://laravel.com/docs/12.x/sanctum#testing</li><li>Laravel 12 Passport (when to choose Passport over Sanctum): https://laravel.com/docs/12.x/passport</li><li>Next.js <code>cookies()</code> (set and delete only in Server Actions or Route Handlers):
+https://nextjs.org/docs/app/api-reference/functions/cookies</li><li>Next.js authentication guide (session management, cookie options):
+https://nextjs.org/docs/app/guides/authentication</li><li>Next.js security of Server Actions (origin check):
+https://nextjs.org/blog/security-nextjs-server-components-actions</li><li>Auth.js credentials provider (JWT sessions only):
+https://authjs.dev/getting-started/authentication/credentials</li><li>OWASP HTML5 Security Cheat Sheet, local storage:
+https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#local-storage</li><li>OWASP Session Management Cheat Sheet, cookie attributes:
+https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#cookies</li></ul>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/docs/adr/0001-spa-auth.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

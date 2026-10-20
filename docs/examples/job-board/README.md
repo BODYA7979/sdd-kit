@@ -44,16 +44,16 @@ frameworks.
 The full list with a version check is in
 [00 — Prerequisites](00-overview.md#prerequisites). In short:
 
-- Claude Code, git and jq ([INSTALLATION.md#prerequisites](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/INSTALLATION.md#prerequisites))
+- Claude Code, git and jq ([INSTALLATION.md#prerequisites](../../reference/installation.md#prerequisites))
 - PHP 8.3 with Composer 2, and SQLite
 - Node.js 20 or newer
 - The kit installed in plugin mode, or in file-copy mode **after** chapter 02 has scaffolded the
   repos ([chapter 01](01-workspace-and-install.md) explains why)
 - Optional: `gh` for opening the pull requests
 
-If you have never run the kit, do [GETTING-STARTED.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/GETTING-STARTED.md)
+If you have never run the kit, do [GETTING-STARTED.md](../../reference/getting-started.md)
 first. For a one-paragraph version of each route, see
-[USAGE-EXAMPLES.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/share/docs/USAGE-EXAMPLES.md).
+[USAGE-EXAMPLES.md](../../reference/usage-examples.md).
 
 ## Chapters
 
@@ -75,7 +75,7 @@ first. For a one-paragraph version of each route, see
 ## Route map
 
 `/sdd` sorts each request into one of six routes and launches exactly one pipeline
-([sdd SKILL.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/plugins/sdd-kit/skills/sdd/SKILL.md)). Each route appears at least once:
+([sdd SKILL.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/sdd/SKILL.md)). Each route appears at least once:
 
 | `/sdd` route | Pipeline | Chapter(s) | Ticket(s) |
 |--------------|----------|------------|-----------|

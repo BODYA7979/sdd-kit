@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hireboard API: agent instructions · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/AGENTS.md</p>
+  <article class="doc-body">
+<h2 id="hireboard-api-agent-instructions">Hireboard API: agent instructions</h2>
+<p>Core instructions for every AI coding tool working in this repo (Claude Code, Cursor,
+Codex, Copilot). Claude-specific context (routing, gotchas, <code>/sdd</code>) is in <code>CLAUDE.md</code>,
+which imports this file. Each fact lives in one of the two files only.</p>
+<h3 id="stack">Stack</h3>
+<div class="table-wrap"><table><thead><tr><th>Item</th><th>Value</th><th>Source of truth</th></tr></thead><tbody><tr><td>Backend</td><td>Laravel 12, PHP 8.3, SQLite (dev and tests)</td><td><code>composer.json</code>, <code>.env.example</code>, <code>phpunit.xml</code></td></tr><tr><td>DTOs</td><td>Spatie Laravel Data v4</td><td><code>composer.json</code></td></tr><tr><td>Auth</td><td>Sanctum personal access tokens, held by the Next.js server (ADR-0001)</td><td><code>config/sanctum.php</code>, <code>docs/adr/0001-spa-auth.md</code></td></tr><tr><td>Tests</td><td>Pest 3 + pest-plugin-laravel</td><td><code>tests/Pest.php</code></td></tr><tr><td>Static analysis</td><td>Larastan, level in <code>phpstan.neon</code></td><td><code>phpstan.neon</code></td></tr><tr><td>Local env</td><td>native: <code>php artisan serve --port=8000</code></td><td><code>docs/getting-started.md</code></td></tr><tr><td>Frontend</td><td>separate repo <code>web/</code> (Next.js), sibling folder in the workspace</td><td><code>../web/AGENTS.md</code></td></tr></tbody></table></div>
+<h3 id="commands">Commands</h3>
+<p>Run these exact commands. A change is done only when every gate passes. CI runs the same
+three gates (<code>.github/workflows/ci.yml</code>).</p>
+<pre><code class="language-bash">./vendor/bin/pint --test                     # style (run without --test to fix)
+./vendor/bin/phpstan analyse --no-progress   # static analysis
+php artisan test                             # Pest, in-memory SQLite from phpunit.xml
+php artisan test --filter=SearchJobPostings  # one test file or description
+php artisan migrate --pretend                # read migration SQL before running it
+php artisan route:list --path=api/v1         # endpoints after a route change
+php artisan migrate:fresh --seed             # LOCAL dev database only</code></pre>
+<h3 id="red-lines">Red lines</h3>
+<ul><li>Never run <code>migrate:fresh</code>, <code>db:wipe</code> or raw <code>DROP</code> against anything but the local SQLite file.</li><li>Never commit <code>.env</code>, <code>database/database.sqlite</code> or real candidate data.</li><li>Never edit a migration that has been merged to <code>main</code>. Add a new one.</li><li>Never push to <code>main</code> directly or force-push a shared branch.</li><li>Never weaken or delete a test to make it pass.</li><li>Never expose a draft or closed posting publicly, or a candidate&#39;s identity in a public
+review (BR-10, BR-42).</li><li>Never return an Eloquent model from a repository or a service, or accept a raw <code>Request</code>
+or <code>array</code> in a service.</li></ul>
+<h3 id="architecture">Architecture</h3>
+<pre><code>routes/api/v1/&lt;area&gt;.php -&gt; Invokable Controller -&gt; Service (DTOs) -&gt; Repository (interface) -&gt; Model</code></pre>
+<ul><li><strong>Schema first:</strong> update <code>docs/schemas/&lt;table&gt;.md</code> before writing a migration.</li><li><strong>DTO first:</strong> <code>App\DTOs</code>, Spatie Laravel Data, camelCase <code>readonly</code> properties.
+Input DTOs carry class-level <code>#[MapInputName(SnakeCaseMapper::class)]</code> and are built with
+<code>validateAndCreate()</code>. Output DTOs are built with <code>fromModel()</code> and serialized with
+<code>toApiArray()</code>, so they need no input mapping.</li><li><strong>Invokable controllers:</strong> <code>App\Http\Controllers\&lt;Area&gt;\&lt;Verb&gt;&lt;Entity&gt;Controller</code>, <code>final</code>,
+one <code>__invoke()</code>. Authorize (<code>$this-&gt;authorize()</code> with an auto-discovered Policy), build the
+DTO, call one service method, respond with <code>resource()</code>, <code>paginated()</code> or <code>noContent()</code>
+from <code>JsonResponseTrait</code>.</li><li><strong>Services</strong> (<code>App\Services</code>) own business rules and transactions. <strong>Repositories</strong>
+(<code>App\Repositories</code>) own queries, implement <code>App\Contracts\&lt;Name&gt;RepositoryInterface</code>, and
+are bound in <code>RepositoryServiceProvider::$bindings</code>. They return DTOs or paginators of DTOs.</li><li><strong>Errors:</strong> throw a subclass of <code>App\Exceptions\BusinessRuleException</code> (<code>status()</code>,
+<code>errorCode()</code>). <code>bootstrap/app.php</code> renders it, plus validation, auth, 403, 404 and 429
+errors, in the INV-01 error envelope. Controllers never catch exceptions.</li><li><strong>Routes:</strong> each feature adds its own <code>routes/api/v1/&lt;area&gt;.php</code>; <code>routes/api.php</code> loads
+them under <code>/api/v1</code>. Route parameters are plain strings (<code>{id}</code>, <code>{slug}</code>) resolved by
+services, no implicit model binding. Normalize query booleans with <code>$request-&gt;boolean()</code>.</li><li>The API contract in <code>docs/api/api-contracts.md</code> is authoritative for request and response
+shapes. Business rules are in <code>docs/context/business-rules.md</code>.</li></ul>
+<h3 id="code-standards">Code standards</h3>
+<ul><li>Code should read like a senior developer wrote it. No history markers like <code>(NEW)</code>,
+<code>(FIXED)</code> or <code>// updated per review</code>, and no comments that restate the code.</li><li>Comments explain why: business rules (cite the BR id), non-obvious constraints,
+security-sensitive steps.</li><li>Write the failing Pest test first, then the code. Feature tests live in
+<code>tests/Feature/&lt;Area&gt;/</code> and use factories with states.</li><li>Documentation filenames are lowercase. Only <code>README.md</code>, <code>CLAUDE.md</code> and <code>AGENTS.md</code> are uppercase.</li></ul>
+<h3 id="git">Git</h3>
+<ul><li>Branches: <code>&lt;feature|fix|chore&gt;/HIRE-&lt;n&gt;-&lt;slug&gt;</code>. Cross-repo work uses the same branch name
+in <code>web/</code>. This repo merges first when a change is additive.</li><li>Commits: Conventional Commits (<code>feat(reviews): ...</code>). One logical change per commit.</li><li>If a doc conflicts with the code, trust the code and fix the doc in the same change.</li></ul>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/AGENTS.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

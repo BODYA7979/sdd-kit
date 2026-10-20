@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installing SDD Kit · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">reference/installation.md</p>
+  <article class="doc-body">
+<h2 id="installing-sdd-kit">Installing SDD Kit</h2>
+<p>How to install, update, upgrade, and remove the kit in either mode, plus what the installer
+changes and how to set up MCP servers. For your first session after installing, see
+<a href="getting-started.html">GETTING-STARTED</a>.</p>
+<ul><li><a href="#prerequisites" data-anchor="prerequisites">Prerequisites</a></li><li><a href="#choose-a-mode" data-anchor="choose-a-mode">Choose a mode</a></li><li><a href="#plugin-mode" data-anchor="plugin-mode">Plugin mode</a></li><li><a href="#file-copy-mode" data-anchor="file-copy-mode">File-copy mode</a></li><li><a href="#mcp-servers" data-anchor="mcp-servers">MCP servers</a></li><li><a href="#recommended-settings" data-anchor="recommended-settings">Recommended settings</a></li><li><a href="#upgrading-from-1x" data-anchor="upgrading-from-1x">Upgrading from 1.x</a></li><li><a href="#verifying-an-install" data-anchor="verifying-an-install">Verifying an install</a></li><li><a href="#uninstalling" data-anchor="uninstalling">Uninstalling</a></li><li><a href="#troubleshooting" data-anchor="troubleshooting">Troubleshooting</a></li></ul>
+<h3 id="prerequisites">Prerequisites</h3>
+<div class="table-wrap"><table><thead><tr><th>Tool</th><th>Needed for</th></tr></thead><tbody><tr><td>Claude Code</td><td>Everything</td></tr><tr><td>git</td><td>Cloning the repo; <code>--third-party</code> fetches pinned skills with it</td></tr><tr><td>jq</td><td>File-copy installer (it refuses to run without it) and the hook scripts in both modes</td></tr><tr><td>Node.js 18+ (<code>npx</code>)</td><td>Both default MCP servers (<code>context7</code> and Playwright MCP), the spec board, and the npx install</td></tr><tr><td>Google Chrome, or Chromium via <code>npx playwright install chromium</code> with <code>--browser chromium</code></td><td>Playwright MCP browser checks (Reproduce, Visual, Acceptance); without one they report &quot;not run&quot;</td></tr></tbody></table></div>
+<p>Install jq with <code>brew install jq</code> or <code>apt-get install jq</code>.</p>
+<p>New to Claude Code? Install it first: <a href="getting-started.html#0-new-to-claude-code">GETTING-STARTED, section 0</a>.</p>
+<h3 id="choose-a-mode">Choose a mode</h3>
+<ul><li><strong>Plugin mode</strong>: install from the marketplace; one pinned version per team, updated with <code>/plugin</code>.</li><li><strong>File-copy mode</strong>: <code>./install.sh</code> merges the kit into <code>.claude/</code>; you can edit agents and skills in place.</li><li>Both ship the same agents, skills, workflows, and hooks. The full comparison (hooks, permissions, namespacing, limitations) is in <a href="plugin-mode.html">plugin-mode.md</a>.</li></ul>
+<h3 id="plugin-mode">Plugin mode</h3>
+<h4 id="install">Install</h4>
+<pre><code>/plugin marketplace add stasmarkov/sdd-kit
+/plugin install sdd-kit@sdd-kit</code></pre>
+<p>Add-ons are separate plugins in the same marketplace. Install only the ones you need:</p>
+<pre><code>/plugin install sdd-kit-ops@sdd-kit      # deploy, rollback, feature flags, health checks, incidents
+/plugin install sdd-kit-ios@sdd-kit      # iOS/Swift agent and skills
+/plugin install sdd-kit-drupal@sdd-kit   # Drupal 11 skill
+/plugin install sdd-kit-design@sdd-kit   # UI/UX agent and /design-ui</code></pre>
+<p>To work from a local checkout (developing the kit, or testing an unreleased branch), skip the
+marketplace and load the directory directly. Pass <code>--plugin-dir</code> once per plugin:</p>
+<pre><code class="language-bash">claude --plugin-dir /path/to/sdd-kit/plugins/sdd-kit \
+       --plugin-dir /path/to/sdd-kit/plugins/sdd-kit-ops</code></pre>
+<h4 id="namespacing">Namespacing</h4>
+<p>This guide uses bare skill names (<code>/sdd</code>, <code>/write-spec</code>), which is what file-copy mode gives
+you. Plugin mode prefixes every skill with its plugin name: <code>/sdd-kit:sdd</code>,
+<code>/sdd-kit:framework-doctor</code>, <code>/sdd-kit-ops:deploy</code>.</p>
+<h4 id="project-context-is-not-installed">Project context is not installed</h4>
+<p>Plugins do not create <code>CLAUDE.md</code>, <code>AGENTS.md</code>, or <code>.claude/rules/</code>. Copy them from the repo
+by hand:</p>
+<pre><code class="language-bash">cp /path/to/sdd-kit/share/CLAUDE.template.md CLAUDE.md
+cp /path/to/sdd-kit/share/templates/AGENTS.template.md AGENTS.md
+mkdir -p .claude/rules &amp;&amp; cp /path/to/sdd-kit/share/templates/rules/*.md .claude/rules/</code></pre>
+<p>How to fill them in is covered in <a href="getting-started.html">GETTING-STARTED</a>.</p>
+<h4 id="update-and-uninstall">Update and uninstall</h4>
+<pre><code>/plugin marketplace update sdd-kit   # refresh the catalog
+/plugin update                       # update installed plugins
+/plugin uninstall sdd-kit@sdd-kit    # repeat for each add-on
+/plugin marketplace remove sdd-kit</code></pre>
+<h4 id="team-rollout">Team rollout</h4>
+<p>To pin a reviewed version for a whole team, publish your own marketplace that points at a
+release tag and commit. See <a href="team-marketplace.html">team-marketplace.md</a>.</p>
+<h3 id="file-copy-mode">File-copy mode</h3>
+<pre><code class="language-bash">git clone https://github.com/stasmarkov/sdd-kit.git
+cd /path/to/your-project
+/path/to/sdd-kit/install.sh --project --dry-run   # preview
+/path/to/sdd-kit/install.sh --project             # install</code></pre>
+<p>Run the installer from your project root: <code>--project</code> installs into <code>./.claude</code> of the
+current directory. With no flags it asks where to install, defaults to a full install,
+shows the change list, and asks before writing anything.</p>
+<h4 id="without-cloning-npx">Without cloning: npx</h4>
+<p>From your project root, <code>npx github:stasmarkov/sdd-kit install --project --dry-run</code>
+previews and <code>npx github:stasmarkov/sdd-kit install --project</code> installs; every
+<code>install.sh</code> flag below works (<code>--minimal</code>, <code>--full</code>, <code>--with=ops</code>, <code>--yes</code>, <code>--user</code>). It runs
+the same <code>install.sh</code> as a clone, so the result is identical, and it needs bash, git, jq and
+Node 18+. On Windows use Git Bash or WSL, or the plugin.</p>
+<p>Add <code>#v2.1.0</code> to pin a release (<code>npx github:stasmarkov/sdd-kit#v2.1.0 install --project</code>);
+without a tag npx fetches the default branch. npx caches the download. The package is not
+published to npm.</p>
+<h4 id="flags">Flags</h4>
+<div class="table-wrap"><table><thead><tr><th>Flag</th><th>Effect</th></tr></thead><tbody><tr><td><code>--project</code></td><td>Install into <code>./.claude</code> (this project only)</td></tr><tr><td><code>--user</code></td><td>Install into <code>~/.claude</code> (all projects). Paths in installed docs are rewritten to <code>~/.claude/</code></td></tr><tr><td><code>--minimal</code></td><td>Spec-driven core only, without <code>/progress</code>, <code>/spec-board</code>, <code>/investigate</code>, <code>/learn</code> or <code>/fix-ci</code> (see below)</td></tr><tr><td><code>--full</code></td><td>Everything in core. This is the default</td></tr><tr><td><code>--with=LIST</code></td><td>Add optional add-ons, comma-separated: <code>ops</code>, <code>ios</code>, <code>drupal</code>, <code>design</code></td></tr><tr><td><code>--third-party</code></td><td>Also install the pinned third-party skills from <code>src/settings/third-party.json</code> and print the recommended plugin commands. Policy: <a href="third-party.html">third-party.md</a></td></tr><tr><td><code>--dry-run</code></td><td>Print added / updated / removed files and stop. Nothing is written</td></tr><tr><td><code>--yes</code>, <code>-y</code></td><td>Skip the confirmation prompt</td></tr><tr><td><code>--help</code>, <code>-h</code></td><td>Show help</td></tr></tbody></table></div>
+<p>Examples:</p>
+<pre><code class="language-bash">./install.sh --project --minimal
+./install.sh --project --with=ops,design
+./install.sh --user --full --yes</code></pre>
+<h4 id="minimal-vs-full">Minimal vs full</h4>
+<div class="table-wrap"><table><thead><tr><th></th><th><code>--minimal</code></th><th><code>--full</code></th></tr></thead><tbody><tr><td>Skills</td><td>The main path: <code>sdd</code>, <code>product-brief</code>, <code>write-spec</code>, <code>execute-task</code>, <code>simple-task</code>, <code>run-tests</code>, <code>deep-review</code>, <code>open-pr</code>, <code>framework-doctor</code>, the shared <code>verification-gates</code> and <code>source-verification</code> references, and the stack skills the agents preload: <code>laravel-12</code>, <code>pest-3</code>, <code>dto-first</code>, <code>service-repository</code>, <code>api-design</code>, <code>api-security</code>, <code>nextjs-15</code>, <code>nextjs-testing</code>, <code>nextjs-auth</code></td><td>Every core skill (<a href="skills.html">skill index</a>)</td></tr><tr><td>Agents</td><td>Every agent the main path hands off to: <code>code-explorer</code>, <code>requirements-analyst</code> (product-brief, write-spec), <code>laravel-backend-dev</code>, <code>nextjs-frontend-dev</code>, <code>test-writer</code>, <code>code-quality</code> (execute-task), <code>adversarial-reviewer</code>, <code>security-auditor</code> (deep-review)</td><td>Every core agent (<a href="agents.html">agents index</a>)</td></tr><tr><td>Not included</td><td>Four of the after-<code>/sdd</code> commands (<code>/progress</code>, <code>/spec-board</code>, <code>/investigate</code>, <code>/learn</code>) and <code>/fix-ci</code>, the <code>/sdd</code> route for red CI. Use <code>--full</code> if you want them</td><td>Included</td></tr><tr><td>Workflows</td><td>All six: <code>ship-feature</code>, <code>create-spec</code>, <code>fix-bug</code>, <code>qa-and-docs</code>, <code>tech-research</code>, <code>greenfield-build</code></td><td>Same</td></tr><tr><td>Templates</td><td>Context and spec templates</td><td>All templates</td></tr><tr><td>Hooks</td><td>Lifecycle hooks merged into <code>settings.json</code></td><td>Same, plus the git/CI scripts in <code>.claude/hooks/</code></td></tr><tr><td>Also</td><td>Settings templates, MCP configs, output styles, hook scripts</td><td>Same, plus these docs and the one-release redirect stubs in <code>.claude/commands/</code></td></tr></tbody></table></div>
+<p>Add-ons (<code>--with=</code>) work with either. Re-run with <code>--full</code> at any time to grow a minimal
+install. A few agents also preload depth skills that only <code>--full</code> ships (<code>event-driven</code>,
+<code>error-handling-patterns</code>, <code>typescript</code>, <code>tailwind-4</code>, <code>accessibility</code>, <code>oauth2-passport</code>);
+they load when installed and are skipped otherwise.</p>
+<h4 id="building-from-source">Building from source</h4>
+<p>Contributors build the distribution tree and plugin archives from the source repository with
+<code>./build.sh</code>. It runs <code>./verify.sh</code> first, then writes one plugin archive per plugin to <code>dist/</code>.
+<code>dist/</code> is gitignored: release artifacts are published to <code>stasmarkov/sdd-kit</code> by CI. There is no
+single-file installer; use the <code>install.sh</code> in a clone of <code>stasmarkov/sdd-kit</code>, or the npx form above.</p>
+<h4 id="what-the-installer-does">What the installer does</h4>
+<ol><li><strong>Merges, never replaces.</strong> Files the kit does not own are never touched. Your own skills,
+agents, and settings stay as they are.</li><li><strong>Reports first.</strong> It prints added / updated / removed counts and the paths before writing.</li><li><strong>Records a manifest.</strong> <code>.claude/.framework-manifest</code> lists every installed file with its
+hash; <code>.claude/.framework-version</code> holds the version. The next run uses the manifest to
+update changed files and remove files the kit no longer ships.</li><li><strong>Removes retired files.</strong> Files that 1.x installed but 2.0 dropped (merged agents,
+knowledge-graph scripts) are removed even when no manifest exists yet.</li><li><strong>Keeps the latest backup.</strong> Every file it overwrites or removes is copied to
+<code>.claude/.framework-backups/&lt;timestamp&gt;/</code>. Older framework backups are pruned.</li><li><strong>Merges hooks into <code>settings.json</code></strong> via <code>src/scripts/install-hooks.sh</code> (needs jq). A
+missing file is created; an existing one is backed up to <code>settings.json.backup.&lt;timestamp&gt;</code>
+and only the kit&#39;s own hook entries are replaced. Permissions, env, model, and your own
+hooks are preserved. Invalid JSON is left untouched and reported.</li><li><strong>Merges <code>context7</code> and <code>playwright</code> into <code>.mcp.json</code></strong> (project mode). Existing servers
+win on name conflicts. In user mode it prints the commands instead:
+<code>claude mcp add --scope user context7 -- npx -y @upstash/context7-mcp</code> and
+<code>claude mcp add --scope user playwright -- npx -y @playwright/mcp@0.0.83 --headless --isolated</code>.</li><li><strong>Creates project context when absent</strong> (project mode only): <code>CLAUDE.md</code> from
+<code>src/CLAUDE.template.md</code>, <code>AGENTS.md</code> from <code>src/templates/AGENTS.template.md</code>, and
+<code>.claude/rules/</code> from <code>src/templates/rules/</code>. Existing files are never overwritten.</li><li><strong>Sets the spec-aware status line</strong> (<code>scripts/statusline.sh</code>: active spec, task, model) only
+if <code>settings.json</code> has no <code>statusLine</code> yet.</li></ol>
+<p>Re-running the installer is the update path. Use <code>--dry-run</code> to see the diff first.</p>
+<h3 id="mcp-servers">MCP servers</h3>
+<p>The kit enables two servers by default:</p>
+<ul><li><code>context7</code>: current library and framework docs.</li><li><code>playwright</code>: <a href="https://github.com/microsoft/playwright-mcp" target="_blank" rel="noopener noreferrer">Playwright MCP</a>, pinned to one
+version and started with <code>--headless --isolated</code> (no visible window, no profile kept
+between runs). Remove <code>--headless</code> from its entry to watch the browser.</li></ul>
+<p>Everything else is opt-in. Optional servers are defined in <code>src/mcp-configs/development.json</code>, installed
+as <code>.claude/mcp-configs/development.json</code>. To enable one, copy its block into your project
+<code>.mcp.json</code> under <code>mcpServers</code>, or add it with <code>claude mcp add</code>.</p>
+<div class="table-wrap"><table><thead><tr><th>Server</th><th>When to use</th><th>Requires</th></tr></thead><tbody><tr><td><code>phpstorm</code></td><td>You work in PhpStorm and want IDE symbols, inspections, refactorings, and DB access</td><td>PhpStorm MCP server enabled; copy the exact SSE URL from Settings &gt; Tools &gt; MCP Server</td></tr><tr><td><code>serena</code></td><td>Semantic code navigation on a large codebase without an IDE</td><td><a href="https://docs.astral.sh/uv/" target="_blank" rel="noopener noreferrer">uv</a></td></tr><tr><td><code>laravel-boost</code></td><td>Laravel-aware tools for the running app</td><td><code>composer require laravel/boost --dev</code></td></tr><tr><td><code>github</code></td><td>Working with PRs, issues, and releases from the session</td><td><code>GITHUB_TOKEN</code> in your environment</td></tr><tr><td><code>ddev</code></td><td>Controlling a DDEV environment</td><td><code>npm install -g ddev-mcp</code></td></tr><tr><td><code>obsidian</code></td><td>Syncing specs and docs to an Obsidian vault (<code>/sync-obsidian</code>)</td><td>Obsidian Local REST API plugin; <code>OBSIDIAN_API_KEY</code></td></tr><tr><td><code>sequential-thinking</code></td><td>Structured multi-step reasoning; rarely needed with current models</td><td>Node.js</td></tr></tbody></table></div>
+<p><code>src/mcp-configs/production.json</code> holds operations servers (Sentry, Datadog, Slack, Vercel)
+for teams using the ops add-on.</p>
+<p>Examples with the CLI:</p>
+<pre><code class="language-bash">claude mcp add --transport sse phpstorm http://localhost:64342/sse
+claude mcp add --transport http github https://api.githubcopilot.com/mcp/ \
+  --header &quot;Authorization: Bearer $GITHUB_TOKEN&quot;</code></pre>
+<p>Keep secrets in environment variables (<code>${GITHUB_TOKEN}</code>), never inline in <code>.mcp.json</code>, which
+is usually committed.</p>
+<p><strong>Browser checks.</strong> Every workflow&#39;s Reproduce, Visual, and Acceptance steps drive the browser
+with Playwright MCP: they assert on the page&#39;s accessibility snapshot and check console errors
+and failed network requests on every page. When the Playwright tools are unavailable they fall
+back to Claude in Chrome, and when neither is available they report the check as &quot;not run&quot;,
+never as passed. For web stacks Playwright is also a quality gate, and <code>ship-feature</code> turns the
+acceptance walk into an <code>e2e/&lt;spec&gt;.spec.ts</code> test traced to the acceptance criteria.</p>
+<h3 id="recommended-settings">Recommended settings</h3>
+<p>These are environment choices the installer leaves to you.</p>
+<p><strong>Code intelligence (LSP).</strong> The <code>php-lsp</code> and <code>typescript-lsp</code> plugins give Claude
+post-edit diagnostics (type errors, missing imports) and precise navigation instead of
+grep-only search. They are listed in <code>src/settings/third-party.json</code>; <code>--third-party</code> prints
+the install commands, or run them yourself:</p>
+<pre><code>/plugin install php-lsp@claude-plugins-official
+/plugin install typescript-lsp@claude-plugins-official</code></pre>
+<p>See <a href="third-party.html">third-party.md</a>
+for the review policy behind the list.</p>
+<p><strong>Permissions and sandboxing.</strong> Permission mode and sandboxing depend on your machine and
+threat model, so the kit does not force either, and the installer does not write any
+<code>permissions</code> into your <code>settings.json</code>. The repo&#39;s root <code>settings.json</code> carries a conservative
+<code>permissions.allow</code> / <code>permissions.deny</code> list (read-only git, test and lint runners; denies
+<code>rm -rf</code>, force-push, <code>git reset --hard</code>) and <code>env.CLAUDE_BUDGET_THRESHOLD</code>. Copy what you want
+from it into your own <code>settings.json</code>, in either mode. A plugin&#39;s <code>settings.json</code> does not apply
+these keys; see
+<a href="plugin-mode.html#limitation-plugin-settingsjson">plugin-mode.md</a>.
+To opt in to a stricter <code>defaultMode</code> or sandbox, set them in your own <code>settings.json</code>.
+Filesystem sandboxing limits where Claude can write; do not rely on network sandboxing as a
+security control.</p>
+<p>Model tiers and effort per workflow phase are covered in
+<a href="effort-guidelines.html">effort-guidelines.md</a>.</p>
+<h3 id="upgrading-from-1x">Upgrading from 1.x</h3>
+<p>Re-run the 2.0 installer (or update the plugin). In file-copy mode it removes the files 1.x
+installed that 2.0 no longer ships (retired agents, skills, templates, and scripts) and backs
+them up first. It only removes a file whose content matches a copy the kit shipped; a file you
+edited or replaced (for example an upstream Stripe or skill-creator skill installed at the same
+path) is listed as &quot;kept (modified or not from the kit)&quot; and left for you to review.</p>
+<p>The tables below match the CHANGELOG&#39;s <a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/CHANGELOG.md#migrating-from-1x" target="_blank" rel="noopener noreferrer">Migrating from 1.x</a> section. They list what a 1.x release shipped; components that were added and removed again during the 2.0 cycle appear only in the CHANGELOG&#39;s <em>Removed</em> table.
+Current lists: <a href="skills.html">skills</a>,
+<a href="agents.html">agents</a>.</p>
+<h4 id="commands">Commands</h4>
+<p>Commands became skills with flat names. Only the commands in the table&#39;s left column existed in
+1.x; a name that is not listed (for example <code>/kanban</code> or <code>/add-context</code>) never existed as a flat
+command and has no stub.</p>
+<div class="table-wrap"><table><thead><tr><th>1.x</th><th>2.0</th></tr></thead><tbody><tr><td><code>/upstream:create-spec</code></td><td><code>/write-spec</code></td></tr><tr><td><code>/upstream:research-spec</code></td><td><code>/write-spec --background</code> (runs the <code>create-spec</code> workflow)</td></tr><tr><td><code>/upstream:tech-research</code></td><td><code>/sdd</code> (or <code>/tech-research</code> directly)</td></tr><tr><td><code>/execution:ship-feature</code></td><td><code>/sdd</code> (or <code>/ship-feature</code> directly)</td></tr><tr><td><code>/execution:fix-bug</code></td><td><code>/sdd</code> (or <code>/fix-bug</code> directly)</td></tr><tr><td><code>/execution:greenfield-build</code></td><td><code>/sdd</code> (or <code>/greenfield-build</code> directly)</td></tr><tr><td><code>/quality:qa-and-docs</code></td><td><code>/sdd</code> (or <code>/qa-and-docs</code> directly)</td></tr><tr><td><code>/quality:code-review</code></td><td><code>/deep-review --depth=standard</code></td></tr><tr><td><code>/quality:deep-review</code></td><td><code>/deep-review</code></td></tr><tr><td><code>/quality:test</code></td><td><code>/run-tests</code></td></tr><tr><td><code>/workflow:status</code></td><td><code>/progress --health</code></td></tr><tr><td><code>/workflow:doctor</code></td><td><code>/framework-doctor</code></td></tr><tr><td><code>/workflow:update-knowledge-graph</code></td><td>Removed (knowledge graph retired)</td></tr><tr><td><code>/execution:execute-task</code>, <code>/execution:simple-task</code>, <code>/execution:generate</code>, <code>/execution:migrate-db</code></td><td><code>/execute-task</code>, <code>/simple-task</code>, <code>/generate</code>, <code>/migrate-db</code></td></tr><tr><td><code>/discovery:investigate</code></td><td><code>/investigate</code></td></tr><tr><td><code>/discovery:analyze-docs</code></td><td><code>/write-docs --audit</code></td></tr><tr><td><code>/design:design-api</code>, <code>/design:design-schema</code></td><td><code>/design-api</code>, <code>/design-schema</code></td></tr><tr><td><code>/design:design-ui</code></td><td><code>/design-ui</code> (design add-on)</td></tr><tr><td><code>/quality:grade</code>, <code>/quality:lint</code>, <code>/quality:security-scan</code>, <code>/quality:upgrade-deps</code></td><td><code>/grade</code>, <code>/lint</code>, <code>/security-scan</code>, <code>/upgrade-deps</code></td></tr><tr><td><code>/release:changelog</code></td><td><code>/changelog</code></td></tr><tr><td><code>/release:deploy</code>, <code>/release:rollback</code>, <code>/release:feature-flag</code></td><td><code>/deploy</code>, <code>/rollback</code>, <code>/feature-flag</code> (ops add-on)</td></tr><tr><td><code>/operations:health-check</code>, <code>/operations:incident</code></td><td><code>/health-check</code>, <code>/incident</code> (ops add-on)</td></tr><tr><td><code>/workflow:progress</code>, <code>/workflow:sync-obsidian</code>, <code>/workflow:write-docs</code></td><td><code>/progress</code>, <code>/sync-obsidian</code>, <code>/write-docs</code></td></tr><tr><td><code>/workflow:add-context</code></td><td><code>/write-docs --import</code></td></tr><tr><td><code>/workflow:getting-started</code></td><td><code>/framework-doctor</code>, then <code>GETTING-STARTED.md</code></td></tr><tr><td><code>/workflow:kanban</code></td><td><code>/spec-board</code></td></tr></tbody></table></div>
+<p><code>/sdd</code> routes work to the right workflow. The workflows stay directly runnable as
+<code>/ship-feature</code>, <code>/fix-bug</code>, <code>/qa-and-docs</code>, <code>/tech-research</code>, <code>/greenfield-build</code>, and
+<code>/create-spec</code>.</p>
+<p>The old namespaced commands remain for one release as redirect stubs in <code>.claude/commands/</code>
+(full installs and plugin mode). They are manual-only: Claude will not pick them on its own.
+A stub translates old flags that changed meaning (<code>/workflow:add-context</code>, <code>/workflow:kanban</code>,
+<code>/workflow:status</code>) and, for a user-invoked skill such as <code>/changelog</code> or <code>/framework-doctor</code>,
+tells you the command to type. <code>/workflow:update-knowledge-graph</code> has no replacement; its stub
+only explains the retirement.</p>
+<h4 id="removed-skills-and-templates">Removed skills and templates</h4>
+<p>Skills and templates are removed as well, not only commands:</p>
+<div class="table-wrap"><table><thead><tr><th>1.x</th><th>2.0</th></tr></thead><tbody><tr><td><code>obsidian-sync</code></td><td><code>/sync-obsidian</code></td></tr><tr><td><code>stripe-best-practices</code>, <code>upgrade-stripe</code>, <code>stripe-projects</code></td><td>Stripe&#39;s published skills: <code>install.sh --project --third-party</code> installs <code>stripe-best-practices</code> and <code>upgrade-stripe</code> (pinned in <code>src/settings/third-party.json</code>); <code>stripe-projects</code> is installed by hand (<code>docs/third-party.md</code>)</td></tr><tr><td><code>skill-creator</code></td><td>Anthropic&#39;s <code>skill-creator</code> plugin (third-party manifest)</td></tr><tr><td><code>prompt-engineering-patterns</code></td><td>Removed (outside the kit&#39;s scope)</td></tr><tr><td><code>src/templates/code/*</code></td><td><code>laravel-12/assets/templates/</code>, <code>nextjs-15/assets/templates/</code>, used by <code>/generate</code></td></tr><tr><td><code>src/templates/specs/{feature,epic,user-story,requirements,code-review-checklist}.template.md</code>, <code>execute-task-workflow.md</code></td><td><code>write-spec</code> templates, <code>product-brief</code> assets, <code>specification-system.md</code></td></tr><tr><td><code>src/templates/specs/feature-flag-doc.template.md</code></td><td><code>feature-flag/references/flag-doc.template.md</code> (ops add-on)</td></tr><tr><td><code>src/templates/context/workflow.template.md</code></td><td>None: the Golden Triangle is business rules, architecture, and API contracts (<code>templates/context/golden-triangle.md</code>); the process lives in <code>/sdd</code> and <code>AGENTS.md</code></td></tr><tr><td><code>src/templates/commands/_templates/command.template.md</code></td><td><code>src/templates/skills/_templates/</code> (commands became skills)</td></tr><tr><td><code>src/templates/knowledge-graph/*</code></td><td>Removed (knowledge graph retired)</td></tr><tr><td><code>drupal-11</code> (core in 1.x)</td><td><code>drupal-11</code> in the drupal add-on (<code>--with=drupal</code>)</td></tr></tbody></table></div>
+<h4 id="merged-moved-and-removed-agents">Merged, moved, and removed agents</h4>
+<div class="table-wrap"><table><thead><tr><th>1.x</th><th>2.0</th></tr></thead><tbody><tr><td><code>api-dev</code></td><td><code>laravel-backend-dev</code></td></tr><tr><td><code>integration-dev</code></td><td><code>laravel-backend-dev</code></td></tr><tr><td><code>database-dev</code></td><td><code>database-designer</code></td></tr><tr><td><code>monitor</code>, <code>log-analyst</code>, <code>support-analyst</code></td><td><code>ops-analyst</code> (ops add-on)</td></tr><tr><td><code>code-reviewer</code></td><td>Removed; <code>/deep-review</code> uses <code>adversarial-reviewer</code></td></tr><tr><td><code>deployment-specialist</code>, <code>rollback-specialist</code>, <code>incident-responder</code></td><td>Same names, ops add-on</td></tr><tr><td><code>release-manager</code></td><td><code>/changelog --release &lt;version&gt;</code>, then <code>/deploy</code> (ops add-on)</td></tr><tr><td><code>intake-processor</code></td><td><code>requirements-analyst</code>, <code>/product-brief --intake</code></td></tr><tr><td><code>pattern-discoverer</code></td><td><code>code-explorer</code></td></tr><tr><td><code>system-architect</code></td><td><code>api-architect</code></td></tr><tr><td><code>test-runner</code></td><td><code>code-quality</code></td></tr><tr><td><code>git-workflow</code></td><td><code>/open-pr</code></td></tr><tr><td><code>tech-researcher</code></td><td><code>tech-research</code> workflow, <code>/investigate</code></td></tr><tr><td><code>context-fetcher</code></td><td>Removed (a subagent cannot see the main context)</td></tr><tr><td><code>dependency-analyzer</code></td><td><code>/product-brief</code> (slice ordering, blockers), <code>/upgrade-deps</code>, <code>/security-scan</code>, <code>code-explorer</code></td></tr><tr><td><code>ui-ux-advisor</code></td><td>Same name, design add-on</td></tr><tr><td><code>knowledge-graph-manager</code>, <code>learning-extractor</code></td><td>Removed (knowledge graph retired)</td></tr></tbody></table></div>
+<p>If you used the moved agents, add the add-on: <code>--with=ops,design,ios</code> or the matching
+<code>sdd-kit-*</code> plugins.</p>
+<h4 id="knowledge-graph-retired">Knowledge graph retired</h4>
+<p>Memory is now Claude Code auto memory plus agent memory (<code>memory: project</code> in agent
+frontmatter). The installer already removes the <code>knowledge-graph-manager</code> and
+<code>learning-extractor</code> agents, <code>scripts/kg-capture.sh</code>, <code>scripts/init-knowledge-graph.js</code>, and
+<code>hooks/post-change-kg-sync.sh</code>, and drops the <code>kg-capture</code> hook from <code>settings.json</code>. It does
+<strong>not</strong> touch your data or MCP config, so finish the cleanup by hand:</p>
+<ol><li>Remove the <code>knowledge-graph</code> entry from <code>mcpServers</code> in <code>.mcp.json</code> (or
+<code>claude mcp remove knowledge-graph</code>).</li><li>Delete <code>.claude/knowledge-graph.jsonl</code> and <code>.ai/knowledge-graph.jsonl</code> if present. Move
+anything worth keeping into <code>CLAUDE.md</code>, <code>AGENTS.md</code>, or <code>.claude/rules/</code> first.</li></ol>
+<h4 id="other-leftovers">Other leftovers</h4>
+<ul><li>1.x left <code>*.backup.*</code> copies inside <code>.claude/</code>. The installer warns about them; delete
+them once you no longer need them.</li><li>Cards in a 1.x <code>.ai/kanban.json</code> are not read by <code>/spec-board</code>, which takes status from the
+spec files. A card with a spec needs nothing. Drop the DONE, IN_PROGRESS, and REVIEW cards
+that have no spec: that work is already started or finished, and a backlog slice would
+re-plan it. Migrate only the BACKLOG and TODO cards without a spec: paste their titles and
+descriptions into <code>/product-brief --intake &quot;&lt;cards&gt;&quot;</code> (with no <code>product-brief.md</code> yet, it
+offers to write the brief first or to start a backlog only), or turn one into a spec with
+<code>/write-spec</code>. Then delete the file.</li><li>Documents imported with 1.x <code>/workflow:add-context</code> into <code>.claude/context/business/</code>,
+<code>.claude/context/architecture/</code>, or <code>.claude/context/workflow/</code> are no longer read by anything:
+their only readers were the retired <code>context-fetcher</code> agent and the knowledge graph. Re-import
+each one into the Golden Triangle paths that <code>/write-spec</code>, <code>create-spec</code>, and
+<code>/framework-doctor</code> read: <code>/write-docs --import .claude/context/&lt;dir&gt;/&lt;file&gt; --as=business</code>
+(or <code>--as=architecture</code>, <code>--as=api</code>; for <code>workflow/</code> files, pick the one that fits or fold
+them into <code>AGENTS.md</code>). Then delete <code>.claude/context/</code>. <code>/framework-doctor</code> warns while it
+exists.</li><li><code>docs/context/workflow.md</code> from 1.x <code>/workflow:getting-started</code> is no longer generated, and
+<code>CLAUDE.md</code> no longer loads it. The SessionStart (compact) hook still re-injects its first lines after a
+compaction while the file exists, so fold anything still true into <code>AGENTS.md</code> (commands,
+red lines) and delete it.</li><li>Files the installer kept because they no longer match the kit&#39;s copy are listed as &quot;kept&quot; in
+its plan; review each and delete the ones you do not use (a kept 1.x agent in a category
+folder, such as <code>agents/quality/code-reviewer.md</code>, still loads next to the flat 2.0 agents).</li><li>A 2.0 <code>--minimal</code> install ships no <code>.claude/commands/</code>, so a 1.x full install&#39;s namespaced
+commands stay behind. <code>/framework-doctor</code> flags them; delete the namespaced folders
+(<code>upstream/</code>, <code>quality/</code>, <code>execution/</code>, <code>workflow/</code>, <code>_shared/</code>, and so on) under
+<code>.claude/commands/</code>.</li></ul>
+<h3 id="verifying-an-install">Verifying an install</h3>
+<div class="table-wrap"><table><thead><tr><th>Check</th><th>What it tells you</th></tr></thead><tbody><tr><td><code>/framework-doctor</code></td><td>Directory layout, flat skill discovery, manifest drift, workflow name collisions, MCP config, and that hooks are wired and actually fire (it sends a harmless payload that must be blocked)</td></tr><tr><td><code>/hooks</code></td><td>Active hooks and where they come from</td></tr><tr><td><code>/memory</code></td><td>Loaded <code>CLAUDE.md</code>, <code>AGENTS.md</code>, and rules files</td></tr><tr><td><code>/plugin</code> → <strong>Errors</strong> tab</td><td>Plugin components that failed to load (plugin mode)</td></tr><tr><td><code>claude plugin validate &lt;path&gt;</code></td><td>Manifest and frontmatter problems in a plugin directory</td></tr></tbody></table></div>
+<p>The hooks themselves are documented in <a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/share/hooks/README.md" target="_blank" rel="noopener noreferrer">src/hooks/README.md</a>.</p>
+<h3 id="uninstalling">Uninstalling</h3>
+<p><strong>Plugin mode:</strong> <code>/plugin uninstall sdd-kit@sdd-kit</code> and the same for each add-on.</p>
+<p><strong>File-copy mode:</strong> there is no <code>--uninstall</code> flag. The manifest lists every file the kit
+installed (second column), relative to <code>.claude/</code>:</p>
+<pre><code class="language-bash">cd .claude
+awk &#39;{print $2}&#39; .framework-manifest | xargs rm -f
+find agents skills commands templates hooks docs workflows settings mcp-configs \
+     output-styles scripts -type d -empty -delete 2&gt;/dev/null
+rm -f .framework-manifest .framework-version</code></pre>
+<p>Then remove the kit&#39;s hook entries and <code>statusLine</code> from <code>settings.json</code> (or restore the
+<code>settings.json.backup.&lt;timestamp&gt;</code> taken at install), and the <code>context7</code> and <code>playwright</code>
+entries from <code>.mcp.json</code> if you don&#39;t want them. <code>CLAUDE.md</code>, <code>AGENTS.md</code>, and <code>.claude/rules/</code> are yours
+after creation; keep or delete them. Files the installer overwrote or removed on its last run
+are in <code>.claude/.framework-backups/&lt;timestamp&gt;/</code> if you need to restore them.</p>
+<h3 id="troubleshooting">Troubleshooting</h3>
+<p><strong>Hooks don&#39;t fire.</strong> Check <code>jq --version</code>: both the installer and the hook scripts need it.
+If the installer printed &quot;Hooks were NOT installed&quot;, <code>settings.json</code> was probably invalid JSON;
+fix it and re-run. Then run <code>/hooks</code> and <code>/framework-doctor</code>. In plugin mode hooks come from
+the plugin&#39;s <code>hooks/hooks.json</code>, not your <code>settings.json</code>.</p>
+<p><strong>An MCP server doesn&#39;t start.</strong> <code>context7</code> and other <code>npx</code> servers need Node.js on the <code>PATH</code>
+Claude Code sees. Run <code>claude mcp list</code> to see status, and check the server&#39;s requirement in
+the <a href="#mcp-servers" data-anchor="mcp-servers">MCP table</a> (uv for Serena, the Composer package for laravel-boost, the
+env var for GitHub/Obsidian). In user mode <code>.mcp.json</code> is not written; run the
+<code>claude mcp add</code> command the installer printed.</p>
+<p><strong>Browser checks say &quot;not run&quot;.</strong> The Playwright MCP server did not start or its tools were
+not available to the workflow. Run <code>claude mcp list</code> and look for <code>playwright</code>; in user mode,
+run the <code>claude mcp add</code> command the installer printed. Node.js must be on the <code>PATH</code> Claude
+Code sees. If the server is connected but cannot launch a browser, choose one you have with
+its <code>--browser</code> option (see the <a href="https://github.com/microsoft/playwright-mcp" target="_blank" rel="noopener noreferrer">Playwright MCP README</a>).</p>
+<p><strong>The spec board finds no specs.</strong> It reads <code>./.ai/specs</code> of the current directory. Run it from
+the repo root, or pass the spec folders: <code>/spec-board api/.ai/specs web/.ai/specs</code> (or the same
+arguments after <code>npx github:stasmarkov/sdd-kit spec-board</code>). A non-zero exit with
+no board means the folder was not found, not that there are no specs.</p>
+<p><strong>A skill isn&#39;t found.</strong> In plugin mode use the namespaced name (<code>/sdd-kit:sdd</code>, not <code>/sdd</code>).
+In file-copy mode skills must sit exactly one level deep (<code>.claude/skills/&lt;name&gt;/SKILL.md</code>);
+Claude Code does not discover nested folders, which also applies to anything you add to
+<code>~/.claude/skills</code> by hand. <code>/framework-doctor</code> checks this. Add-on skills (<code>/deploy</code>,
+<code>/design-ui</code>) appear only after installing that add-on.</p>
+<p><strong>A workflow isn&#39;t found.</strong> File-copy installs put workflows in <code>.claude/workflows/</code> (or
+<code>~/.claude/workflows/</code> with <code>--user</code>); confirm the files are there. A copied workflow that
+kept a kit <code>meta.name</code> collides with the original, and <code>/framework-doctor</code> reports it. To
+build an existing spec, go through <code>/sdd</code> or pass <code>{ spec: &quot;&lt;ref&gt;&quot; }</code>: a plain string
+argument to <code>ship-feature</code> is treated as a new feature description.</p>
+<p><strong>Something else.</strong> Run <code>/framework-doctor</code>, then re-run the installer with <code>--dry-run</code> to see
+whether files have drifted from the manifest.</p>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/installation.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>

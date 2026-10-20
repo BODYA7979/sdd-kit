@@ -3,7 +3,7 @@
 
 SDD Kit: spec-driven development for Claude Code. A single /sdd front door, six background multi-agent workflows with stack detection and cross-repo support, specialized agents and skills, and guardrail hooks. Ships Laravel and Next.js support today; optional add-ons: ops, ios, drupal, design.
 
-- Version: 2.1.0
+- Version: 2.1.1
 - Keywords: laravel, nextjs, php, typescript, full-stack, tdd, agents, hooks, skills
 
 ## Install
@@ -16,4 +16,4 @@ SDD Kit: spec-driven development for Claude Code. A single /sdd front door, six 
 ## Learn more
 
 - [Interactive guide](https://stasmarkov.github.io/sdd-kit/)
-- [Worked example: Hireboard](https://github.com/stasmarkov/sdd-kit/blob/v2.1.0/docs/examples/job-board/README.md)
+- [Worked example: Hireboard](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/README.md)

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hireboard API · SDD Kit</title>
+<link rel="icon" href="data:,">
+<script>
+  (function () {
+    var root = document.documentElement, stored = null;
+    try { stored = localStorage.getItem('sdd-guide-theme'); } catch (e) { stored = null; }
+    var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  })();
+</script>
+<link rel="stylesheet" href="../../../../guide.css">
+</head>
+<body class="doc-page">
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+  <div class="brand">
+    <a class="brand-name" href="../../../../index.html">SDD Kit</a>
+    <span class="badge">v2.1.1</span>
+  </div>
+  <div class="header-actions">
+    <a class="btn" href="../../../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
+    <button type="button" class="btn theme-toggle" id="theme-toggle"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg><span class="btn-label">Theme</span></button>
+  </div>
+</header>
+<main id="content" class="doc-main">
+  <p class="doc-path mono">examples/job-board/artifacts/api/CLAUDE.md</p>
+  <article class="doc-body">
+<h2 id="hireboard-api">Hireboard API</h2>
+<p>@AGENTS.md</p>
+<h3 id="project-facts">Project facts</h3>
+<p>The Laravel 12 JSON API behind Hireboard, a small job board. Visitors search open postings
+and read careers pages; candidates keep a profile, apply and review companies; employers see
+applications to their jobs; admins moderate reviews. What must never break: closed or draft
+postings must never be public, and a public review must never reveal its author.</p>
+<p>The stack, exact commands, red lines, architecture and code standards are in <code>AGENTS.md</code>
+(imported above). Cross-repo rules (contract, routing, process) are in the workspace
+<code>../CLAUDE.md</code>. Each fact goes in one file only.</p>
+<h3 id="always-load">Always load</h3>
+<p>Read these before non-trivial work.</p>
+<ol><li><code>docs/context/business-rules.md</code>: BR-01..BR-44, validated by Maya Chen</li><li><code>docs/architecture.md</code>: layers, decisions A1-A10, request flow</li><li><code>docs/api/api-contracts.md</code>: request and response shapes the web app relies on</li></ol>
+<h3 id="task-routing">Task routing</h3>
+<div class="table-wrap"><table><thead><tr><th>If you are working on</th><th>Load first</th></tr></thead><tbody><tr><td>API endpoint</td><td><code>docs/api/api-contracts.md</code>, the area&#39;s DTOs in <code>app/DTOs/</code>, <code>.claude/rules/api-controllers.md</code></td></tr><tr><td>Database schema</td><td><code>docs/schemas/&lt;table&gt;.md</code>, then <code>.claude/rules/migrations.md</code></td></tr><tr><td>Service or repository</td><td><code>.claude/rules/services-dtos.md</code>, the interface in <code>app/Contracts/</code></td></tr><tr><td>Auth, tokens, roles</td><td><code>docs/adr/0001-spa-auth.md</code>, <code>app/Services/AuthService.php</code>, the area&#39;s Policy</td></tr><tr><td>Error responses</td><td><code>bootstrap/app.php</code>, <code>app/Exceptions/BusinessRuleException.php</code>, &quot;Error codes&quot; in the contract</td></tr><tr><td>Tests</td><td><code>.claude/rules/tests.md</code>, <code>tests/Pest.php</code>, the factories&#39; states</td></tr><tr><td>Demo data</td><td><code>database/seeders/JobBoardSeeder.php</code>, <code>DemoUserSeeder.php</code></td></tr></tbody></table></div>
+<h3 id="invariants">Invariants</h3>
+<p>Rules that hold everywhere. Cite them by ID in specs and reviews. INV-05 and INV-06 are
+enforced in <code>web/</code>; they are listed here because an API change can break them.</p>
+<ul><li><strong>INV-01</strong> API under <code>/api/v1</code>. Success envelope <code>{success, status, message, data[, meta]}</code>;
+paginated <code>meta</code> is <code>{current_page, per_page, total, last_page}</code>. Error envelope
+<code>{success: false, status, message, code[, errors]}</code>. Build responses only through <code>JsonResponseTrait</code>.</li><li><strong>INV-02</strong> Single-action invokable controllers, business logic in services, DTOs across
+layers, repositories behind <code>App\Contracts</code> interfaces.</li><li><strong>INV-03</strong> Domain tables use UUID keys (<code>HasUuids</code>); <code>users</code> keeps bigint ids so Sanctum&#39;s
+token morphs work unchanged.</li><li><strong>INV-04</strong> Timestamps are stored in UTC and serialized as ISO-8601.</li><li><strong>INV-05</strong> The browser never holds the API token; the Next.js server keeps it in the
+HttpOnly cookie <code>hireboard_session</code> (ADR-0001). The API needs no CORS config.</li><li><strong>INV-06</strong> Every endpoint the browser calls is listed in <code>../web/lib/api/endpoints.ts</code> and
+<code>docs/api/api-contracts.md</code>. Adding or changing a route means updating both.</li><li><strong>INV-07</strong> Salaries are integers (annual, whole currency units) plus an ISO-4217 currency.</li></ul>
+<h3 id="gotchas">Gotchas</h3>
+<ul><li><strong>GOTCHA-01</strong> Tests use SQLite <code>:memory:</code> from <code>phpunit.xml</code>, not <code>.env</code>. A test that
+passes locally against <code>database/database.sqlite</code> was not run through <code>php artisan test</code>.
+SQLite <code>LIKE</code> is case-insensitive for ASCII only, so don&#39;t rely on it for other text.</li><li><strong>GOTCHA-02</strong> <code>JobPostingRepositoryInterface::findById()</code> ignores status on purpose
+(applications must tell &quot;unknown&quot; from &quot;closed&quot;). Public reads use <code>findOpenById()</code>.
+<code>FIXED by HIRE-9</code>: the detail endpoint used <code>findById()</code> and showed closed postings.</li><li><strong>GOTCHA-03</strong> Query-string booleans arrive as strings; <code>remote=false</code> is a truthy string and
+fails the <code>boolean</code> rule. Normalize with <code>$request-&gt;boolean()</code> (accepts 1/0/true/false/on/off/yes/no)
+before building the DTO.</li><li><strong>GOTCHA-04</strong> Laravel converts <code>AuthorizationException</code> to <code>AccessDeniedHttpException</code>
+before render callbacks run, so <code>bootstrap/app.php</code> renders the latter as 403 <code>forbidden</code>.</li></ul>
+<h3 id="change-impact-map">Change-impact map</h3>
+<div class="table-wrap"><table><thead><tr><th>If you change</th><th>Also update</th></tr></thead><tbody><tr><td>A DTO&#39;s <code>toApiArray()</code></td><td><code>docs/api/api-contracts.md</code>, <code>../web/types/api/*.ts</code>, feature tests asserting the shape</td></tr><tr><td>A database column</td><td><code>docs/schemas/&lt;table&gt;.md</code>, migration, factory, DTO, seeder</td></tr><tr><td>A route</td><td><code>routes/api/v1/&lt;area&gt;.php</code>, contract doc, <code>../web/lib/api/endpoints.ts</code></td></tr><tr><td>An enum</td><td><code>app/Enums/</code>, the web literal union, factories, seeders, validation</td></tr><tr><td>An error code</td><td>the exception class, the contract&#39;s error table, the web form that maps it</td></tr><tr><td>A business rule</td><td>ask Maya Chen, then <code>docs/context/business-rules.md</code> and the specs citing it</td></tr></tbody></table></div>
+<h3 id="environment-drift">Environment drift</h3>
+<ul><li>Local and CI use SQLite. Production database is not chosen yet (architecture A9). Avoid
+SQLite-only behavior in queries.</li><li>PHP 8.3 locally and in CI (<code>.github/workflows/ci.yml</code>).</li></ul>
+<h3 id="trust-hierarchy">Trust hierarchy</h3>
+<p>When sources disagree, trust them in this order and fix whatever is lower:</p>
+<ol><li>Running code and passing tests</li><li>Migrations and <code>docs/schemas/</code></li><li><code>docs/api/api-contracts.md</code></li><li>This file, rules and other docs</li><li>Comments, commit messages, memory</li></ol>
+<p>Never state counts or versions of moving things as facts in docs. Point to the file that
+defines them (<code>php artisan route:list</code>, <code>composer.json</code>).</p>
+<h3 id="how-to-start-work">How to start work</h3>
+<ul><li>Feature, bug or decision: <code>/sdd &lt;HIRE-n: description&gt;</code> (<code>/sdd-kit:sdd</code> in plugin mode).
+No tracker is connected, so paste the ticket text.</li><li>Specs live in <code>.ai/specs/spec-HIRE-&lt;n&gt;-&lt;slug&gt;/</code>. Resume one with <code>/sdd &lt;spec id&gt;</code>.</li><li>Small, obvious change: just do it, then run the three gates.</li><li>Write a failing test before the fix or the feature.</li></ul>
+<h3 id="review-settings">Review settings</h3>
+<pre><code class="language-yaml">deep-review:
+  phpstan-level: 5</code></pre>
+<p><code>/deep-review</code> runs PHPStan at level 9 unless this block lowers it. Hireboard&#39;s <code>phpstan.neon</code>
+is level 5, so the review matches the project gate.</p>
+<h3 id="area-rules">Area rules</h3>
+<p>Path-scoped conventions in <code>.claude/rules/</code> load when matching files are read:</p>
+<div class="table-wrap"><table><thead><tr><th>Rule file</th><th>Applies to</th></tr></thead><tbody><tr><td><code>tests.md</code></td><td><code>tests/**</code></td></tr><tr><td><code>migrations.md</code></td><td><code>database/migrations/**</code>, <code>docs/schemas/**</code></td></tr><tr><td><code>api-controllers.md</code></td><td><code>app/Http/Controllers/**</code>, <code>app/Http/Requests/**</code>, <code>app/Http/Resources/**</code>, <code>routes/api.php</code>, <code>routes/api/**</code></td></tr><tr><td><code>services-dtos.md</code></td><td><code>app/Services/**</code>, <code>app/DTOs/**</code>, <code>app/Repositories/**</code>, <code>app/Events/**</code></td></tr></tbody></table></div>
+  </article>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/examples/job-board/artifacts/api/CLAUDE.md">View the Markdown source</a></p>
+</main>
+<script>
+  (function () {
+    var KEY = 'sdd-guide-theme', NEXT = { system: 'light', light: 'dark', dark: 'system' };
+    var root = document.documentElement, os = window.matchMedia('(prefers-color-scheme: dark)');
+    var button = document.getElementById('theme-toggle'), choice = 'system';
+    try { var v = localStorage.getItem(KEY); if (v === 'light' || v === 'dark') choice = v; } catch (e) { /* storage unavailable */ }
+    function apply() {
+      var theme = choice === 'system' ? (os.matches ? 'dark' : 'light') : choice;
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+      button.querySelector('.btn-label').textContent = 'Theme: ' + choice;
+      button.setAttribute('aria-label', 'Theme: ' + choice + '. Switch to ' + NEXT[choice] + '.');
+    }
+    button.addEventListener('click', function () {
+      choice = NEXT[choice];
+      try { if (choice === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, choice); } catch (e) { /* page view only */ }
+      apply();
+    });
+    if (os.addEventListener) os.addEventListener('change', function () { if (choice === 'system') apply(); });
+    apply();
+  })();
+</script>
+</body>
+</html>
