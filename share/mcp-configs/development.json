@@ -37,14 +37,6 @@
       ],
       "description": "Optional. Semantic code navigation via LSP (requires uv)."
     },
-    "laravel-boost": {
-      "command": "php",
-      "args": [
-        "artisan",
-        "boost:mcp"
-      ],
-      "description": "Optional. Laravel-aware tools (requires composer require laravel/boost --dev)."
-    },
     "github": {
       "type": "http",
       "url": "https://api.githubcopilot.com/mcp/",
@@ -52,13 +44,6 @@
         "Authorization": "Bearer ${GITHUB_TOKEN}"
       },
       "description": "Optional. GitHub PRs, issues, and releases over HTTP transport."
-    },
-    "ddev": {
-      "command": "ddev-mcp",
-      "args": [
-        "--single-project"
-      ],
-      "description": "Optional. DDEV environment control (npm install -g ddev-mcp)."
     },
     "obsidian": {
       "command": "npx",

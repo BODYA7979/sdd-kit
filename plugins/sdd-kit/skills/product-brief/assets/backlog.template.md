@@ -36,7 +36,7 @@ Build order: SL-01 → {SL-02, SL-03} → {SL-04, SL-05} → SL-06
 - **Status:** shipped
 - **Spec:** greenfield-build
 - **Source:** brief
-- **Run:** `/sdd "New app — Hireboard, first slice SL-01: a visitor searches open job postings by keyword, location, remote and employment type and opens a job detail page showing the company. Seeded data, no auth. Laravel 12 API + Next.js 15 frontend. Conventions from CLAUDE.md and product-brief.md."`
+- **Run:** `/sdd "New app — Hireboard, first slice SL-01: a visitor searches open job postings by keyword, location, remote and employment type and opens a job detail page showing the company. Seeded data, no auth. <framework> API + <framework> frontend. Conventions from CLAUDE.md and product-brief.md."`
 
 ### SL-02 · Company careers page
 

@@ -67,13 +67,7 @@ Knowledge module for documenting database schemas before creating migrations.
 - {column}: {constraint description}
 
 ## Enums
-```php
-enum StatusEnum: string {
-    case PENDING = 'pending';
-    case ACTIVE = 'active';
-    case INACTIVE = 'inactive';
-}
-```
+> Framework implementation: see the stack add-on's skill references.
 
 ## Notes
 - {Any implementation notes}
@@ -85,19 +79,21 @@ enum StatusEnum: string {
 ## Column Type Reference
 
 ### Common Types
-| Type | Laravel Migration | Description |
-|------|------------------|-------------|
-| uuid | `$table->uuid()` | UUID primary key |
-| string(n) | `$table->string('col', n)` | Variable string |
-| text | `$table->text()` | Long text |
-| integer | `$table->integer()` | Signed integer |
-| unsignedBigInteger | `$table->unsignedBigInteger()` | Foreign key type |
-| boolean | `$table->boolean()` | True/false |
-| decimal(p,s) | `$table->decimal('col', p, s)` | Precise decimal |
-| timestamp | `$table->timestamp()` | Date and time |
-| date | `$table->date()` | Date only |
-| json | `$table->json()` | JSON data |
-| enum | `$table->enum('col', [...])` | Enumerated values |
+| Type | Description |
+|------|-------------|
+| uuid | UUID primary key |
+| string(n) | Variable string |
+| text | Long text |
+| integer | Signed integer |
+| unsignedBigInteger | Foreign key type |
+| boolean | True/false |
+| decimal(p,s) | Precise decimal |
+| timestamp | Date and time |
+| date | Date only |
+| json | JSON data |
+| enum | Enumerated values |
+
+The migration builder call for each type is in the stack add-on's skill.
 
 ### Monetary Values
 One money rule for the whole kit: a currency amount is an **integer in minor units** (cents) **plus a currency column**. Never a float, and not a decimal either, so arithmetic stays exact and every amount knows its currency:

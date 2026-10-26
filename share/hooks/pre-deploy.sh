@@ -6,6 +6,9 @@
 # Arguments:
 #   $1 - Environment (staging, production)
 #
+# Runs the stack-neutral checks (git state, env files, secrets, test results), then
+# every executable pre-deploy.d/*.sh fragment installed by a stack add-on.
+#
 # Exit codes:
 #   0 - Ready to deploy
 #   1 - Deployment should be blocked
@@ -81,39 +84,6 @@ if [ -n "$FOUND_SECRETS" ]; then
 fi
 
 # ============================================================================
-# Build Validation
-# ============================================================================
-
-echo ""
-echo "🔨 Checking build artifacts..."
-
-# PHP: Check autoload
-if [ -f "composer.json" ]; then
-    if [ ! -d "vendor" ]; then
-        echo "  ❌ Vendor directory missing - run 'composer install'"
-        ERRORS=$((ERRORS + 1))
-    else
-        echo "  ✅ Composer dependencies installed"
-    fi
-fi
-
-# Node: Check node_modules and build
-if [ -f "package.json" ]; then
-    if [ ! -d "node_modules" ]; then
-        echo "  ❌ node_modules missing - run 'npm install'"
-        ERRORS=$((ERRORS + 1))
-    fi
-
-    # Check for built assets
-    if [ -d ".next" ] || [ -d "dist" ] || [ -d "build" ]; then
-        echo "  ✅ Build artifacts present"
-    else
-        echo "  ⚠️  Warning: No build artifacts found - may need 'npm run build'"
-        WARNINGS=$((WARNINGS + 1))
-    fi
-fi
-
-# ============================================================================
 # Test Validation
 # ============================================================================
 
@@ -135,44 +105,38 @@ else
 fi
 
 # ============================================================================
-# Database Migration Check
+# Stack checks (run-parts)
 # ============================================================================
+#
+# Every executable pre-deploy.d/*.sh next to this script runs in LC_ALL=C order,
+# in the caller's working directory, with this script's arguments. All fragments
+# run even after a failure; the failed ones are named at the end. Add-ons install
+# their fragments as NN-<addon>.sh (see src/hooks/README.md).
 
-echo ""
-echo "🗄️  Checking database migrations..."
+FRAGMENT_DIR="$(cd "$(dirname "$0")" && pwd)/pre-deploy.d"
+FRAGMENTS_RUN=0
+FAILED_FRAGMENTS=()
 
-if [ -f "artisan" ]; then
-    # Check for pending migrations (dry run)
-    PENDING=$(php artisan migrate:status 2>/dev/null | grep -c "No" || echo "0")
-    if [ "$PENDING" != "0" ]; then
-        echo "  ⚠️  Warning: $PENDING pending migrations"
-        WARNINGS=$((WARNINGS + 1))
-    else
-        echo "  ✅ All migrations applied"
-    fi
+if [ -d "$FRAGMENT_DIR" ]; then
+    while IFS= read -r FRAGMENT; do
+        [ -f "$FRAGMENT" ] || continue
+        if [ ! -x "$FRAGMENT" ]; then
+            echo "skipped $(basename "$FRAGMENT") (not executable)"
+            continue
+        fi
+        FRAGMENTS_RUN=$((FRAGMENTS_RUN + 1))
+        "$FRAGMENT" "$@" || FAILED_FRAGMENTS+=("$(basename "$FRAGMENT")")
+    done < <(find "$FRAGMENT_DIR" -maxdepth 1 -name '*.sh' | LC_ALL=C sort)
 fi
 
-# ============================================================================
-# Production-Specific Checks
-# ============================================================================
+if [ "$FRAGMENTS_RUN" -eq 0 ]; then
+    echo "no stack checks installed"
+fi
 
-if [ "$ENVIRONMENT" = "production" ]; then
+if [ ${#FAILED_FRAGMENTS[@]} -gt 0 ]; then
     echo ""
-    echo "🔒 Production-specific checks..."
-
-    # Check debug mode
-    if grep -q "APP_DEBUG=true" .env 2>/dev/null; then
-        echo "  ❌ APP_DEBUG=true in .env (should be false for production)"
-        ERRORS=$((ERRORS + 1))
-    fi
-
-    # Check for development dependencies
-    if [ -f "composer.json" ]; then
-        DEV_DEPS=$(cat composer.json | grep -c '"require-dev"' || echo "0")
-        if [ "$DEV_DEPS" != "0" ]; then
-            echo "  ⚠️  Remember to use --no-dev for production deployment"
-        fi
-    fi
+    echo "failed: ${FAILED_FRAGMENTS[*]}"
+    ERRORS=$((ERRORS + ${#FAILED_FRAGMENTS[@]}))
 fi
 
 # ============================================================================

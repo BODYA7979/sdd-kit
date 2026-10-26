@@ -11,7 +11,7 @@ owner: Maya Chen                  # the person who validates the draft rules
 status: draft                     # draft | validated
 validated_by:                     # set when the owner confirms the rules
 validated_at:
-stacks: [laravel, nextjs]
+stacks: [<stack-key>, <stack-key>]
 ---
 
 # Hireboard product brief
@@ -29,7 +29,7 @@ Hireboard is a focused job board: open postings are easy to search, every compan
 careers page, and company reviews are moderated so ratings can be trusted.
 
 **Constraints:** <!-- only the ones the owner insists on; omit the line when there are none -->
-Laravel 12 API in `api/`, Next.js 15 App Router frontend in `web/`. SQLite for the MVP.
+<Framework> API in `api/`, <framework> frontend in `web/`. SQLite for the MVP.
 
 ## Users and roles
 

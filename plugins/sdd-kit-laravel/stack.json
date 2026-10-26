@@ -1,0 +1,97 @@
+{
+  "$schema": "../sdd-kit/workflows/lib/stack.schema.json",
+  "name": "laravel",
+  "order": 10,
+  "role": "backend",
+  "detect": "an \"artisan\" file + composer.json requiring laravel/framework",
+  "agent": {
+    "name": "laravel-backend-dev",
+    "plugin": "sdd-kit-laravel"
+  },
+  "conventions": [
+    "service-repository",
+    "DTO-first",
+    "invokable controllers",
+    "schema-first migrations"
+  ],
+  "gates": [
+    {
+      "name": "Pint",
+      "command": "./vendor/bin/pint --test",
+      "kind": "format"
+    },
+    {
+      "name": "PHPStan",
+      "command": "./vendor/bin/phpstan analyse --no-progress",
+      "kind": "types"
+    },
+    {
+      "name": "Pest/PHPUnit",
+      "command": "php artisan test",
+      "kind": "test"
+    }
+  ],
+  "debugPatterns": [
+    "dd(",
+    "dump(",
+    "ray("
+  ],
+  "sourceDirs": [
+    "app/",
+    "routes/",
+    "database/"
+  ],
+  "acceptance": "exercise the API routes over HTTP (curl / php artisan test)",
+  "contractSync": {
+    "routeListCommand": "php artisan route:list --json",
+    "template": "templates/contract-sync"
+  },
+  "e2eBackend": {
+    "convention": "a frontend's E2E run starts this API with APP_ENV=e2e on its own database and resets it with migrate:fresh in its setup project: do not run migrate:fresh yourself, and never point the run at the dev database or the Pest testing database",
+    "seed": "the E2ESeeder baseline (the users, OAuth clients and reference data the journey needs)"
+  },
+  "skills": {
+    "conventions": [
+      "service-repository",
+      "dto-first",
+      "api-design",
+      "schema-first"
+    ],
+    "testing": [
+      "pest-3"
+    ],
+    "scaffold": [
+      "laravel-12"
+    ]
+  },
+  "scaffold": {
+    "command": "laravel new",
+    "tooling": [
+      "Pest (pestphp/pest + the Laravel plugin, tests/Pest.php)",
+      "Larastan (larastan/larastan) with a phpstan.neon that includes the Larastan extension, sets a level (start at 5 or higher) and paths: [app]",
+      "Pint (laravel/pint) with a pint.json using the laravel preset"
+    ]
+  },
+  "ci": {
+    "services": [
+      "a database service for the tests when they need one"
+    ],
+    "setup": [
+      "php artisan migrate --force"
+    ]
+  },
+  "migrations": {
+    "status": "php artisan migrate:status",
+    "run": "php artisan migrate",
+    "fresh": "php artisan migrate:fresh --seed"
+  },
+  "audit": [
+    {
+      "name": "composer audit",
+      "command": "composer audit --format=json"
+    }
+  ],
+  "markers": [
+    "artisan"
+  ]
+}

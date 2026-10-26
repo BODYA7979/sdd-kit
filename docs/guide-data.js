@@ -5,7 +5,7 @@
 // text: renderers set it with textContent.
 window.GUIDE = {
   product: 'SDD Kit',
-  version: '2.1.1',
+  version: '3.0.0',
   repo: 'https://github.com/stasmarkov/sdd-kit',
   tagline: 'One front door, fixed pipelines, verified outcomes.',
   promise: 'Write down what "done" means, let the agent build it through gates, and approve the result as a human.',
@@ -55,8 +55,8 @@ window.GUIDE = {
       label: 'Plugin (recommended for teams)',
       steps: [
         { text: 'Add the marketplace', code: '/plugin marketplace add stasmarkov/sdd-kit' },
-        { text: 'Install the core plugin', code: '/plugin install sdd-kit@sdd-kit' },
-        { text: 'Optional add-ons', code: '/plugin install sdd-kit-ops@sdd-kit' },
+        { text: 'Install the core plus the Laravel, Next.js and devenv add-ons (preset)', code: '/plugin install sdd-kit-laravel-nextjs@sdd-kit' },
+        { text: 'Or pick your stack add-on and any optional ones', code: '/plugin install sdd-kit-laravel@sdd-kit' },
       ],
       note: 'You need Claude Code, git, jq, Node 18+ and Google Chrome (or Chromium selected with --browser chromium, see the README\'s MCP servers section). Without jq the guardrail hooks cannot read their input; without a browser, browser checks report "not run". In plugin mode skills are namespaced: /sdd-kit:sdd, /sdd-kit-ops:deploy. The plugin starts its MCP servers (context7 and Playwright MCP) for you.',
     },
@@ -82,7 +82,9 @@ window.GUIDE = {
     flags: [
       { flag: '--project | --user', meaning: 'Install into ./.claude or ~/.claude' },
       { flag: '--minimal | --full', meaning: 'Spec-driven core only, or everything in core (default)' },
-      { flag: '--with=ops,ios,drupal,design', meaning: 'Optional add-ons' },
+      { flag: '--stack=laravel,nextjs', meaning: 'Stack add-ons (default on a fresh install); none for core only' },
+      { flag: '--with=devenv,ops,design', meaning: 'Optional add-ons; a fresh install without --stack also adds devenv' },
+      { flag: '--prune', meaning: 'On an upgrade from 2.x, make the installed add-ons exactly the selection (backed up)' },
       { flag: '--third-party', meaning: 'Pinned third-party skills from docs/third-party.md' },
       { flag: '--dry-run', meaning: 'Show changes, write nothing' },
       { flag: '--yes', meaning: 'No confirmation prompt' },
@@ -144,8 +146,8 @@ window.GUIDE = {
 
   stacks: {
     now: 'Laravel API + Next.js',
-    roadmap: 'Drupal, Symfony, Swift, Java and a stack prompt at install time',
-    href: 'https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/README.md',
+    roadmap: 'Drupal, Symfony, Swift and Java as first-class stacks; add your own with /new-stack',
+    href: 'https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/README.md',
   },
 
   routes: [
@@ -271,6 +273,7 @@ window.GUIDE = {
   },
 
   addons: [
+    { name: 'sdd-kit-laravel-nextjs', install: { plugin: '/plugin install sdd-kit-laravel-nextjs@sdd-kit', fileCopy: 'cd /path/to/your-project && /path/to/sdd-kit/install.sh --project --full' }, what: 'Preset for 2.x users: the core plus the Laravel, Next.js and devenv add-ons. Upgrading from 2.x: re-run the installer, or install this preset', skills: [] },
     { name: 'sdd-kit-ops', install: { plugin: '/plugin install sdd-kit-ops@sdd-kit', fileCopy: 'cd /path/to/your-project && /path/to/sdd-kit/install.sh --project --full --with=ops' }, what: 'Deploy, rollback, feature flags, health checks, incident response, ops analysis', skills: ['deploy', 'rollback', 'feature-flag', 'health-check', 'incident'] },
     { name: 'sdd-kit-ios', install: { plugin: '/plugin install sdd-kit-ios@sdd-kit', fileCopy: 'cd /path/to/your-project && /path/to/sdd-kit/install.sh --project --full --with=ios' }, what: 'Early preview. iOS / Swift: SwiftUI and Swift Testing skills, ios-mobile-dev agent, templates', skills: ['ios-native', 'swift-testing'] },
     { name: 'sdd-kit-drupal', install: { plugin: '/plugin install sdd-kit-drupal@sdd-kit', fileCopy: 'cd /path/to/your-project && /path/to/sdd-kit/install.sh --project --full --with=drupal' }, what: 'Early preview. Drupal 11 module development', skills: ['drupal-11'] },
@@ -315,7 +318,7 @@ window.GUIDE = {
     { label: 'Usage examples', href: 'reference/usage-examples.html' },
     { label: 'Worked example: Hireboard', href: 'examples/job-board/README.html' },
     { label: 'Example spec board', href: 'example-board.html' },
-    { label: 'Spec board skill', href: 'https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/spec-board/SKILL.md' },
+    { label: 'Spec board skill', href: 'https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/plugins/sdd-kit/skills/spec-board/SKILL.md' },
     { label: 'Plugin mode', href: 'reference/plugin-mode.html' },
     { label: 'Multi-repo', href: 'reference/multi-repo.html' },
     { label: 'Model tiers', href: 'reference/effort-guidelines.html' },

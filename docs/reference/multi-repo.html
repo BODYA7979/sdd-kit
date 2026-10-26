@@ -21,7 +21,7 @@
 <header class="site-header">
   <div class="brand">
     <a class="brand-name" href="../index.html">SDD Kit</a>
-    <span class="badge">v2.1.1</span>
+    <span class="badge">v3.0.0</span>
   </div>
   <div class="header-actions">
     <a class="btn" href="../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
@@ -41,7 +41,9 @@ repos and the contract between them.</p>
 ├── be/                     Laravel API: own .git, CLAUDE.md, AGENTS.md, .claude/, .ai/specs/
 └── fe/                     Next.js: own .git, CLAUDE.md, AGENTS.md, .claude/, .ai/specs/</code></pre>
 <ol><li>Create the parent folder and clone both repos into it (<code>be/</code> and <code>fe/</code>, or real names).</li><li>Install the framework into <strong>each repo</strong> as usual (<code>./install.sh --project</code> inside <code>be/</code> and <code>fe/</code>,
-or enable the plugin once).</li><li>Copy <code>src/templates/multi-repo/CLAUDE.md</code> to <code>project/CLAUDE.md</code> and fill in the placeholders.</li><li>Start Claude from <code>project/</code>. Run <code>/memory</code> and confirm that both <code>be/CLAUDE.md</code> and
+or enable the plugin once). In plugin mode install the stack add-ons for both sides
+(<code>sdd-kit-laravel</code> and <code>sdd-kit-nextjs</code>, or the preset <code>sdd-kit-laravel-nextjs</code>); in file-copy mode the
+default <code>--stack=laravel,nextjs</code> stages both in each repo, and each workflow detects the stack per repo.</li><li>Copy <code>src/templates/multi-repo/CLAUDE.md</code> to <code>project/CLAUDE.md</code> and fill in the placeholders.</li><li>Start Claude from <code>project/</code>. Run <code>/memory</code> and confirm that both <code>be/CLAUDE.md</code> and
 <code>fe/CLAUDE.md</code> show up as loaded.</li></ol>
 <p>Starting from the parent gives one session the same context as starting in either repo,
 plus the root file. Keep the root file small. It holds only what neither repo knows alone:</p>
@@ -74,7 +76,7 @@ that fails:</p>
 <p>Hand-maintained type mirrors cause the most cross-repo bugs. A typical example: frontend enum
 literals that type-check but don&#39;t match the backend values.</p>
   </article>
-  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/multi-repo.md">View the Markdown source</a></p>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/multi-repo.md">View the Markdown source</a></p>
 </main>
 <script>
   (function () {

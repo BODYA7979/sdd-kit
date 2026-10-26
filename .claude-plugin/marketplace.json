@@ -5,25 +5,23 @@
     "url": "https://github.com/stasmarkov"
   },
   "metadata": {
-    "description": "SDD Kit: spec-driven development for Claude Code. A core plugin (/sdd front door, workflows, agents, skills, hooks) plus optional ops, ios, drupal, and design add-ons. Laravel and Next.js support ships in core today.",
-    "version": "2.1.1"
+    "description": "SDD Kit: spec-driven development for Claude Code. A stack-agnostic core plugin (/sdd front door, workflows, agents, skills, hooks) plus optional stack, preset and tool add-ons.",
+    "version": "3.0.0"
   },
   "plugins": [
     {
       "name": "sdd-kit",
-      "description": "SDD Kit: spec-driven development for Claude Code. A single /sdd front door, six background multi-agent workflows with stack detection and cross-repo support, specialized agents and skills, and guardrail hooks. Ships Laravel and Next.js support today; optional add-ons: ops, ios, drupal, design.",
+      "description": "SDD Kit: spec-driven development for Claude Code. A single /sdd front door, six background multi-agent workflows with stack detection and cross-repo support, specialized agents and skills, and guardrail hooks. Stack-agnostic core; stacks come from add-on plugins.",
       "category": "development",
       "source": "./plugins/sdd-kit",
       "keywords": [
-        "laravel",
-        "nextjs",
-        "php",
-        "typescript",
+        "spec-driven-development",
         "full-stack",
         "tdd",
         "agents",
         "hooks",
-        "skills"
+        "skills",
+        "workflows"
       ]
     },
     {
@@ -35,6 +33,17 @@
         "design",
         "ui",
         "ux"
+      ]
+    },
+    {
+      "name": "sdd-kit-devenv",
+      "description": "Dev-environment add-on: docker and ddev skills, plus an optional DDEV MCP entry. Not tied to a stack.",
+      "category": "development",
+      "source": "./plugins/sdd-kit-devenv",
+      "keywords": [
+        "docker",
+        "ddev",
+        "devenv"
       ]
     },
     {
@@ -56,6 +65,40 @@
         "ios",
         "swift",
         "swiftui"
+      ]
+    },
+    {
+      "name": "sdd-kit-laravel",
+      "description": "Laravel add-on: laravel-backend-dev agent, Laravel, Pest, Passport, DTO, service-repository, event-driven and migration skills, path-scoped rules, the contract-sync template and the Laravel stack manifest.",
+      "category": "development",
+      "source": "./plugins/sdd-kit-laravel",
+      "keywords": [
+        "laravel",
+        "php",
+        "pest"
+      ]
+    },
+    {
+      "name": "sdd-kit-laravel-nextjs",
+      "description": "Compatibility preset for SDD Kit 2.x users: installs the core plugin with the Laravel, Next.js and dev-environment add-ons. Ships no components of its own.",
+      "category": "development",
+      "source": "./plugins/sdd-kit-laravel-nextjs",
+      "keywords": [
+        "preset",
+        "laravel",
+        "nextjs"
+      ]
+    },
+    {
+      "name": "sdd-kit-nextjs",
+      "description": "Next.js add-on: nextjs-frontend-dev agent, Next.js, TypeScript and Tailwind skills, path-scoped rules and the Next.js and Nuxt stack manifests.",
+      "category": "development",
+      "source": "./plugins/sdd-kit-nextjs",
+      "keywords": [
+        "nextjs",
+        "react",
+        "typescript",
+        "tailwind"
       ]
     },
     {

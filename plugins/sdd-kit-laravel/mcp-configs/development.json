@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "laravel-boost": {
+      "command": "php",
+      "args": [
+        "artisan",
+        "boost:mcp"
+      ],
+      "description": "Optional. Laravel-aware tools (requires composer require laravel/boost --dev)."
+    }
+  }
+}

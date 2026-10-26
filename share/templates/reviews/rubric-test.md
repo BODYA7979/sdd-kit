@@ -1,6 +1,6 @@
 ---
 name: rubric-test
-description: Outcomes rubric for Pest/Vitest test suites authored as part of a feature.
+description: Outcomes rubric for test suites authored as part of a feature.
 domain: test
 threshold: 80
 ---

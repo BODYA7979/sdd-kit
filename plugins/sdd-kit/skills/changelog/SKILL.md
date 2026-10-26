@@ -137,7 +137,7 @@ Release mode checks that the range is actually releasable before writing anythin
 
 ### 2. Quality gates
 
-Run the project's detected gate commands for each repo (the `verification-gates` skill; delegate to the `code-quality` agent). Use the commands the project actually has; never assume a wrapper such as DDEV. When the project has a backend and a frontend repo and contract-sync is installed (`scripts/contract-sync.mjs` or a `contract-sync` package script), run it as a gate: drift fails the release.
+Run the project's detected gate commands for each repo (the `verification-gates` skill; delegate to the `code-quality` agent). Use the commands the project actually has; never assume a dev-environment wrapper. When the project has a backend and a frontend repo and contract-sync is installed (`scripts/contract-sync.mjs` or a `contract-sync` package script), run it as a gate: drift fails the release.
 
 ### 3. Security and dependencies
 
@@ -146,7 +146,7 @@ Run the project's detected gate commands for each repo (the `verification-gates`
 
 ### 4. Migrations
 
-For migrations added in the range, apply the `laravel-migration-coordinator` checks: a `php artisan migrate --pretend` run succeeds, NOT NULL columns on existing tables use a split backfill, destructive changes have a rollback path, and the down/up cycle works on a disposable database.
+For migrations added in the range, apply the stack's migration checks (the manifest `migrations` commands, or the stack add-on's migration skill): a dry-run or status check of the pending migrations succeeds, NOT NULL columns on existing tables use a split backfill, destructive changes have a rollback path, and the down/up cycle works on a disposable database.
 
 ### 5. Version, changelog, tag
 
@@ -157,7 +157,7 @@ For migrations added in the range, apply the `laravel-migration-coordinator` che
    - Pre-release: `X.Y.Z-beta.N` when the user asks for one
    If the user's `<version>` disagrees with the suggestion (for example a `feat` in a patch release), say so and ask.
 2. **Write CHANGELOG.md** for that version with the `changelog-writer` agent (the format below). Add an upgrade note for breaking changes and new environment variables.
-3. **Update version files** the project keeps (`package.json` `version`, a `VERSION` file, `config/app.php` `version`), only if they exist.
+3. **Update version files** the project keeps (`package.json` `version`, a `VERSION` file, an application config `version`), only if they exist.
 4. **Propose, then confirm.** Show the release commit and tag commands:
    ```bash
    git commit -am "chore(release): v2.1.0"
@@ -171,7 +171,7 @@ For migrations added in the range, apply the `laravel-migration-coordinator` che
 ```
 Release readiness: v2.1.0 (suggested: minor - 4 feat, 7 fix, 0 breaking)
   [PASS] Specs done            6/6 (spec-HIRE-12-..., ...)
-  [PASS] Gates                 api: Pint, PHPStan, Pest · web: ESLint, tsc, next build, Vitest
+  [PASS] Gates                 api: format, types, test · web: lint, types, build, test
   [PASS] Contract sync         0 drift
   [FAIL] Security scan         1 high: axios < 1.7.4 (web/package.json)
   [PASS] Dependency audit

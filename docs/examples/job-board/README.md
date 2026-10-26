@@ -75,7 +75,7 @@ first. For a one-paragraph version of each route, see
 ## Route map
 
 `/sdd` sorts each request into one of six routes and launches exactly one pipeline
-([sdd SKILL.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/sdd/SKILL.md)). Each route appears at least once:
+([sdd SKILL.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/plugins/sdd-kit/skills/sdd/SKILL.md)). Each route appears at least once:
 
 | `/sdd` route | Pipeline | Chapter(s) | Ticket(s) |
 |--------------|----------|------------|-----------|

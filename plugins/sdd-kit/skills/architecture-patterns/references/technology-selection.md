@@ -8,7 +8,7 @@ Comparison matrices and decision trees for high-load system design. Used by the 
 
 | Technology | Best For | Considerations |
 |------------|----------|----------------|
-| **Laravel Reverb** | Laravel-native WebSockets, presence channels | Simple setup, scales with Laravel |
+| **Framework-native WebSocket server** | Presence channels inside the app's own framework | Simple setup, scales with the framework |
 | **Socket.io** | Cross-platform real-time, fallbacks | More features, more complexity |
 | **Server-Sent Events** | One-way server-to-client updates | Simple, no bidirectional |
 | **WebRTC** | Peer-to-peer, video/audio | Complex, requires STUN/TURN |
@@ -18,8 +18,8 @@ Comparison matrices and decision trees for high-load system design. Used by the 
 
 | Technology | Best For | Considerations |
 |------------|----------|----------------|
-| **Laravel Queues + Redis** | Standard Laravel jobs | Built-in, simple, good for most cases |
-| **Laravel Horizon** | Redis queue monitoring/management | Dashboard, metrics, fine control |
+| **Framework job queue + Redis** | Standard application jobs | Built-in, simple, good for most cases |
+| **Queue dashboard** | Redis queue monitoring/management | Dashboard, metrics, fine control |
 | **RabbitMQ** | Complex routing, guaranteed delivery | More ops, more features |
 | **Amazon SQS** | AWS native, serverless | Managed, scales infinitely |
 | **Kafka** | High-throughput event streaming | Complex, for 100K+ events/sec |
@@ -55,7 +55,7 @@ Comparison matrices and decision trees for high-load system design. Used by the 
 | **Memcached** | Simple key-value cache | Less features, very fast |
 | **Cloudflare/Fastly** | Edge caching, CDN | Global, managed |
 | **Varnish** | HTTP cache layer | Complex, powerful |
-| **Laravel Cache** | Application-level | Use existing infrastructure |
+| **Framework cache layer** | Application-level | Use existing infrastructure |
 
 ### Graph & Relationships
 
@@ -72,10 +72,10 @@ Comparison matrices and decision trees for high-load system design. Used by the 
 | Technology | Best For | Considerations |
 |------------|----------|----------------|
 | **Datadog** | Full-stack monitoring | Expensive, comprehensive |
-| **New Relic** | APM, error tracking | Good Laravel support |
+| **New Relic** | APM, error tracking | Check the framework's integration |
 | **Sentry** | Error tracking | Focus on errors |
 | **Prometheus + Grafana** | Self-hosted metrics | Free, more ops |
-| **Laravel Telescope** | Development debugging | Dev only |
+| **Framework debug dashboard** | Development debugging | Dev only |
 | **Elastic APM** | If already using ELK | Good integration |
 
 
@@ -87,9 +87,9 @@ Comparison matrices and decision trees for high-load system design. Used by the 
 Need real-time updates?
 ├── Server → Client only?
 │   ├── Simple updates → Server-Sent Events
-│   └── Complex updates → WebSockets (Reverb)
+│   └── Complex updates → WebSockets
 ├── Bidirectional?
-│   ├── Laravel ecosystem → Laravel Reverb
+│   ├── Framework-native option exists → use it
 │   ├── Cross-platform → Socket.io
 │   └── Managed → Pusher/Ably
 └── Peer-to-peer?
@@ -119,7 +119,7 @@ Need search functionality?
 ```
 Need background processing?
 ├── Standard jobs (emails, reports)?
-│   └── Laravel Queues + Redis + Horizon
+│   └── Framework job queue + Redis + dashboard
 ├── Complex routing?
 │   └── RabbitMQ
 ├── High-throughput events?

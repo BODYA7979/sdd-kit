@@ -123,7 +123,7 @@ REFORMULATED:
 
 | Vague Request | Reformulated Request |
 |---------------|---------------------|
-| "Add authentication" | "Implement Laravel Passport OAuth2 with: login/logout endpoints, token refresh, user info endpoint. Use existing User model, create AuthService with DTO. Include Pest tests for all flows." |
+| "Add authentication" | "Implement OAuth2 token auth with: login/logout endpoints, token refresh, user info endpoint. Use the existing User model, create an AuthService with a typed data object. Include tests for all flows." |
 | "Fix the bug" | "Debug and fix [specific error] in [file:line]. Root cause analysis, implement fix following existing patterns, add regression test, update related documentation if API changed." |
 | "Make it faster" | "Profile [component] for performance bottlenecks. Identify top 3 issues by impact. Implement optimizations (caching/query/algorithm), measure before/after, document changes." |
 | "Add user feature" | "Implement [specific user feature] in [module]. Create: DTO, Service method, Controller action, API endpoint, Resource transformer, Feature test. Follow DTO-first pattern." |
@@ -222,7 +222,7 @@ create_relations([{
 - [ ] Uses DTOs for all data transfer
 - [ ] Includes proper error handling
 - [ ] No debug statements in code
-- [ ] Code style passes (Pint/ESLint)
+- [ ] Code style passes (the project's formatter and linter)
 
 ## Testing
 - [ ] Tests written alongside code
@@ -242,19 +242,17 @@ create_relations([{
 
 # Technology Stack
 
-## Laravel (Backend)
-- Service-Repository pattern
-- DTO-first development
-- Eloquent ORM with strict typing
-- Policy-based authorization
+## Backend
+- <framework and architecture pattern>
+- <data access and typing rules>
+- <authorization approach>
 
-## Next.js (Frontend)
-- App Router with Server Components
-- Server Actions for mutations
-- TypeScript strict mode
-- Zod validation
+## Frontend
+- <framework and rendering model>
+- <mutation and validation approach>
+- <type-checking strictness>
 
 ## Testing
-- Pest PHP for Laravel
-- Vitest for TypeScript
-- Playwright for E2E
+- <backend test runner>
+- <frontend test runner>
+- <E2E tool>

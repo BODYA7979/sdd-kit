@@ -46,7 +46,7 @@ These are the paths the project `CLAUDE.md` (from `CLAUDE.template.md`) loads, s
 /write-docs --type=business --source=app/Services
 
 # Generate API documentation
-/write-docs --type=api --source=routes/api.php
+/write-docs --type=api --source=<route definitions file>
 
 # Generate architecture overview
 /write-docs --type=architecture
@@ -121,7 +121,7 @@ Extract from service classes, FormRequest validation rules, policies, domain eve
 ## Domain: {DomainName}
 
 ### Rule: {RuleName}
-**Source**: `app/Services/{ServiceName}.php`
+**Source**: `<path to the service source file>`
 **Description**: {What the rule enforces}
 **Conditions**: {When it applies}
 **Actions**: {What happens}
@@ -217,19 +217,19 @@ Checks whether docs and code still follow the project's own conventions.
 
 1. **Collect the rules** from `CLAUDE.md`, `AGENTS.md`, and `.claude/rules/*.md` (each rule file applies only to its `paths:` globs). These are the conventions; do not import conventions from anywhere else. With `--source=<url>`, an external document is compared against the same rules (WebFetch, or Claude in Chrome for rendered pages).
 2. **Check the code** (code-explorer): for each rule, find the files its globs cover and record compliant and violating examples with `file:line`. Typical rules: invokable controllers, DTOs at layer boundaries, service-repository layering, schema docs before migrations, policies on every endpoint, Server Actions re-checking the session, lowercase doc filenames.
-3. **Check the docs**: every endpoint in `routes/api.php` appears in `docs/api/api-contracts.md` and vice versa; every table with a migration has `docs/schemas/{table}.md`; business rules cite code that still exists at the cited line; docs reference no removed classes or paths.
+3. **Check the docs**: every endpoint in the route definitions appears in `docs/api/api-contracts.md` and vice versa; every table with a migration has `docs/schemas/{table}.md`; business rules cite code that still exists at the cited line; docs reference no removed classes or paths.
 4. **Report drift**, prioritized:
 
 ```
 Docs and code audit (rules: CLAUDE.md, AGENTS.md, 5 rule files)
 
 Critical
-  1. Missing authorization: app/Http/Controllers/Jobs/DeleteJobController.php:18 has no policy check (rule: api-controllers.md "every endpoint authorizes")
+  1. Missing authorization: src/controllers/jobs/delete-job-controller:18 has no policy check (rule: api-controllers.md "every endpoint authorizes")
 High
-  2. Doc-code mismatch: docs/api/api-contracts.md:44 says POST /api/jobs returns 200; JobController returns 201 (app/Http/Controllers/Jobs/StoreJobController.php:31)
-  3. Undocumented endpoints: DELETE /api/jobs/{job} (routes/api.php:27)
+  2. Doc-code mismatch: docs/api/api-contracts.md:44 says POST /api/jobs returns 200; JobController returns 201 (src/controllers/jobs/store-job-controller:31)
+  3. Undocumented endpoints: DELETE /api/jobs/{job} (src/routes/api:27)
 Medium
-  4. Missing schema doc: job_applications (database/migrations/2026_10_01_000003_create_job_applications_table.php)
+  4. Missing schema doc: job_applications (database/migrations/2026_10_01_000003_create_job_applications_table)
 Low
   5. Uppercase doc filename: docs/API_NOTES.md
 
@@ -291,13 +291,13 @@ Output: merged into `docs/api/api-contracts.md` (lowercase, reformatted, front m
 ## Domain: Orders
 
 ### Rule: Minimum Order Amount
-**Source**: `app/Services/OrderService.php:45`
+**Source**: `src/services/order-service:45`
 **Description**: Orders must meet minimum amount threshold
 **Conditions**: Applied to all new orders
 **Actions**: Reject orders below $10.00 with validation error
 
 ### Rule: Inventory Check
-**Source**: `app/Services/OrderService.php:78`
+**Source**: `src/services/order-service:78`
 **Description**: Verify stock availability before order confirmation
 **Conditions**: Applied during checkout process
 **Actions**: Reserve inventory or show out-of-stock message

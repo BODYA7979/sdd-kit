@@ -104,7 +104,7 @@ Use `--force` to proceed anyway.
 
 - **With Serena** (optional MCP server, when the session has it): use its symbol rename, which updates references by meaning rather than by text.
 - **Without it** (the default): Grep every occurrence of the old name: class and file names, `use` imports, container bindings and config keys, route names, string references (`'App\\Services\\Old'`, Blade or dynamic imports), tests, and docs. Rename the file with `git mv`, edit each occurrence, then Grep again until the old name only appears where it should (changelog, migrations already run).
-- Either way, run the full gates afterward: PHPStan and tsc catch most missed references, and the tests catch the rest.
+- Either way, run the full gates afterward: the types and lint gates catch most missed references, and the tests catch the rest.
 
 ### Clarify (conditional)
 
@@ -119,8 +119,8 @@ Ask 2-4 essential questions max. During implementation, pause and ask if blocked
 Implementation Plan
 
 Files to Modify:
-  - path/to/file.php (modify)
-  - path/to/new-file.php (create)
+  - path/to/file (modify)
+  - path/to/new-file (create)
 
 Approach:
   1. Step one
@@ -152,8 +152,8 @@ Task Complete: TASK-{NNNN}
 Summary: {what was done}
 
 Files Changed ({N}):
-  + new-file.php (new)
-  ~ modified-file.php (modified)
+  + new-file (new)
+  ~ modified-file (modified)
 
 Tests: {N} passing
 
@@ -184,8 +184,8 @@ Location: `.ai/tasks/TASK-{NNNN}-{slug}.md`
 
 ## Verification
 - [x] Tests passing
-- [x] Code style (Pint)
-- [x] Static analysis (PHPStan)
+- [x] Code style (formatter)
+- [x] Static analysis (types gate)
 - [x] No debug statements
 
 ---

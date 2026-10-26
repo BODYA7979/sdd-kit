@@ -45,8 +45,8 @@ Rules that hold everywhere. Cite them by ID in specs and reviews.
 
 - **INV-01** <Money amounts are integers in minor units. Never use floats or divide by 100 in the backend.>
 - **INV-02** <All timestamps are stored in UTC and converted only at the presentation layer.>
-- **INV-03** <Controllers are single-action invokable; business logic lives in services.>
-- **INV-04** <Data crosses layer boundaries as DTOs, never raw arrays or Eloquent models.>
+- **INV-03** <Request handlers stay thin; business logic lives in a service layer.>
+- **INV-04** <Data crosses layer boundaries as typed objects, never raw arrays or ORM models.>
 - **INV-05** <Every endpoint the browser calls is listed in the API contract doc.>
 
 ## Gotchas
@@ -62,18 +62,18 @@ These traps have been confirmed in this codebase. Keep fixed entries and annotat
 
 | If you change | Also update |
 |---------------|-------------|
-| A DTO | every `from()`/`fromModel()` caller, events carrying it, Resources, tests |
-| A database column | schema doc, factory, DTO, Resource, frontend types |
+| A shared data type | every constructor and mapper, events carrying it, serializers, tests |
+| A database column | schema doc, factory, data type, serializer, frontend types |
 | An API response shape | API contract doc, frontend types and fetchers, contract tests |
 | An enum | backend enum, frontend literal union, seeders, validation rules |
 | <thing> | <dependents> |
 
 ## Environment drift
 
-- <Local PHP <x>, production PHP <y>. Don't use syntax or functions only one of them supports.>
+- <Local runtime <x>, production runtime <y>. Don't use syntax or functions only one of them supports.>
 - <Local DB is <MySQL x>, production is <managed service y>. Check collation and JSON behavior.>
 - <Queues run `sync` locally and `<redis>` in production. Test async paths explicitly.>
-- <Feature flags differ per environment. Read `<config/features.php>`, don't assume.>
+- <Feature flags differ per environment. Read `<feature flag config>`, don't assume.>
 
 ## Trust hierarchy
 
@@ -88,7 +88,7 @@ When sources disagree, trust them in this order and fix whatever is lower:
 If a doc conflicts with the code, trust the code and fix the doc in the same change.
 
 Never state counts or versions of moving things as facts in this file or any doc
-("148 endpoints", "Laravel 12.3"). Link to the source file or a script that computes them.
+("148 endpoints", "<framework> 12.3"). Link to the source file or a script that computes them.
 
 ## How to start work
 
@@ -105,10 +105,9 @@ Path-scoped conventions in `.claude/rules/` load automatically when matching fil
 
 | Rule file | Applies to |
 |-----------|-----------|
-| `tests.md` | `tests/**`, `**/*.test.ts(x)` |
-| `migrations.md` | `database/migrations/**` |
-| `api-controllers.md` | `app/Http/Controllers/**`, `routes/api.php` |
-| `frontend-pages.md` | `app/**/page.tsx`, `src/app/**` |
-| `services-dtos.md` | `app/Services/**`, `app/Data/**`, `app/Repositories/**` |
+| `tests.md` | the test directories and file patterns of this project |
+| `<area>.md` | `<paths>` |
+
+Stack add-ons ship their own rule files, and each declares its own `paths:` in its frontmatter, so they load without being listed here.
 
 Add a rule file when one area builds up conventions. Don't grow this file instead.

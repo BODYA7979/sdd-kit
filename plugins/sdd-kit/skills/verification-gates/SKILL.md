@@ -1,109 +1,96 @@
 ---
 name: verification-gates
-description: Standard post-implementation quality gates for Laravel and Next.js (formatter, static analysis, debug-call scan, tests, coverage, ESLint, type-check, production build, browser journeys, accessibility) and how to report them. Use after implementing any change, before declaring it done; "tool unreachable" is never a pass.
+description: Standard post-implementation quality gates (format, lint, types, tests, coverage, build, browser journeys, accessibility, contract sync) taken from the stack manifest, the one recipe for finding stack data (gates, audit, scaffold, migrations) that /lint, /run-tests, /security-scan, /generate and the migrate commands share, and how to report gates. Use after implementing any change, before declaring it done; "tool unreachable" is never a pass.
 user-invocable: false
 ---
 
 # Verification Gates
 
-Standard quality checks to run after implementation. Apply them from any skill or workflow that changes code; the `code-quality` agent runs them as one verification step. The lists match the workflows' stack registry (generated from `stack.json`, in `workflows/lib/stacks.js`: `.claude/workflows/lib/stacks.js` in a file-copy install, `src/workflows/lib/stacks.js` in the plugin), so a gate that runs in a workflow runs here too. Other skills (`fix-ci`, `open-pr`, `run-tests`, `nextjs-testing`) point here for the gate set and the package-manager rule instead of keeping their own copies.
+Standard quality checks to run after implementation. Apply them from any skill or workflow that changes code; the `code-quality` agent runs them as one verification step. The gates come from the stack manifest, so a gate that runs in a workflow runs here too. Other skills (`fix-ci`, `open-pr`, `run-tests`, `lint`) point here for the gate set, the stack-data recipe and the package-manager rule instead of keeping their own copies.
 
-Run each repo's gates in that repo (in a polyrepo project, the backend gates in the Laravel repo and the frontend gates in the Next.js repo). Use only tools that are installed, but a tool that should run and cannot is reported as unreachable, never skipped silently.
+Run each repo's gates in that repo (in a polyrepo project, the backend gates in the backend repo and the frontend gates in the frontend repo). Use only tools that are installed, but a tool that should run and cannot is reported as unreachable, never skipped silently.
 
-## Laravel gates
+## Finding the stack data (the recipe)
 
-```bash
-# 1. Code style
-./vendor/bin/pint --test
+Skills that need stack data (`lint`, `run-tests`, `verification-gates`, `generate`, `security-scan`, `upgrade-deps`, `fix-ci`, `learn` and the migrate commands) resolve it with these four steps, in this order. The workflows' Detect phase uses the same sources in the same order.
 
-# 2. Static analysis
-./vendor/bin/phpstan analyse --no-progress
+1. **Project and user manifests.** `.claude/stacks/*.json` in the project, then `<config>/stacks/*.json` with the Glob and Read tools, in both install modes. `<config>` is the path `echo "$CLAUDE_CONFIG_DIR"` prints, else the path `echo "$HOME"` prints plus `/.claude`, written out literally. When `<config>` is the project directory or inside it, read nothing there: report `config directory inside the project` and treat the user stacks as unreadable. The trust store is not under `<config>`: the trust check below reads it from the home directory the OS user database records. Use only entries that are not first-party copies of a built-in key.
+2. **First-party keys.** The generated `stacks.json`: `${CLAUDE_PLUGIN_ROOT}/workflows/lib/stacks.json` in plugin mode, `.claude/workflows/lib/stacks.json` in a file-copy install. Read it with `jq` or Read and take the entry for the detected key (`entries.<key>`). No add-on discovery is needed for the first-party stacks.
+3. **Third-party plugin add-ons.** `claude plugin list --json`, then `<installPath>/stack.json` of each enabled add-on; failing that, the path the add-on's conventions skill states when loaded.
+4. **Nothing found.** Behave as the `other` stack: run the format, lint and test tooling the repo visibly has, label the result `stack manifest not found`, and suggest `/new-stack` with target `project`. This fallback applies only when no manifest found in steps 1 and 3 was rejected (the trust check exits 2), untrusted, or left unchecked because the trust check is unavailable. Otherwise run nothing and report the gates as `not run (no allowlisted gate)`.
 
-# 3. No debug statements (changed files, outside tests)
-grep -rnE "\b(dd|dump|ray)\(" app/ --include="*.php"
+The manifest fields used here: `gates[]` (`name`, `command`, `kind`, `unless`), `debugPatterns`, `audit[]`, `skills.scaffold`, `migrations`, `e2e`, `packageManagers`.
 
-# 4. Tests pass (scoped while iterating, full suite before PASS)
-php artisan test --filter={FeatureName}
-php artisan test
+### Trust
 
-# 5. Coverage threshold (when touching business logic)
-php artisan test --coverage --min=80
-```
+Gates from step 1 or step 3 (overlay manifests) run only when the manifest hash is trusted. Check with `node ${CLAUDE_SKILL_DIR}/../stack-trust/scripts/trust-store.mjs check <manifest file>` (the `/stack-trust` skill's script, beside this skill in both plugin and file-copy installs). Claude Code substitutes `${CLAUDE_SKILL_DIR}` in skill content, but does not document it for a skill preloaded into an agent. If the command still shows the literal `${CLAUDE_SKILL_DIR}`, never run it (no Bash command may hold a variable in braces). Instead, use the project's copy `.claude/skills/stack-trust/scripts/trust-store.mjs`, or in a `--user` install `<config>/skills/stack-trust/scripts/trust-store.mjs`, only when it is the script this kit ships: `shasum -a 256 .claude/skills/stack-trust/scripts/trust-store.mjs` (or `sha256sum`, with `<config>` written out for the user copy) must print <!-- trust-store.mjs sha256, generated by tools/gen-stacks.mjs -->`e6c2f3e50e5a61981c99e3e0e950177c31325b803728e17a45808005cbb2f82f` in its first field. Compare with that hash only, never with one stored in the project (such as `.claude/.framework-manifest`), which a cloned repository can plant next to the script. When no copy matches, report `trust check unavailable` and treat every overlay manifest as untrusted: a cloned repository must never supply the script that decides what it may run. Exit 0 means trusted; on any other exit (1 untrusted, 2 rejected or a usage error), or when the trust check is unavailable, print `not run (untrusted manifest). Fix: run /stack-trust.` for each of its gates and never execute them. First-party entries from step 2 are always trusted.
+
+### Kinds
+
+A gate's `kind` decides which skill runs it:
+
+| Skill | Runs |
+|-------|------|
+| `/lint` | kinds `format`, `lint`, `types` |
+| `/run-tests` | kind `test`; kind `e2e` only with `--e2e` (using the manifest's `e2e` block) |
+| `verification-gates` | every gate |
+| Workflow Gates phases | every gate, whatever its kind |
+
+Kinds `build`, `other` and an absent kind run only through verification-gates and the workflow Gates phases. Never infer a kind from a gate's name or command.
+
+### `unless`
+
+Evaluate each gate's `unless` globs yourself (Glob in the repo). A match is not a failure: report the gate as `skipped — <glob> present` and do not run it.
+
+## Gates
+
+Run, in order, every gate of the repo's manifest entry:
+
+1. Format, lint and types first (fast).
+2. Debug-call scan: grep the changed files, outside tests, for the manifest's `debugPatterns`.
+3. Tests: scoped while iterating, the full suite before PASS.
+4. Coverage, when the change touches business logic and the stack defines a coverage command.
+5. Build, then e2e (browser journeys) when the change touches a journey and the repo has the e2e config the manifest names.
+6. Accessibility, when the change touches UI components: an axe assertion in the component test, or a page-level audit (budget at least 95).
+
+The stack add-on's conventions skill keeps the tool options in `references/quality-tools.md`.
 
 ## Package manager
 
-`<pm>` runs a package script, `<pmx>` runs a local binary. Both come from the lockfile in the repo root, the same rule the workflows' Detect phase uses:
+`<pm>` runs a package script, `<pmx>` runs a local binary. Both come from the lockfile in the repo root, the same rule the workflows' Detect phase uses (the manifest's `packageManagers` list holds the lockfile names and commands):
 
-| Lockfile | `<pm>` | `<pmx>` |
-|----------|--------|---------|
-| `pnpm-lock.yaml` | `pnpm` | `pnpm exec` |
-| `yarn.lock` | `yarn` | `yarn` |
-| `bun.lockb` or `bun.lock` | `bun` | `bunx` |
-| `package-lock.json`, or no lockfile | `npm` | `npx` |
+Each manager is an entry of the manifest's `packageManagers` list: `lockfiles` (which file selects it), `run` (the `<pm>` prefix) and `exec` (the `<pmx>` prefix). The first entry whose lockfile exists wins; with no lockfile, use the last entry (the default). Without a manifest entry, read the lockfile name to pick the manager.
 
-More than one lockfile is itself a finding: ask which one is canonical instead of picking or deleting one. Never hardcode npm or npx in a repo with another lockfile.
-
-## Next.js gates
-
-```bash
-# 6. Lint
-<pm> run lint
-
-# 7. Type safety
-<pmx> tsc --noEmit
-
-# 8. Production build (catches server/client boundary errors, missing env, bad imports that tsc misses)
-<pmx> next build
-
-# 9. No debug statements (changed files, outside tests)
-grep -rnE "console\.log\(|\bdebugger\b" app/ src/ components/ lib/ 2>/dev/null
-
-# 10. Unit and component tests (when Vitest is installed; otherwise <pm> test)
-<pmx> vitest run
-<pmx> vitest run --coverage        # when touching business logic in the frontend
-
-# 11. Browser journeys (when playwright.config.* exists and the change touches a journey)
-<pmx> playwright test
-
-# 12. Accessibility (when touching UI components)
-#   component level: an axe assertion in the Vitest test
-#   page level: <pmx> lighthouse <url> --only-categories=accessibility  (budget >= 95), or axe in Playwright
-```
+More than one lockfile is itself a finding: ask which one is canonical instead of picking or deleting one. Never hardcode a package runner in a repo with another lockfile.
 
 ## Cross-repo gate
 
-```bash
-# 13. Contract sync (backend and frontend in separate repos, when installed)
-node scripts/contract-sync.mjs        # or the project's "contract-sync" script
-```
+Backend and frontend in separate repos, with the stack add-on's contract-sync installed: run `node scripts/contract-sync.mjs` (or the project's `contract-sync` script). Drift is a failure.
 
 ## Gate Results Format
 
 ```
-Verification Gates: api (laravel)
-  [PASS] 1. Code Style (Pint)
-  [PASS] 2. Static Analysis (PHPStan)
+Verification Gates: api (<stack>)
+  [PASS] 1. Format
+  [PASS] 2. Types
   [PASS] 3. No Debug Statements
   [PASS] 4. Tests Passing (214/214)
   [SKIP] 5. Coverage            reason: no business logic changed
+  [SKIP] 6. E2E                 skipped — e2e.config.* present
 
-Verification Gates: web (nextjs)
-  [PASS] 6. Lint (ESLint)
-  [PASS] 7. Type Safety (tsc)
-  [FAIL] 8. Production Build (next build)   app/jobs/page.tsx: useState in a Server Component
-  [PASS] 9. No Debug Statements
-  [PASS] 10. Tests (Vitest 88/88)
-  [SKIP] 11. Browser Journeys   reason: no journey touched
-  [SKIP] 12. Accessibility      reason: no UI component changed
+Verification Gates: web (<stack>)
+  [PASS] 1. Lint
+  [FAIL] 2. Build               app/jobs/page.tsx: useState in a Server Component
+  [----] 3. Custom gate         not run (untrusted manifest). Fix: run /stack-trust.
 
-  [PASS] 13. Contract Sync
+  [PASS] Contract Sync
 ```
 
-Conditional gates (coverage, browser journeys, accessibility, contract sync) are skipped only with the reason logged; never silently omitted. Gates 1-4 and 6-10 always apply to a repo whose code changed.
+Conditional gates (coverage, browser journeys, accessibility, contract sync) are skipped only with the reason logged; never silently omitted. Format, lint, types, debug-call scan and tests always apply to a repo whose code changed.
 
 ## On Failure
 
 - Fix the issue immediately before proceeding
 - Re-run only the failed gate after fixing, then the full set once before declaring done
-- Never weaken a gate to pass it: no lowered PHPStan level, new baseline entries, `@phpstan-ignore`, `eslint-disable`, `@ts-expect-error`, skipped tests, or lowered coverage thresholds
+- Never weaken a gate to pass it: no lowered analysis level, new baseline entries, suppression comments, skipped tests, or lowered coverage thresholds
 - Do not skip gates unless the user explicitly requests `--skip-verify`

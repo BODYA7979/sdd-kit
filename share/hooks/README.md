@@ -9,18 +9,17 @@ For the hook API itself (events, matchers, exit codes, stdin/stdout JSON, async 
 
 ## Lifecycle hooks
 
-[`hooks/hooks.json`](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/hooks/hooks.json) is the source of truth. If this table disagrees with that file, trust the file. All command hooks need `jq`.
+[`hooks/hooks.json`](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/plugins/sdd-kit/hooks/hooks.json) is the source of truth. If this table disagrees with that file, trust the file. All command hooks need `jq`.
 
 | Script | Event (matcher) | Blocks? | Purpose | Tune/disable |
 |--------|-----------------|---------|---------|--------------|
 | `session-start.sh` | SessionStart | No | Reports active specs with unchecked tasks and the latest `.ai/session/spec-*-state.json`, and suggests `/execute-task --continue` | Remove the entry |
+| `stack-hint.sh` | SessionStart | No | Prints one line, once per project, when a stack's marker files are present but its add-on is not installed. See [Stack hint](#stack-hint) | `SDD_KIT_NO_STACK_HINT=1` or remove the entry |
 | `post-compact-context.sh` | SessionStart (`compact`) | No | After compaction, re-injects the first 30 lines of `docs/context/{business-rules,architecture,workflow}.md`, the active spec count, and the latest session checkpoint | Remove the entry |
-| `block-dangerous.sh` | PreToolUse (`Bash`) | Yes (exit 2) | Blocks `rm` on `/` or `/*`, force pushes to `main`/`master`, and `DROP DATABASE`/`dropdb` | Keep it on. Run the command yourself if you really mean it |
+| `block-dangerous.sh` | PreToolUse (`Bash`) | Yes (exit 2) | Blocks `rm` on `/` or `/*`, force pushes to `main`/`master`, and `DROP DATABASE`/`dropdb`. Guards the stack trust store: see [Trust store guard](#trust-store-guard) | Keep it on. Run the command yourself if you really mean it |
 | `check-commit-msg.sh` | PreToolUse (`Bash`) | Yes (exit 2) | Makes `git commit -m` subjects follow Conventional Commits (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`) and stay within 72 characters. Lets merge/revert messages and editor-based `--amend` through | Remove the entry |
 | `token-budget.sh` | PreToolUse (`Read\|Grep\|Glob\|Bash`) | Yes (exit 2) | Always blocks `find /`. When context usage is at or above the threshold, it also blocks unbounded reads of 5,000+ line files, repo-wide content greps, `**` globs, unscoped recursive `grep`/`rg`, and `cat` of whole `.log` files | `CLAUDE_BUDGET_THRESHOLD` (default `75`, percent). Usage is read from `CLAUDE_CONTEXT_USAGE`. If that is unset, only the `find /` rule applies |
-| `test-first-check.sh` | PreToolUse (`Write\|Edit`) | Yes (exit 2) | Blocks edits to Laravel controllers, models, services, and middleware, and to Next.js `components/**/*.tsx`, until a matching test file exists | `CLAUDE_SKIP_TEST_FIRST=1` |
 | `prompt-preflight.sh` | UserPromptSubmit | No | Adds guardrail context when a prompt targets production data, force pushes, `rm -rf /`, or skipping verification. Adds a hint to load the spec when a prompt references one | Remove the entry |
-| `lint-check.sh` | PostToolUse (`Write\|Edit`), async | No | Runs `vendor/bin/pint --test` on PHP and `node_modules/.bin/eslint` on JS/TS files that changed, and reports issues as a system message | Skipped automatically when the tool isn't installed |
 | `scan-secrets.sh` | PostToolUse (`Write\|Edit`) | Reports (exit 2) | Scans the written file with `gitleaks` if it is installed, otherwise with a regex bank. On a hit, tells Claude to remove the secret and rotate it. The file is already written by then | Remove the entry (not recommended) |
 | `scan-injection.sh` | PostToolUse (`Bash\|WebFetch\|mcp__.*`), async | No | Scans the first 32 KB of tool output for prompt-injection patterns and warns Claude | Remove the entry |
 | `pre-compact-save.sh` | PreCompact | No | Writes a `.ai/session/pre-compact-<timestamp>.json` checkpoint (active spec, done/pending task counts) | Remove the entry |
@@ -28,6 +27,8 @@ For the hook API itself (events, matchers, exit codes, stdin/stdout JSON, async 
 | `notify.sh` | Notification | No | Shows a desktop notification | See [Notifications](#notifications) |
 | *(prompt)* | Stop | Yes | Before Claude stops, checks that completed tasks have passing tests, no uncommitted changes are left unexplained, and session state is saved mid-spec | See [Stop and SubagentStop checks](#stop-and-subagentstop-checks) |
 | *(prompt)* | SubagentStop | Yes | Checks that the subagent finished its task, and flags errors or incomplete results for a retry | Remove the entry |
+
+Stack add-ons add their own hooks; see [Add-on hooks](#add-on-hooks).
 
 Environment variables such as `CLAUDE_BUDGET_THRESHOLD` and `CLAUDE_SKIP_TEST_FIRST` can go in your shell or in the `env` block of `settings.json`. Both work in either install mode:
 
@@ -47,9 +48,46 @@ To turn off every hook temporarily, set `"disableAllHooks": true` in `settings.j
 
 In file-copy mode, `src/scripts/install-hooks.sh` merges the hooks into your existing `settings.json`. It needs `jq`, backs up the file first, and keeps your permissions and your own hooks. Re-running the installer replaces the kit's hooks instead of duplicating them. That also restores any kit hook you deleted, so use the env-var opt-outs above for hooks you want to keep off. Installer behavior is covered in [INSTALLATION.md](../docs/INSTALLATION.md).
 
-**Plugin mode.** The plugin's `hooks/hooks.json` is global. It applies to the whole session, subagents included, and you can't edit it per project. Use the env-var opt-outs or `disableAllHooks` instead. For what does and doesn't apply in plugin mode, see [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/plugin-mode.md).
+**Plugin mode.** The plugin's `hooks/hooks.json` is global. It applies to the whole session, subagents included, and you can't edit it per project. Use the env-var opt-outs or `disableAllHooks` instead. For what does and doesn't apply in plugin mode, see [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/plugin-mode.md).
 
 **Drift rule.** `src/settings/settings.template.json` must contain exactly the hooks in `hooks/hooks.json`, differing only in the script path prefix. `./verify.sh` fails the build if they drift. When you add or change a hook, edit both files.
+
+## Add-on hooks
+
+The test-first and lint hooks live in the stack add-ons, not in core. Each add-on ships its own `hooks/hooks.json` (plugin mode loads it with the plugin) and uniquely named scripts in its `scripts/` folder, which file-copy installs stage flat into `.claude/scripts/`:
+
+| Script | Event (matcher) | Blocks? | Purpose | Tune/disable |
+|--------|-----------------|---------|---------|--------------|
+| `<stack>-test-first.sh` | PreToolUse (`Write\|Edit`) | Yes (exit 2) | Blocks edits to the stack's source files until a matching test file exists | `CLAUDE_SKIP_TEST_FIRST=1` |
+| `<stack>-lint.sh` | PostToolUse (`Write\|Edit`), async | No | Runs the stack's linter or formatter check on changed files and reports issues as a system message | Skipped automatically when the tool isn't installed |
+
+The add-on's own documentation lists which source patterns and tools each script covers.
+
+Each script filters by file type itself, so an add-on script exits 0 for files that belong to another stack. The `hooks.json` entries carry no `if` field. `install-hooks.sh <template> <settings.json> <project|user> [<addon hooks.json>...]` merges the add-on files after the core template and swaps `"${CLAUDE_PLUGIN_ROOT}"/scripts` for the install's script prefix. It also unwires the old core `lint-check.sh` and `test-first-check.sh` entries from existing installs.
+
+## Stack hint
+
+`stack-hint.sh` reads the generated `workflows/lib/stacks.json` (`markers`, which are globs relative to the project root that match files or directories). When a first-party stack's marker matches and neither its add-on nor a preset including it is enabled (`enabledPlugins` in the user, project or local settings) or staged (`.claude/stacks/<add-on>.json` in the project or under the config directory), it prints one line naming the stack, the `/plugin install` command and `install.sh --stack=<add-on>`. The project is then recorded as the SHA-256 of `pwd -P` in `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sdd-kit/stack-hint-shown`, and later sessions stay silent. It always exits 0. Set `SDD_KIT_NO_STACK_HINT=1` to turn it off.
+
+## Trust store guard
+
+An approval in `<home>/.claude/sdd-kit/trusted-stacks.json`, where `<home>` is your home directory from the OS user database (never `$HOME` or `CLAUDE_CONFIG_DIR`), lets an overlay stack manifest's commands run, so only `/stack-trust`, after the user has reviewed the manifest, may write it. `block-dangerous.sh` refuses:
+
+- `trust-store.mjs --approve` when the hook input carries an `agent_id`, that is, when a subagent or workflow agent runs it. The main session running `/stack-trust` is allowed.
+- Shell commands that name `trusted-stacks.json` and could write it: an output redirect (other than to `/dev/null` or a descriptor), `tee`, `cp`, `mv`, `rm`, `ln`, `install`, `rsync`, `truncate`, `dd`, `touch`, `chmod`, `chown`, an editor, `sed -i`, or inline code passed with `-e`, `-c`, `-p`, `--eval` or `--print`.
+
+Reading the store stays allowed. Detect reads it with the Read tool on its literal path (never `cat` or `jq`, which Claude Code refuses outside the project) and returns its text to the workflow; a shell read such as `jq` or `test -f` in the main session is not blocked either. The hook is wired to `Bash` only; the Write and Edit tools are held back by Claude Code's own rule that writes outside the project directory need permission, since the store lives in your home directory, outside any project. The trust decision itself is made by the workflow script from the store's hashes.
+
+**Limits.** The guard is a speed bump for agents that follow the documented path, not a security boundary. It matches text in the command, so it does not stop a command that names neither the store file nor `--approve`, for example:
+
+- inline code that imports the script and calls its export: `node -e "import('<path>/trust-store.mjs').then((m) => m.approve('<source>'))"`;
+- a script file written first and run afterwards, or a file name assembled from variables or an environment value;
+- the main session (no `agent_id`) running `trust-store.mjs --approve` itself;
+- Write or Edit on the store when the session's permission mode already allows writes outside the project.
+
+**Threat model (OD-17).** A stack manifest that is neither first-party nor approved by `/stack-trust` (hash-matched) never supplies a command, path, URL or other value that reaches a shell, a gate plan or an agent prompt as an instruction. The workflows also check every value Detect and the scaffold report against a strict pattern (paths, `devUrl`, `packageManager`, gate and script names, prose) before quoting it, and drop and log the rest. Skills verify the trust script against a hash shipped in the kit, never one stored in the project. The trust store lives in the home directory the OS user database records, so neither `$HOME` nor `CLAUDE_CONFIG_DIR` (both of which a project setting can change) can point it into a repository. A config directory that resolves inside the project (the current directory, its git toplevel, `CLAUDE_PROJECT_DIR`, or any ancestor of the current directory that holds `.git`) is refused as well: the user stacks and plugin list there count as unreadable, and `trust-store.mjs` writes no settings there. Out of scope: running workflows on a repository you do not trust. Agents read repository files and have Bash, so hostile repository content can steer them regardless of `/stack-trust`, which controls manifests, not repository content. Full rules: stack-manifest.md.
+
+What keeps an untrusted manifest's commands from running is the review step: an approval records the manifest's hash, and any edit to the manifest makes it untrusted again. Review the diff of `trusted-stacks.json` (or run `trust-store.mjs --list`) if an approval you did not give shows up.
 
 ## Notifications
 
@@ -61,7 +99,7 @@ Both are `prompt` hooks: a model reviews the context and either allows the stop 
 
 ## Agent-scoped hooks
 
-Don't put guardrails in agent frontmatter (`hooks:`, `permissionMode:`). Plugin mode ignores those fields without warning, so a guard defined there is off for plugin users. Put guards in the global hooks above, or restrict the agent's `tools`. Details are in [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/plugin-mode.md).
+Don't put guardrails in agent frontmatter (`hooks:`, `permissionMode:`). Plugin mode ignores those fields without warning, so a guard defined there is off for plugin users. Put guards in the global hooks above, or restrict the agent's `tools`. Details are in [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/plugin-mode.md).
 
 ## Operational scripts
 
@@ -69,10 +107,10 @@ These live in `src/hooks/` (`.claude/hooks/` after a full file-copy install). Ru
 
 | Script | Purpose | Wire into |
 |--------|---------|-----------|
-| `pre-commit.sh` | Pint, PHPStan, and PHP syntax checks for Composer projects; ESLint (advisory only) and `tsc` for npm projects; blocks uppercase markdown filenames under `docs/` and `.ai/` (only `CLAUDE.md` and `README.md` are exempt); warns on debug statements and files over 1 MB | Git pre-commit hook |
-| `post-test.sh` | Reads the coverage report and warns below `COVERAGE_THRESHOLD` (default `80`). Flags slow tests | CI after the test step |
-| `pre-deploy.sh <env>` | Checks git state, env files, the build, recent test results, pending migrations, and production-only rules | CI/CD before deploy |
-| `post-deploy.sh <env> [url]` | Health check, Laravel/Next.js post-deploy tasks, database and cache checks, and a deployment log entry | CI/CD after deploy |
+| `pre-commit.sh` | Blocks uppercase markdown filenames under `docs/` and `.ai/` (only `CLAUDE.md` and `README.md` are exempt), warns on files over 1 MB, then runs the stack fragments | Git pre-commit hook |
+| `post-test.sh` | Reports a test results file, then runs the stack fragments (coverage against `COVERAGE_THRESHOLD`, default `80`, and slow tests) | CI after the test step |
+| `pre-deploy.sh <env>` | Checks git state, env files, secrets, and recent test results, then runs the stack fragments | CI/CD before deploy |
+| `post-deploy.sh <env> [url]` | Health check, then the stack fragments, then a deployment log entry | CI/CD after deploy |
 
 The scripts exit non-zero when a blocking check fails; warnings do not fail them. To wire `pre-commit.sh` into git:
 
@@ -83,6 +121,20 @@ exec .claude/hooks/pre-commit.sh
 EOF
 chmod +x .git/hooks/pre-commit
 ```
+
+### Stack fragments (run-parts)
+
+The four scripts are dispatchers. Stack checks live in fragments that add-ons ship at `src/plugins/<add-on>/hooks/<stage>.d/NN-<add-on>.sh` (`NN` from 10 to 90, first-party add-ons use 50) and that `install.sh --full` stages to `.claude/hooks/<stage>.d/`. Plugin mode does not run them; run `install.sh --full` if you want them.
+
+The contract each dispatcher follows:
+
+1. Run the stack-neutral checks first.
+2. Run every regular `*.sh` in `<stage>.d/` (next to the dispatcher) in `LC_ALL=C` lexical order, in the caller's working directory, passing the dispatcher's arguments (`"$@"`).
+3. Skip a file that is not executable and print `skipped <file> (not executable)`. Other names are ignored.
+4. Run all fragments even after a failure, then exit 1 and print `failed: <list>` if any failed or a neutral check failed.
+5. With no fragment directory or no executable fragment, print `no stack checks installed` and exit with the result of the neutral checks.
+
+Fragments are committed with mode 100755; `./verify.sh` asserts it. To add your own check, drop an executable `NN-name.sh` into the stage directory.
 
 ## Checking hooks work
 

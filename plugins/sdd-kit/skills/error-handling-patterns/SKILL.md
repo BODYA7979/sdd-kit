@@ -7,7 +7,7 @@ allowed-tools: Read, Grep, Glob
 
 # Error Handling Patterns
 
-Implement robust error handling with typed exceptions, Result types, and graceful degradation for Laravel + Next.js applications.
+Implement robust error handling with typed exceptions, Result types, and graceful degradation in any stack.
 
 ## When to Use This Skill
 
@@ -20,9 +20,7 @@ Implement robust error handling with typed exceptions, Result types, and gracefu
 
 | Task | Load |
 |------|------|
-| Result type (no exceptions) | `references/result-type.md` |
-| Retry with backoff | `references/retry-and-resilience.md` |
-| Next.js error handling | `references/frontend-error-handling.md` |
+| Result type, retry with backoff, frontend error boundaries | the stack add-on's skill references, when a stack add-on is installed |
 
 ---
 
@@ -55,123 +53,13 @@ Implement robust error handling with typed exceptions, Result types, and gracefu
 
 **Use when**: Modeling business rule violations
 
-```php
-namespace App\Exceptions\Domain;
-
-abstract class DomainException extends \Exception
-{
-    abstract public function errorCode(): string;
-
-    public function context(): array
-    {
-        return [];
-    }
-}
-
-// Specific domain exception
-final class InsufficientFundsException extends DomainException
-{
-    public function __construct(
-        private readonly string $accountId,
-        private readonly int $required,
-        private readonly int $available,
-    ) {
-        parent::__construct("Insufficient funds in account {$accountId}");
-    }
-
-    public function errorCode(): string
-    {
-        return 'PAYMENT.INSUFFICIENT_FUNDS';
-    }
-
-    public function context(): array
-    {
-        return [
-            'account_id' => $this->accountId,
-            'required_cents' => $this->required,
-            'available_cents' => $this->available,
-            'shortfall_cents' => $this->required - $this->available,
-        ];
-    }
-}
-```
+> Framework implementation: see the stack add-on's skill references.
 
 ### Pattern 2: Exception Handler with Consistent Responses
 
 **Use when**: All API errors need consistent format
 
-```php
-namespace App\Exceptions;
-
-use App\Exceptions\Domain\DomainException;
-
-class Handler extends ExceptionHandler
-{
-    public function render($request, \Throwable $e)
-    {
-        if ($request->expectsJson()) {
-            return $this->renderJsonError($e);
-        }
-        return parent::render($request, $e);
-    }
-
-    private function renderJsonError(\Throwable $e): JsonResponse
-    {
-        return match (true) {
-            $e instanceof ValidationException => $this->validationError($e),
-            $e instanceof DomainException => $this->domainError($e),
-            $e instanceof AuthenticationException => $this->authError($e),
-            $e instanceof ModelNotFoundException => $this->notFoundError($e),
-            default => $this->internalError($e),
-        };
-    }
-
-    private function domainError(DomainException $e): JsonResponse
-    {
-        $status = match (true) {
-            str_contains($e->errorCode(), 'NOT_FOUND') => 404,
-            str_contains($e->errorCode(), 'ALREADY_') => 409,
-            str_contains($e->errorCode(), 'UNAUTHORIZED') => 401,
-            default => 422,
-        };
-
-        return response()->json([
-            'success' => false,
-            'status' => $status,
-            'error_code' => $e->errorCode(),
-            'message' => $e->getMessage(),
-            'context' => $e->context(),
-        ], $status);
-    }
-
-    private function internalError(\Throwable $e): JsonResponse
-    {
-        Log::error('Internal error', [
-            'exception' => get_class($e),
-            'message' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-        ]);
-
-        $response = [
-            'success' => false,
-            'status' => 500,
-            'error_code' => 'INTERNAL_ERROR',
-            'message' => 'An unexpected error occurred.',
-        ];
-
-        if (config('app.debug')) {
-            $response['debug'] = [
-                'exception' => get_class($e),
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ];
-        }
-
-        return response()->json($response, 500);
-    }
-}
-```
+> Framework implementation: see the stack add-on's skill references.
 
 ---
 
@@ -207,7 +95,7 @@ class Handler extends ExceptionHandler
 |----------|---------|
 | Business rule violation | Domain exception |
 | Expected failure case | Result type |
-| Input validation | Laravel validation + 422 |
+| Input validation | The framework's validation layer + 422 |
 | External service failure | Retry with backoff |
 | Internal bug | 500 + log + alert |
 

@@ -17,7 +17,7 @@ stakeholders: []                       # people who must agree on scope, e.g. [p
 approved_by:                           # set by /sdd when a human approves
 approved_at:                           # ISO-8601 UTC, set by /sdd
 created: 2026-10-18
-stacks: [laravel, nextjs]
+stacks: [<stack-key>, <stack-key>]
 slice: SL-05                           # backlog.md slice this spec builds; omit without a product brief
 brs: [BR-30, BR-31]                    # product-brief rule ids the ACs enforce; omit without a brief
 ---
@@ -58,10 +58,10 @@ brs: [BR-30, BR-31]                    # product-brief rule ids the ACs enforce;
      tasks.md Traceability table like ACs. Omit rows that do not apply; omit the section for S. -->
 | ID | Attribute | Requirement | Verified by |
 |----|-----------|-------------|-------------|
-| **NFR-1** | Authorization | `customer` may refund own card orders; `admin` with `refunds.override` may refund any; every other role gets 403 | Pest policy test per role |
+| **NFR-1** | Authorization | `customer` may refund own card orders; `admin` with `refunds.override` may refund any; every other role gets 403 | policy test per role |
 | **NFR-2** | Performance | p95 of `POST /api/v1/refunds` < 300 ms at 20 concurrent requests (baseline 410 ms) | load test in manual-test.md |
-| **NFR-3** | Accessibility | Refund dialog meets WCAG 2.2 AA (focus trap, labelled controls, 4.5:1 contrast) | Playwright + axe |
-| **NFR-4** | Personal data | Refund reason is not logged; bank details never leave the payments provider | Pest test on log context |
+| **NFR-3** | Accessibility | Refund dialog meets WCAG 2.2 AA (focus trap, labelled controls, 4.5:1 contrast) | browser test + axe |
+| **NFR-4** | Personal data | Refund reason is not logged; bank details never leave the payments provider | test on log context |
 
 ## Rollout *(when needed — L, migrations, public API contract changes)*
 <!-- How the change reaches production safely and how it is undone. With the ops add-on installed,
@@ -71,12 +71,12 @@ brs: [BR-30, BR-31]                    # product-brief rule ids the ACs enforce;
 - **Rollback**: turn the flag off; the migration is additive and stays <!-- or the exact down path and data impact -->
 
 ## Boundaries
-- **Always**: <!-- things the implementer does without asking, e.g. "add a Pest feature test per AC", "follow service-repository" -->
+- **Always**: <!-- things the implementer does without asking, e.g. "add a feature test per AC", "follow the stack conventions skill" -->
 - **Ask first**: <!-- changes that need a human decision, e.g. "new migration", "new dependency", "public API change" -->
 - **Never**: <!-- hard lines, e.g. "edit the payments provider SDK", "disable or weaken an existing test", "touch MNC areas" -->
 
 ## Technical context
-- **Related code**: `app/Services/RefundService.php` — current refund rules
+- **Related code**: `src/services/refund-service` — current refund rules
 - **Already implemented**: <!-- pieces that exist and must not be rebuilt -->
 - **Approach**: <!-- high-level approach following existing patterns -->
 - **Repos**: <!-- backend/frontend paths when polyrepo -->

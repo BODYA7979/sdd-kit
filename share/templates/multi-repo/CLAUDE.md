@@ -14,8 +14,8 @@ alone. Setup and traps: docs/multi-repo.md in the framework.
 
 | Folder | Repo | Stack | Gates |
 |--------|------|-------|-------|
-| `be/` | `<git remote>` | Laravel API | see `be/AGENTS.md` |
-| `fe/` | `<git remote>` | Next.js (BFF) | see `fe/AGENTS.md` |
+| `be/` | `<git remote>` | Backend API | see `be/AGENTS.md` |
+| `fe/` | `<git remote>` | Frontend (BFF) | see `fe/AGENTS.md` |
 
 ## Contract
 
@@ -32,7 +32,7 @@ alone. Setup and traps: docs/multi-repo.md in the framework.
 | If you change | Read first | Then update |
 |---------------|------------|-------------|
 | A backend DTO or Resource | `be/` Resource + DTO | `fe/` type mirror, fetcher, affected pages |
-| A route path, method, or auth | `be/routes/api.php` | `fe/` registry, API client, middleware |
+| A route path, method, or auth | `be/` route definitions | `fe/` registry, API client, middleware |
 | Validation rules | `be/` FormRequest or input DTO | `fe/` form schema and error mapping |
 | An enum | `be/` enum class | `fe/` literal union, labels, filters |
 | Auth or session flow | both auth configs | both sides, in matching branches |
@@ -53,6 +53,6 @@ has to change too. Grep `fe/` before you call the backend task done.
 
 ## Environment
 
-- Backend local URL: `<https://be.ddev.site>`. Frontend local URL: `<http://localhost:3000>`.
+- Backend local URL: `<https://be.example.test>`. Frontend local URL: `<http://localhost:3000>`.
 - The frontend reads the backend URL from `<fe/.env.local: API_BASE_URL>`.
 - <Drift warning, e.g. "staging frontend points at staging API; never at production">

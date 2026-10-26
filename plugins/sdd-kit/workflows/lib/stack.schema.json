@@ -1,126 +1,688 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "stack.json",
-  "description": "Per-stack manifest: the single hand-edited source of stack data for the workflow registry.",
-  "type": "object",
-  "required": [
-    "name",
-    "order",
-    "role",
-    "detect",
-    "agent",
-    "conventions",
-    "gates",
-    "debugPatterns",
-    "acceptance"
-  ],
-  "additionalProperties": false,
-  "properties": {
-    "$schema": {
-      "type": "string"
-    },
-    "name": {
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9-]*$"
-    },
-    "order": {
-      "type": "integer"
-    },
-    "role": {
-      "type": "string",
-      "enum": [
-        "backend",
-        "frontend",
-        "fullstack",
-        "mobile"
-      ]
-    },
-    "detect": {
-      "type": "string"
-    },
-    "agent": {
+  "description": "Stack manifest: one entry object, or an array of 1 to 8 entries with unique keys. The single hand-edited source of stack data for the workflow registry.",
+  "oneOf": [
+    {
       "type": "object",
       "required": [
-        "name"
+        "name",
+        "order",
+        "role",
+        "detect",
+        "agent",
+        "conventions",
+        "gates",
+        "debugPatterns",
+        "acceptance"
       ],
       "additionalProperties": false,
       "properties": {
+        "$schema": {
+          "type": "string"
+        },
         "name": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9-]*$"
+          "pattern": "^[a-z][a-z0-9-]{1,31}$"
         },
-        "plugin": {
+        "order": {
+          "type": "integer"
+        },
+        "role": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9-]*$"
+          "enum": [
+            "backend",
+            "frontend",
+            "fullstack",
+            "mobile"
+          ]
+        },
+        "detect": {
+          "type": "string"
+        },
+        "agent": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            },
+            "plugin": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          }
+        },
+        "conventions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "command"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              },
+              "skipWhenScaffolded": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "format",
+                  "lint",
+                  "types",
+                  "test",
+                  "e2e",
+                  "build",
+                  "other"
+                ]
+              },
+              "unless": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "debugPatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "acceptance": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "devUrl": {
+          "type": "string"
+        },
+        "visual": {
+          "type": "string"
+        },
+        "buildGateGuard": {
+          "type": "string"
+        },
+        "contractSync": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "routeListCommand": {
+              "type": "string"
+            },
+            "consumer": {
+              "type": "boolean",
+              "enum": [
+                true
+              ]
+            },
+            "template": {
+              "type": "string"
+            }
+          }
+        },
+        "skills": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "conventions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "testing": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "scaffold": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "packageManagers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "lockfiles",
+              "run"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "lockfiles": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "run": {
+                "type": "string"
+              },
+              "exec": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "scaffold": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "command": {
+              "type": "string"
+            },
+            "tooling": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "ci": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "services": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "setup": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "e2e": {
+          "type": "object",
+          "required": [
+            "configGlob",
+            "run",
+            "convention"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "configGlob": {
+              "type": "string"
+            },
+            "run": {
+              "type": "string"
+            },
+            "convention": {
+              "type": "string"
+            },
+            "seed": {
+              "type": "string"
+            },
+            "file": {
+              "type": "string"
+            }
+          }
+        },
+        "migrations": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "type": "string"
+            },
+            "run": {
+              "type": "string"
+            },
+            "fresh": {
+              "type": "string"
+            }
+          }
+        },
+        "audit": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "command"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "markers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "e2eBackend": {
+          "type": "object",
+          "required": [
+            "convention"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "convention": {
+              "type": "string"
+            },
+            "seed": {
+              "type": "string"
+            }
+          }
+        },
+        "sourceDirs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "gateTemplates": {
+          "type": "array",
+          "description": "Core other manifest only: commands a repo of an unrecognized stack may run as gates. Each command holds {script}, which the workflows fill with a script or target name Detect found in the evidence file.",
+          "items": {
+            "type": "object",
+            "required": [
+              "evidence",
+              "command"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "evidence": {
+                "type": "string",
+                "description": "File, relative to the repo root, that defines the script or target."
+              },
+              "command": {
+                "type": "string",
+                "pattern": "\\{script\\}"
+              }
+            }
+          }
         }
       }
     },
-    "conventions": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "gates": {
+    {
       "type": "array",
       "items": {
         "type": "object",
         "required": [
           "name",
-          "command"
+          "order",
+          "role",
+          "detect",
+          "agent",
+          "conventions",
+          "gates",
+          "debugPatterns",
+          "acceptance"
         ],
         "additionalProperties": false,
         "properties": {
+          "$schema": {
+            "type": "string"
+          },
           "name": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,31}$"
           },
-          "command": {
-            "type": "string"
+          "order": {
+            "type": "integer"
           },
-          "skipWhenScaffolded": {
-            "type": "boolean",
+          "role": {
+            "type": "string",
             "enum": [
-              true
+              "backend",
+              "frontend",
+              "fullstack",
+              "mobile"
             ]
+          },
+          "detect": {
+            "type": "string"
+          },
+          "agent": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              },
+              "plugin": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              }
+            }
+          },
+          "conventions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "gates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "command"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "command": {
+                  "type": "string"
+                },
+                "skipWhenScaffolded": {
+                  "type": "boolean",
+                  "enum": [
+                    true
+                  ]
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "format",
+                    "lint",
+                    "types",
+                    "test",
+                    "e2e",
+                    "build",
+                    "other"
+                  ]
+                },
+                "unless": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "debugPatterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "acceptance": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "devUrl": {
+            "type": "string"
+          },
+          "visual": {
+            "type": "string"
+          },
+          "buildGateGuard": {
+            "type": "string"
+          },
+          "contractSync": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "routeListCommand": {
+                "type": "string"
+              },
+              "consumer": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "template": {
+                "type": "string"
+              }
+            }
+          },
+          "skills": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "conventions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "testing": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "scaffold": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "packageManagers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "lockfiles",
+                "run"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "lockfiles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "run": {
+                  "type": "string"
+                },
+                "exec": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "scaffold": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "command": {
+                "type": "string"
+              },
+              "tooling": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "ci": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "services": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "setup": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "e2e": {
+            "type": "object",
+            "required": [
+              "configGlob",
+              "run",
+              "convention"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "configGlob": {
+                "type": "string"
+              },
+              "run": {
+                "type": "string"
+              },
+              "convention": {
+                "type": "string"
+              },
+              "seed": {
+                "type": "string"
+              },
+              "file": {
+                "type": "string"
+              }
+            }
+          },
+          "migrations": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "run": {
+                "type": "string"
+              },
+              "fresh": {
+                "type": "string"
+              }
+            }
+          },
+          "audit": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "command"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "command": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "markers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "e2eBackend": {
+            "type": "object",
+            "required": [
+              "convention"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "convention": {
+                "type": "string"
+              },
+              "seed": {
+                "type": "string"
+              }
+            }
+          },
+          "sourceDirs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "gateTemplates": {
+            "type": "array",
+            "description": "Core other manifest only: commands a repo of an unrecognized stack may run as gates. Each command holds {script}, which the workflows fill with a script or target name Detect found in the evidence file.",
+            "items": {
+              "type": "object",
+              "required": [
+                "evidence",
+                "command"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "evidence": {
+                  "type": "string",
+                  "description": "File, relative to the repo root, that defines the script or target."
+                },
+                "command": {
+                  "type": "string",
+                  "pattern": "\\{script\\}"
+                }
+              }
+            }
           }
         }
       }
-    },
-    "debugPatterns": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "acceptance": {
-      "type": "string"
-    },
-    "notes": {
-      "type": "string"
-    },
-    "devUrl": {
-      "type": "string"
-    },
-    "visual": {
-      "type": "string"
-    },
-    "buildGateGuard": {
-      "type": "string"
-    },
-    "contractSync": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "routeListCommand": {
-          "type": "string"
-        },
-        "consumer": {
-          "type": "boolean",
-          "enum": [
-            true
-          ]
-        }
-      }
     }
-  }
+  ]
 }

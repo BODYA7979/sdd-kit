@@ -9,6 +9,36 @@
   },
   "conventions": [],
   "gates": [],
+  "gateTemplates": [
+    {
+      "evidence": "package.json",
+      "command": "npm run {script}"
+    },
+    {
+      "evidence": "package.json",
+      "command": "pnpm run {script}"
+    },
+    {
+      "evidence": "package.json",
+      "command": "yarn run {script}"
+    },
+    {
+      "evidence": "package.json",
+      "command": "bun run {script}"
+    },
+    {
+      "evidence": "composer.json",
+      "command": "composer run-script {script}"
+    },
+    {
+      "evidence": "Makefile",
+      "command": "make {script}"
+    },
+    {
+      "evidence": "justfile",
+      "command": "just {script}"
+    }
+  ],
   "debugPatterns": [
     "console.log(",
     "dd(",

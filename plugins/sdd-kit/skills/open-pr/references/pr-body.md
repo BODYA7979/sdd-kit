@@ -26,7 +26,7 @@ For every `AC-*`, `MNC-*` and `NFR-*` row in the Traceability table:
 1. Take the "Verified by" cell. `file::test name` → a test. `manual-test.md#step-N` → a manual step. `—` or empty → **unverified**.
 2. Confirm that the test exists in the repo whose PR you are writing:
    ```bash
-   grep -nF "<test name>" "<file>"         # Pest: it('…') / test('…'); Vitest/Jest: it('…') / test('…')
+   grep -nF "<test name>" "<file>"         # the test framework's test declaration, e.g. it('…') / test('…')
    ```
    Found → link it with a permalink (see *Links*). Not found → **unverified (named test not found)**.
 3. In a polyrepo change, list each row in the PR of the repo that holds its test. A row verified in the other repo is listed once with a link to the counterpart PR, not duplicated.
@@ -46,10 +46,10 @@ Link every ADR found, and only those. tech-research writes ADRs to `docs/adr/` (
 
 Group the changed paths so a reviewer sees risk first:
 
-| Repo | Call out separately |
-|------|---------------------|
-| Laravel 12 | `database/migrations/*` (name each migration; note the ones that are not additive), `routes/*.php` (new or changed endpoints), `config/*`, `composer.json` / `composer.lock` (new dependencies) |
-| Next.js 15 | new or changed routes under `app/**/page.tsx` and `app/**/route.ts`, `middleware.ts`, `next.config.*`, new `NEXT_PUBLIC_*` variables, `package.json` dependency changes |
+| Change type | Call out separately |
+|-------------|---------------------|
+| Backend | database migrations (name each; note the ones that are not additive), new or changed endpoints, configuration, new dependencies |
+| Frontend | new or changed routes and pages, middleware, public environment variables, dependency changes |
 
 Anything else goes in one line: `+N −M across K files`.
 
@@ -83,27 +83,27 @@ A pinned link keeps pointing at the reviewed code after later pushes. In the tem
 **Counterpart:** <backend-pr | frontend-pr>  ·  **Merge order:** <line>
 
 ### Changes
-- Migrations: `2026_10_19_101500_add_refund_blocked_to_orders.php` (additive, default false)
+- Migrations: `2026_10_19_101500_add_refund_blocked_to_orders` (additive, default false)
 - Endpoints: `POST /api/v1/orders/{order}/refunds` now returns 422 `refund_not_allowed` for top-ups
 - +214 −31 across 9 files
 
 ### Acceptance criteria
 | ID | Criterion | Verified by |
 |----|-----------|-------------|
-| AC-1 | Top-up refund rejected with 422 | [`tests/Feature/RefundTest.php` › rejects top-up refunds]($BLOB/tests/Feature/RefundTest.php#L42) |
-| AC-2 | Admin override is audited | [`tests/Feature/RefundOverrideTest.php` › audits override]($BLOB/tests/Feature/RefundOverrideTest.php#L18) |
+| AC-1 | Top-up refund rejected with 422 | [`tests/refund-test` › rejects top-up refunds]($BLOB/tests/refund-test#L42) |
+| AC-2 | Admin override is audited | [`tests/refund-override-test` › audits override]($BLOB/tests/refund-override-test#L18) |
 | AC-3 | Refund button hidden for top-ups | web: see <frontend-pr> |
 
 ### Must NOT change
 | ID | Behavior that stays identical | Guard |
 |----|-------------------------------|-------|
-| MNC-1 | Card refunds still need approval | [`tests/Feature/RefundTest.php` › card refund needs approval]($BLOB/tests/Feature/RefundTest.php#L77) |
+| MNC-1 | Card refunds still need approval | [`tests/refund-test` › card refund needs approval]($BLOB/tests/refund-test#L77) |
 | MNC-2 | Order response shape unchanged | manual step 4 |
 
 ### Quality attributes
 | ID | Requirement | Verified by |
 |----|-------------|-------------|
-| NFR-1 | Every role other than admin gets 403 on the override endpoint | [`tests/Feature/RefundOverrideTest.php` › non-admin roles get 403]($BLOB/tests/Feature/RefundOverrideTest.php#L55) |
+| NFR-1 | Every role other than admin gets 403 on the override endpoint | [`tests/refund-override-test` › non-admin roles get 403]($BLOB/tests/refund-override-test#L55) |
 
 ### Manual test plan
 [manual-test.md]($BLOB/.ai/specs/<folder>/manual-test.md) — 5 steps.
@@ -114,7 +114,7 @@ A pinned link keeps pointing at the reviewed code after later pushes. In the tem
 </details>
 
 ### Verification
-- Gates: pint pass · phpstan pass · pest 148/148 pass (run 2026-10-19 10:12 UTC, after the last commit)
+- Gates: format pass · types pass · test 148/148 pass (run 2026-10-19 10:12 UTC, after the last commit)
 - Review: deep-review **APPROVED** — `.ai/reviews/REVIEW-spec-PROJ-123-20261019-101500.md`
 
 ### Decision record

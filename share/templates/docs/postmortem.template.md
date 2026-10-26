@@ -228,10 +228,7 @@
 {{Link to dashboards or screenshots}}
 
 ### Relevant Code
-```php
-// Code that caused/fixed the issue
-{{Code snippet}}
-```
+<!-- Code example in the project's language; the stack add-on's skill has samples. -->
 
 ---
 

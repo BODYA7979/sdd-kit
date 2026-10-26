@@ -40,7 +40,7 @@ Research technical solutions, evaluate technologies, and compare implementation 
 ```bash
 # Search documentation (context7 MCP)
 # Search codebase for existing solutions
-grep -r "relevant_pattern" . --include="*.php"
+grep -r "relevant_pattern" . --include="*.<ext>"
 
 # For --tech mode: check official docs, community adoption, compatibility
 ```
@@ -49,7 +49,7 @@ grep -r "relevant_pattern" . --include="*.php"
 
 | Approach | Pros | Cons | Complexity | Compatibility |
 |----------|------|------|------------|---------------|
-| Option A | ... | ... | Low | Laravel native |
+| Option A | ... | ... | Low | Framework native |
 | Option B | ... | ... | Medium | Via package |
 
 ### Step 4: Recommendation
@@ -62,7 +62,7 @@ grep -r "relevant_pattern" . --include="*.php"
 ## MCP Integration
 
 ### Context7 (Documentation)
-- Search Laravel/Next.js/package documentation
+- Search the framework and package documentation
 
 ### Web pages
 - WebFetch first, for URL references and static docs.

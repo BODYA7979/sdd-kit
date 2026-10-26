@@ -41,12 +41,18 @@ New to Claude Code? Install it first: [GETTING-STARTED, section 0](getting-start
 
 ```
 /plugin marketplace add stasmarkov/sdd-kit
+/plugin install sdd-kit-laravel-nextjs@sdd-kit   # preset: core + Laravel + Next.js + devenv
+```
+
+The core plugin is stack-neutral. Stack knowledge lives in add-on plugins; the preset
+`sdd-kit-laravel-nextjs` installs the core and the Laravel, Next.js and devenv add-ons in one step
+(Claude Code resolves its dependencies). To pick pieces yourself, install the core and the add-ons you need:
+
+```
 /plugin install sdd-kit@sdd-kit
-```
-
-Add-ons are separate plugins in the same marketplace. Install only the ones you need:
-
-```
+/plugin install sdd-kit-laravel@sdd-kit  # Laravel agent, skills, rules, hooks
+/plugin install sdd-kit-nextjs@sdd-kit   # Next.js agent, skills, rules, hooks
+/plugin install sdd-kit-devenv@sdd-kit   # docker and ddev skills
 /plugin install sdd-kit-ops@sdd-kit      # deploy, rollback, feature flags, health checks, incidents
 /plugin install sdd-kit-ios@sdd-kit      # iOS/Swift agent and skills
 /plugin install sdd-kit-drupal@sdd-kit   # Drupal 11 skill
@@ -127,7 +133,9 @@ published to npm.
 | `--user` | Install into `~/.claude` (all projects). Paths in installed docs are rewritten to `~/.claude/` |
 | `--minimal` | Spec-driven core only, without `/progress`, `/spec-board`, `/investigate`, `/learn` or `/fix-ci` (see below) |
 | `--full` | Everything in core. This is the default |
-| `--with=LIST` | Add optional add-ons, comma-separated: `ops`, `ios`, `drupal`, `design` |
+| `--stack=LIST` | Stack add-ons to install, comma-separated, or `none` for core only. Default: `laravel,nextjs` on a fresh install, the installed stacks on an upgrade. Other stacks: `drupal`, `ios`. An add-on that is not a stack (`devenv`, `ops`, `design`) is rejected with a hint to use `--with` |
+| `--with=LIST` | Add optional add-ons, comma-separated: `devenv`, `ops`, `design`, plus any stack add-on |
+| `--prune` | On an upgrade, remove installed add-ons that are not selected. Without it, flags and prompt answers only add, and unselected add-ons are kept. Modified files are never deleted, and everything removed is backed up |
 | `--third-party` | Also install the pinned third-party skills from `src/settings/third-party.json` and print the recommended plugin commands. Policy: [third-party.md](third-party.md) |
 | `--dry-run` | Print added / updated / removed files and stop. Nothing is written |
 | `--yes`, `-y` | Skip the confirmation prompt |
@@ -141,11 +149,30 @@ Examples:
 ./install.sh --user --full --yes
 ```
 
+### Stacks and add-ons: two axes
+
+`--stack` picks the stack add-ons and `--with` picks the optional ones. They are independent.
+
+- **Fresh install, no `--stack`:** `laravel,nextjs` are installed. `devenv` is added to the defaults even when `--with` names other add-ons, so `--with=ops` installs laravel, nextjs, devenv and ops.
+- **`--with` given:** the optional add-ons are exactly the list you pass (plus the devenv rule above when `--stack` is absent).
+- **`--stack=none` with a stack add-on in `--with`** is an error.
+- **Upgrade:** flags and prompt answers add to what is installed. Add-ons you do not mention are kept (`Keeping installed add-on` in the plan).
+- **`--prune`:** makes the installed set exactly your selection: stacks exactly `--stack`, non-stack add-ons exactly `--with` (the installed non-stack set when `--with` is omitted). Removed files are backed up, and files you modified are kept and listed (`Removing add-on '<x>' (--prune)` in the plan).
+
+Add-on templates (for example the Laravel contract-sync template) are staged to `.claude/templates/<addon>/`.
+Add-on rules and add-on `third-party.json` fragments are file-copy only: plugin mode has no rules directory
+and ships no third-party fragments, so copy them from the add-on if you need them. Rules are copied into
+`.claude/rules/` only when absent, in project mode.
+
+Non-interactive behaviour: prompts read the terminal device, never stdin. With `--yes`, or when no terminal is
+available, nothing is asked and the defaults above apply (pass `--project` or `--user` too). There is no piped
+install; clone the repository (or use npx) and run `install.sh` as a command.
+
 ### Minimal vs full
 
 | | `--minimal` | `--full` |
 |---|---|---|
-| Skills | The main path: `sdd`, `product-brief`, `write-spec`, `execute-task`, `simple-task`, `run-tests`, `deep-review`, `open-pr`, `framework-doctor`, the shared `verification-gates` and `source-verification` references, and the stack skills the agents preload: `laravel-12`, `pest-3`, `dto-first`, `service-repository`, `api-design`, `api-security`, `nextjs-15`, `nextjs-testing`, `nextjs-auth` | Every core skill ([skill index](skills.md)) |
+| Skills | The main path: `sdd`, `product-brief`, `write-spec`, `execute-task`, `simple-task`, `run-tests`, `deep-review`, `open-pr`, `framework-doctor`, `stack-trust` (overlay approvals), the shared `verification-gates` and `source-verification` references, and the stack skills the agents preload: `laravel-12`, `pest-3`, `dto-first`, `service-repository`, `api-design`, `api-security`, `nextjs-15`, `nextjs-testing`, `nextjs-auth` | Every core skill ([skill index](skills.md)) |
 | Agents | Every agent the main path hands off to: `code-explorer`, `requirements-analyst` (product-brief, write-spec), `laravel-backend-dev`, `nextjs-frontend-dev`, `test-writer`, `code-quality` (execute-task), `adversarial-reviewer`, `security-auditor` (deep-review) | Every core agent ([agents index](agents.md)) |
 | Not included | Four of the after-`/sdd` commands (`/progress`, `/spec-board`, `/investigate`, `/learn`) and `/fix-ci`, the `/sdd` route for red CI. Use `--full` if you want them | Included |
 | Workflows | All six: `ship-feature`, `create-spec`, `fix-bug`, `qa-and-docs`, `tech-research`, `greenfield-build` | Same |
@@ -153,7 +180,7 @@ Examples:
 | Hooks | Lifecycle hooks merged into `settings.json` | Same, plus the git/CI scripts in `.claude/hooks/` |
 | Also | Settings templates, MCP configs, output styles, hook scripts | Same, plus these docs and the one-release redirect stubs in `.claude/commands/` |
 
-Add-ons (`--with=`) work with either. Re-run with `--full` at any time to grow a minimal
+The stack add-ons are staged in full with either choice; `--minimal` only trims core. Add-ons (`--with=`) work with either. Re-run with `--full` at any time to grow a minimal
 install. A few agents also preload depth skills that only `--full` ships (`event-driven`,
 `error-handling-patterns`, `typescript`, `tailwind-4`, `accessibility`, `oauth2-passport`);
 they load when installed and are skipped otherwise.
@@ -266,8 +293,43 @@ To opt in to a stricter `defaultMode` or sandbox, set them in your own `settings
 Filesystem sandboxing limits where Claude can write; do not rely on network sandboxing as a
 security control.
 
+**Read rules for overlay stacks.** Workflows read four locations outside the project: the trust
+store, the user stacks directory, the installed plugin list and the plugin cache that holds each
+installed plugin's `stack.json`. Claude Code asks before such a
+read and a workflow agent cannot answer, so until they are allowed every overlay stack manifest
+(a project or user `stacks/*.json`, or a third-party plugin's `stack.json`) is treated as
+untrusted and its gates are not run. The kit's own stacks are not affected. `/stack-trust` offers
+to add exactly these rules to your user settings, and `/framework-doctor` warns when one is missing:
+
+```
+Read(~/.claude/sdd-kit/trusted-stacks.json)
+Read(~/.claude/stacks/**)
+Read(~/.claude/plugins/installed_plugins.json)
+Read(~/.claude/plugins/cache/**)
+```
+
+With `CLAUDE_CONFIG_DIR` set, the last three name that directory as an absolute path instead; run
+`/stack-trust` to get the exact text. The trust store itself always lives in
+`~/.claude/sdd-kit/trusted-stacks.json` in your home directory as the operating system's user
+database records it: neither `$HOME` nor `CLAUDE_CONFIG_DIR` moves it.
+
 Model tiers and effort per workflow phase are covered in
 [effort-guidelines.md](effort-guidelines.md).
+
+## Upgrading from 2.x
+
+3.0 moves the Laravel, Next.js and docker/ddev components out of the core into add-ons.
+
+**Plugin mode.** Install the preset, `/plugin install sdd-kit-laravel-nextjs@sdd-kit`, to keep what 2.x gave you. Namespaces
+follow the plugin that ships the component: `/sdd-kit-laravel:laravel-12`, agents `sdd-kit-laravel:laravel-backend-dev`
+and `sdd-kit-nextjs:nextjs-frontend-dev`. Claude Code installs the preset's dependencies; on claude.ai install each add-on yourself.
+A SessionStart hint suggests the matching add-on once per project.
+
+**File-copy mode.** Re-run `install.sh` (use `--dry-run` first). With no `--stack` it installs the Laravel and Next.js
+add-ons, plus devenv on a fresh install. Moved files are replaced at their new paths, old paths are retired, and every
+overwritten or removed file is backed up to `.claude/.framework-backups/<timestamp>/`. A user agent with the same name as
+an add-on agent wins: the staged copy is dropped and the installer prints the fix. Use `--prune` to drop add-ons you no longer want.
+Bare names keep working (`/laravel-12`, `/migrate-db`, agent `laravel-backend-dev`).
 
 ## Upgrading from 1.x
 
@@ -277,7 +339,7 @@ them up first. It only removes a file whose content matches a copy the kit shipp
 edited or replaced (for example an upstream Stripe or skill-creator skill installed at the same
 path) is listed as "kept (modified or not from the kit)" and left for you to review.
 
-The tables below match the CHANGELOG's [Migrating from 1.x](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/CHANGELOG.md#migrating-from-1x) section. They list what a 1.x release shipped; components that were added and removed again during the 2.0 cycle appear only in the CHANGELOG's *Removed* table.
+The tables below match the CHANGELOG's [Migrating from 1.x](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/CHANGELOG.md#migrating-from-1x) section. They list what a 1.x release shipped; components that were added and removed again during the 2.0 cycle appear only in the CHANGELOG's *Removed* table.
 Current lists: [skills](skills.md),
 [agents](agents.md).
 
@@ -424,7 +486,7 @@ frontmatter). The installer already removes the `knowledge-graph-manager` and
 | `/plugin` → **Errors** tab | Plugin components that failed to load (plugin mode) |
 | `claude plugin validate <path>` | Manifest and frontmatter problems in a plugin directory |
 
-The hooks themselves are documented in [src/hooks/README.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/share/hooks/README.md).
+The hooks themselves are documented in [src/hooks/README.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/share/hooks/README.md).
 
 ## Uninstalling
 

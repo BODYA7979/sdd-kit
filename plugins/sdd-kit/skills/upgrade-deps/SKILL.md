@@ -1,6 +1,6 @@
 ---
 name: upgrade-deps
-description: Audit and upgrade Composer + npm/pnpm dependencies safely — report outdated/vulnerable packages, bump in tiers (patch → minor → major), and verify with the quality gates after each tier. Use when packages are outdated, a security advisory lands, or before a release.
+description: Audit and upgrade dependencies (any package manager the stack uses) safely — report outdated/vulnerable packages, bump in tiers (patch → minor → major), and verify with the quality gates after each tier. Use when packages are outdated, a security advisory lands, or before a release.
 argument-hint: "--audit-only | --patch | --minor | --major=[package] | --backend | --frontend"
 allowed-tools: Read, Edit, Bash, Grep, Glob
 disable-model-invocation: true
@@ -29,7 +29,7 @@ Keep dependencies current and CVE-free without breaking the build. Upgrades in r
 /upgrade-deps --minor
 
 # One major upgrade, deliberately, with migration notes
-/upgrade-deps --major=laravel/framework
+/upgrade-deps --major=<package>
 
 # Scope to one side
 /upgrade-deps --patch --backend
@@ -45,7 +45,7 @@ AUDIT → PLAN TIERS → UPGRADE (one tier) → GATES → COMMIT → repeat
 
 ### 1. Audit
 
-Run the `security-scan` skill's dependency audit (`--dependencies`): advisories, outdated packages, and unused direct dependencies, with the package manager the lockfile names. It is the one owner of these read-only commands, so `/progress --health` and `/changelog --release` get the same table. `--audit-only` stops here.
+Resolve each repo's stack data with the recipe in the `verification-gates` skill, then run the `security-scan` skill's dependency audit (`--dependencies`): advisories, outdated packages, and unused direct dependencies, with the package manager the lockfile names. It is the one owner of these read-only commands, so `/progress --health` and `/changelog --release` get the same table. `--audit-only` stops here.
 
 Unused direct dependencies from that table are removal candidates; removing one is a normal change that goes through the gates like any other.
 
@@ -55,17 +55,13 @@ Group by risk. **Security advisories first**, regardless of tier. Then patch, th
 
 ### 3. Upgrade one tier
 
-```bash
-composer update --with-all-dependencies <packages>
-npm update <packages>     # or pnpm up <packages>
-```
+Use the package manager's update command for the named packages in each repo (the stack add-on's `references/quality-tools.md` has the exact forms), with the manager the lockfile names.
 
 Never blanket-update across tiers in one shot — you lose the ability to bisect a break.
 
 ### 4. Gates (blocking)
 
-Run the project gates after each tier (see the `verification-gates` skill):
-Pint · PHPStan · Pest · ESLint · `tsc --noEmit`. A failing gate stops the upgrade; fix or pin before continuing.
+Run the project gates after each tier (the manifest's gates, via the `verification-gates` skill): format, lint, types and tests. A failing gate stops the upgrade; fix or pin before continuing.
 
 ### 5. Commit per tier
 

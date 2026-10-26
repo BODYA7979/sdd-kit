@@ -1,6 +1,6 @@
 ---
 name: rubric-migration
-description: Outcomes rubric for Laravel database migrations (schema changes, indices, backfill, rollback).
+description: Outcomes rubric for database migrations (schema changes, indices, backfill, rollback).
 domain: migration
 threshold: 80
 ---
@@ -10,7 +10,7 @@ threshold: 80
 ## Critical (any fail → BLOCKED)
 
 - `mig.safety.reversible`: `down()` method exists and reverses every change in `up()`. Evidence: file contents.
-- `mig.safety.pretend`: `php artisan migrate --pretend` produces a valid SQL plan with no syntax errors. Evidence: command output.
+- `mig.safety.pretend`: The migration tool's dry-run or SQL-preview mode produces a valid SQL plan with no syntax errors. Evidence: command output.
 - `mig.safety.no-destructive`: No `dropColumn` or `dropTable` on tables with production data without an explicit data-preservation step (backup, copy, or comment naming an approved ticket).
 - `mig.fk.order`: Foreign keys defined after referenced tables; no ordering deadlocks.
 
@@ -23,9 +23,9 @@ threshold: 80
 - `mig.types.precise`: Money uses `decimal(n,2)` or integer cents — never `float`. Strings use bounded `string($limit)` or `text()`, not unbounded varchar.
 - `mig.constraints.not-null`: Non-nullable columns have an explicit default OR a backfill step in the same migration.
 - `mig.backfill.split-when-large`: When adding NOT NULL on a populated table, the migration either uses a default OR splits into add-nullable → backfill → enforce-not-null (separate migrations).
-- `mig.tests.runs`: `php artisan migrate` succeeds on a fresh test DB. Evidence: command output.
-- `mig.tests.rollback`: `php artisan migrate:rollback` succeeds and returns DB to prior state.
-- `mig.model.updated`: Corresponding Eloquent model `fillable`/`casts`/`relations` updated to match schema.
+- `mig.tests.runs`: Running the pending migrations succeeds on a fresh test DB. Evidence: command output.
+- `mig.tests.rollback`: Rolling the migration back succeeds and returns DB to prior state.
+- `mig.model.updated`: Corresponding ORM model attributes, casts and relations updated to match schema.
 
 ## Nice-to-have (informational)
 

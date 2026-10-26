@@ -1,5 +1,5 @@
 {
-  "$schema": "../../workflows/lib/stack.schema.json",
+  "$schema": "../sdd-kit/workflows/lib/stack.schema.json",
   "name": "drupal",
   "order": 20,
   "role": "backend",
@@ -17,15 +17,18 @@
   "gates": [
     {
       "name": "PHPCS",
-      "command": "./vendor/bin/phpcs --standard=Drupal,DrupalPractice"
+      "command": "./vendor/bin/phpcs --standard=Drupal,DrupalPractice",
+      "kind": "lint"
     },
     {
       "name": "PHPStan",
-      "command": "./vendor/bin/phpstan analyse"
+      "command": "./vendor/bin/phpstan analyse",
+      "kind": "types"
     },
     {
       "name": "PHPUnit",
-      "command": "./vendor/bin/phpunit"
+      "command": "./vendor/bin/phpunit",
+      "kind": "test"
     }
   ],
   "debugPatterns": [
@@ -34,5 +37,19 @@
     "kint(",
     "var_dump("
   ],
-  "acceptance": "exercise the routes/controllers over HTTP"
+  "sourceDirs": [
+    "web/modules/custom/",
+    "web/themes/custom/",
+    "modules/"
+  ],
+  "acceptance": "exercise the routes/controllers over HTTP",
+  "skills": {
+    "conventions": [
+      "drupal-11"
+    ]
+  },
+  "markers": [
+    "core/lib/Drupal.php",
+    "web/core/lib/Drupal.php"
+  ]
 }

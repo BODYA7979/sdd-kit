@@ -1,113 +1,25 @@
-# TypeScript API Client
+# Typed API Client
 
-## Typed API Client
+Language-neutral rules for the client a frontend uses to call the API. The stack add-on's skill carries the typed implementation for its language.
 
-```typescript
-type ApiResponse<T> = {
-  success: boolean;
-  status: number;
-  message: string;
-  data: T;
-};
+## Structure
 
-type PaginatedResponse<T> = ApiResponse<T[]> & {
-  meta: {
-    current_page: number;
-    per_page: number;
-    total: number;
-    last_page: number;
-  };
-};
+- One request function owns the base URL, auth header, JSON encoding and timeout; every endpoint helper calls it.
+- One response type per endpoint, copied from the API contract, never inferred from a sample payload.
+- Endpoint helpers are thin: build the path, pass the typed input, return the typed output.
 
-class ApiClient {
-  private baseUrl: string;
-  private token: string | null = null;
+## Errors
 
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
-  }
+- Normalize failures into one error type carrying the status code, the machine-readable error code and the field errors of a 422.
+- Map 401 to the session-expired flow in one place, not in each caller.
+- Never swallow a network failure: surface it as the same error type with a `network` code.
 
-  setToken(token: string) {
-    this.token = token;
-  }
+## Pagination and lists
 
-  private async request<T>(
-    method: string,
-    path: string,
-    data?: unknown
-  ): Promise<ApiResponse<T>> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
+- Return the cursor or page metadata together with the items.
+- Keep list helpers generic over the item type so every resource shares one implementation.
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-    }
+## Testing
 
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method,
-      headers,
-      body: data ? JSON.stringify(data) : undefined,
-    });
-
-    const json = await response.json();
-
-    if (!response.ok) {
-      throw new ApiError(json.message, response.status, json.errors);
-    }
-
-    return json;
-  }
-
-  async get<T>(path: string): Promise<ApiResponse<T>> {
-    return this.request<T>('GET', path);
-  }
-
-  async post<T>(path: string, data: unknown): Promise<ApiResponse<T>> {
-    return this.request<T>('POST', path, data);
-  }
-
-  async patch<T>(path: string, data: unknown): Promise<ApiResponse<T>> {
-    return this.request<T>('PATCH', path, data);
-  }
-
-  async delete<T>(path: string): Promise<ApiResponse<T>> {
-    return this.request<T>('DELETE', path);
-  }
-}
-
-export const api = new ApiClient(process.env.NEXT_PUBLIC_API_URL!);
-```
-
-## SWR Hooks
-
-```typescript
-import useSWR from 'swr';
-import { api } from '@/lib/api/client';
-
-type User = {
-  id: string;
-  type: 'user';
-  attributes: {
-    name: string;
-    email: string;
-    created_at: string;
-    updated_at: string;
-  };
-};
-
-export function useUsers(page = 1) {
-  return useSWR<PaginatedResponse<User>>(
-    `/api/v1/users?page=${page}`,
-    () => api.get(`/api/v1/users?page=${page}`)
-  );
-}
-
-export function useUser(id: string) {
-  return useSWR<ApiResponse<User>>(
-    id ? `/api/v1/users/${id}` : null,
-    () => api.get(`/api/v1/users/${id}`)
-  );
-}
-```
+- Mock at the request function, with payloads taken from the API contract.
+- A contract change must fail a type check or a contract test before it fails in the browser.

@@ -61,6 +61,15 @@ before the repos exist. In any Claude Code session:
 /plugin install sdd-kit@sdd-kit
 ```
 
+Since 3.0 the core is stack-neutral. Hireboard is Laravel plus Next.js, so also install the preset,
+which pulls in the Laravel, Next.js and devenv add-ons:
+
+```
+/plugin install sdd-kit-laravel-nextjs@sdd-kit
+```
+
+In file-copy mode the installer adds those add-ons by default (`--stack=laravel,nextjs`).
+
 If you work from a local checkout of the kit (to test a branch, or because you will fork it
 for the team eval in chapter 11), skip the marketplace and load the directory for each session:
 

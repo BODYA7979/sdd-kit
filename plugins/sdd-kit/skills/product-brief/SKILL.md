@@ -48,7 +48,7 @@ Then pick the mode:
 - `--revise` → load the brief and backlog, go to [Revise](#revise---revise).
 - `--intake` → go to [Intake](#intake---intake).
 
-If code already exists (`routes/api.php`, `app/Http/Controllers/`, `**/app/**/page.tsx`, `.ai/specs/`), Grep it before slicing so the backlog never re-plans shipped work; matching specs fill the slice's `Spec:` field. Delegate to `code-explorer` only when that search spans several repos.
+If code already exists (route definitions, controllers or handlers, UI pages, `.ai/specs/`), Grep it before slicing so the backlog never re-plans shipped work; matching specs fill the slice's `Spec:` field. Delegate to `code-explorer` only when that search spans several repos.
 
 ## Step 2 — Elicit (requirements-analyst, at most 3 rounds)
 
@@ -75,7 +75,7 @@ Business rules are the part every later spec cites, so:
 - **IDs are stable.** Never renumber. A dropped rule stays with *(retired: reason)*; a changed rule keeps its id and records the change source.
 - **Testable.** One observable outcome per rule — who, what, and the visible result, including the HTTP status and error code when the API answer is already known (`422 profile_required`). "Fast", "secure", "user-friendly" are not rules; turn them into a number or move them to Success metrics.
 - **Draft until a human validates.** Frontmatter `status: draft` and an `owner` who validates. Unvalidated rules are assumptions: a spec that cites one carries it as an unchecked `Assumption: BR-nn …` Open question, so it cannot be approved until the owner validates the rule or the user accepts the assumption. On validation set `status: validated`, `validated_by`, and `validated_at`. Once validated, the backend's `docs/context/business-rules.md` becomes canonical and keeps the same ids.
-- **Rules, not design.** No table names, class names, or libraries. A stack constraint the owner insists on (e.g. "Laravel 12 API + Next.js 15 frontend", "SQLite for the MVP") goes under Problem → Constraints.
+- **Rules, not design.** No table names, class names, or libraries. A stack constraint the owner insists on (e.g. "<framework> API + <framework> frontend", "SQLite for the MVP") goes under Problem → Constraints.
 
 ## Step 4 — Slice and order `backlog.md`
 
@@ -83,7 +83,7 @@ Fill [assets/backlog.template.md](assets/backlog.template.md).
 
 ### What a slice is
 
-A **vertical slice** is one user-visible outcome through every layer it needs. For this stack that is typically a migration and model, a service and repository, an invokable controller and API resource under `/api/v1`, Pest feature tests, and a Next.js 15 App Router page (async Server Component for reads, Server Action for writes). A layer on its own ("create all migrations", "build the design system") is not a slice.
+A **vertical slice** is one user-visible outcome through every layer it needs. For a typical web app that is a schema change and model, a service, an API endpoint, tests, and a UI page (the stack add-on's conventions skill says what each looks like). A layer on its own ("create all migrations", "build the design system") is not a slice.
 
 Every MVP scope item maps to one or more slices. Each slice has a stable id (`SL-01`…), one-sentence **Outcome** (who can do what, observably), **Entry point** (the page or endpoint a user hits), **Size**, the **BRs** it enforces, **Depends on**, **Blocked by**, **Status**, **Spec**, **Source**, and ends with a one-line **Run:** `/sdd …` invocation.
 
@@ -115,7 +115,7 @@ Write the resulting **Build order** line at the top of the backlog, with indepen
 
 ### Run line
 
-- Greenfield first slice: `/sdd "New app — <product>, first slice SL-01: <outcome>. Laravel 12 API + Next.js 15 frontend. Conventions from CLAUDE.md and product-brief.md."`
+- Greenfield first slice: `/sdd "New app — <product>, first slice SL-01: <outcome>. <framework> API + <framework> frontend. Conventions from CLAUDE.md and product-brief.md."`
 - Later slices: `/sdd "SL-05: <outcome> (BR-30, BR-31, BR-32). Rules in product-brief.md."`
 - When the slice has a tracker ticket: `/sdd HIRE-5`, with the ticket key in the slice's `Ticket:` field.
 

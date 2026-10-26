@@ -71,14 +71,10 @@ ls docs/business-rules.md .ai/specs/*/spec.md 2>/dev/null
 Run objective tools FIRST - their output is ground truth:
 
 ```bash
-# PHPStan at strictest level
-./vendor/bin/phpstan analyse --level=9 --error-format=json {files}
-
-# Pest tests with coverage
-./vendor/bin/pest --coverage --min=80
-
-# Security patterns scan
-grep -rn "DB::raw\|->whereRaw\|eval(\|exec(\|shell_exec(" {files}
+# Static analysis at the strictest level the stack's tool offers, on {files}
+# The test suite with coverage (the manifest's test gate)
+# The stack add-on's security pattern scan (raw queries, command execution), run on {files}
+grep -rn "eval(\|exec(\|shell_exec(" {files}
 ```
 
 ## Phase 3: Adversarial Analysis
@@ -102,9 +98,9 @@ For each file, apply these adversarial lenses:
 # Review Checklists
 
 ## 1. Security Issues
-- [ ] No SQL injection (check ALL queries, including Eloquent raw)
+- [ ] No SQL injection (check ALL queries, including the ORM's raw-query escape hatches)
 - [ ] No XSS vulnerabilities (check all output rendering)
-- [ ] No mass assignment risks (check fillable/guarded)
+- [ ] No mass assignment risks (check mass-assignment guards)
 - [ ] Authorization on ALL endpoints (not just some)
 - [ ] Input validation COMPLETE (all fields, all constraints)
 - [ ] No secrets hardcoded or logged
@@ -135,7 +131,7 @@ For each file, apply these adversarial lenses:
 - [ ] Errors are handled, not swallowed
 
 ## 5. Code Style Compliance
-- [ ] Pint (Laravel) and ESLint (Next.js) pass; consistent naming; type hints everywhere
+- [ ] The stack's formatter and linter pass; consistent naming; type hints everywhere
 
 ## 6. Business Logic Match
 - [ ] Implementation matches EVERY spec requirement

@@ -123,7 +123,7 @@ Load only relevant context to minimize token usage.
 - **Restructuring tasks**: no RED step. Move code with the characterization tests green before, during, and after; never edit them. A task with a structural AC (e.g. "`OrderService` has no pricing logic") may add an architecture test for it, which fails first as usual.
 
 Invoke appropriate subagent based on task type:
-- `test-writer` for test-first phases (Pest for PHP, Vitest or Playwright for Next.js)
+- `test-writer` for test-first phases (the stack's unit and e2e test tools from the manifest)
 - `laravel-backend-dev` for service/controller/database tasks
 - `nextjs-frontend-dev` for page/component/Server Action tasks
 

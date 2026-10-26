@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "vercel": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@vercel/mcp-server"
+      ],
+      "env": {
+        "VERCEL_TOKEN": "${VERCEL_TOKEN}"
+      },
+      "description": "Optional. Vercel deployment management for Next.js."
+    }
+  }
+}

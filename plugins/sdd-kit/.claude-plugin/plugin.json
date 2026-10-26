@@ -1,22 +1,20 @@
 {
   "name": "sdd-kit",
-  "version": "2.1.1",
-  "description": "SDD Kit: spec-driven development for Claude Code. A single /sdd front door, six background multi-agent workflows with stack detection and cross-repo support, specialized agents and skills, and guardrail hooks. Ships Laravel and Next.js support today; optional add-ons: ops, ios, drupal, design.",
+  "version": "3.0.0",
+  "description": "SDD Kit: spec-driven development for Claude Code. A single /sdd front door, six background multi-agent workflows with stack detection and cross-repo support, specialized agents and skills, and guardrail hooks. Stack-agnostic core; stacks come from add-on plugins.",
   "author": {
     "name": "Stas Markov"
   },
   "license": "MIT",
   "repository": "https://github.com/stasmarkov/sdd-kit",
   "keywords": [
-    "laravel",
-    "nextjs",
-    "php",
-    "typescript",
+    "spec-driven-development",
     "full-stack",
     "tdd",
     "agents",
     "hooks",
-    "skills"
+    "skills",
+    "workflows"
   ],
   "homepage": "https://stasmarkov.github.io/sdd-kit/"
 }

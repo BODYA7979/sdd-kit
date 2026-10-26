@@ -6,7 +6,7 @@ window.CATALOG = {
       "ships": "core",
       "category": "frameworks",
       "invoke": "both",
-      "description": "Web accessibility (a11y) for Next.js + React. Use when building UI components, forms, navigation, or auditing pages against WCAG 2.2 AA. Covers semantic HTML, ARIA, keyboard, focus, contrast, and automated testing."
+      "description": "Web accessibility (a11y) for component-based frontends. Use when building UI components, forms, navigation, or auditing pages against WCAG 2.2 AA. Covers semantic HTML, ARIA, keyboard, focus, contrast, and automated testing."
     },
     {
       "name": "api-design",
@@ -44,13 +44,6 @@ window.CATALOG = {
       "description": "GitHub Actions CI/CD pipelines. Use for testing, deployment, and release automation workflows."
     },
     {
-      "name": "ddev",
-      "ships": "core",
-      "category": "devops",
-      "invoke": "both",
-      "description": "DDEV local development environment. Use for container management, debugging, and Laravel/Next.js development."
-    },
-    {
       "name": "deep-review",
       "ships": "core",
       "category": "quality",
@@ -72,32 +65,11 @@ window.CATALOG = {
       "description": "Design a database schema - entities, columns and types, relationships, indexes, naming, and migration strategy - and write it as docs/schemas/{table}.md in the schema-first format. Use when modelling new entities or relationships before writing migrations, planning a schema change, or reviewing an existing schema."
     },
     {
-      "name": "docker",
-      "ships": "core",
-      "category": "devops",
-      "invoke": "both",
-      "description": "Docker for Laravel + Next.js. Use for Dockerfiles, compose setup, and container configuration."
-    },
-    {
-      "name": "dto-first",
-      "ships": "core",
-      "category": "patterns",
-      "invoke": "auto",
-      "description": "DTO patterns with Spatie Laravel Data. Use for request/response data handling and layer boundaries."
-    },
-    {
       "name": "error-handling-patterns",
       "ships": "core",
       "category": "patterns",
       "invoke": "auto",
       "description": "Robust error handling with typed exceptions, Result types, and graceful degradation. Use when designing error flows or improving resilience."
-    },
-    {
-      "name": "event-driven",
-      "ships": "core",
-      "category": "patterns",
-      "invoke": "auto",
-      "description": "Event-driven architecture in Laravel. Use for events, listeners, and async processing patterns."
     },
     {
       "name": "execute-task",
@@ -111,7 +83,7 @@ window.CATALOG = {
       "ships": "core",
       "category": "execution",
       "invoke": "both",
-      "description": "Get a red CI run or a broken local build back to green without weakening any gate. Reads the failing job (gh pr checks / gh run view --log-failed, or local output), maps the step to its stack gate (Pint, PHPStan, Pest, ESLint, tsc, next build, Vitest, Playwright, lockfile/ERESOLVE install, contract sync, audit), reproduces it locally with the lockfile's package manager, applies the minimal fix (workflow YAML and Docker go through devops-engineer), then re-runs that gate and the full gate set. Never pushes; suppressions, skips, baselines, lowered thresholds, and removed steps need explicit user confirmation. Use when CI is red, a PR check fails, the build broke, npm ci or composer install fails, or a ship-feature / greenfield-build report lists a gate that stayed red. A test that fails because behavior is wrong goes to /sdd (bug route)."
+      "description": "Get a red CI run or a broken local build back to green without weakening any gate. Reads the failing job (gh pr checks / gh run view --log-failed, or local output), maps the step to its stack gate (format, lint, types, tests, build, e2e, install and lockfile, contract sync, audit), reproduces it locally with the lockfile's package manager, applies the minimal fix (workflow YAML and container builds go through devops-engineer), then re-runs that gate and the full gate set. Never pushes; suppressions, skips, baselines, lowered thresholds, and removed steps need explicit user confirmation. Use when CI is red, a PR check fails, the build broke, a dependency install fails, or a ship-feature / greenfield-build report lists a gate that stayed red. Stack-specific causes come from the stack add-on. A test that fails because behavior is wrong goes to /sdd (bug route)."
     },
     {
       "name": "framework-doctor",
@@ -125,7 +97,7 @@ window.CATALOG = {
       "ships": "core",
       "category": "execution",
       "invoke": "both",
-      "description": "Generate code scaffolding that follows project conventions — invokable controllers, services, DTOs, repositories, models, CRUD and API resource sets, Next.js pages, components, hooks and route handlers, and test stubs — from the laravel-12 and nextjs-15 template assets. Use when starting a new component or entity and you want boilerplate that already matches the service-repository and DTO-first patterns instead of writing it by hand."
+      "description": "Generate code scaffolding that follows project conventions - controllers, services, data objects, repositories, models, CRUD and API resource sets, pages, components, hooks, route handlers and test stubs - from the templates of the stack's scaffold skills (the manifest's skills.scaffold). Use when starting a new component or entity and you want boilerplate that already matches the project's patterns instead of writing it by hand."
     },
     {
       "name": "grade",
@@ -142,81 +114,32 @@ window.CATALOG = {
       "description": "Research a technical problem or evaluate a technology inline — searches the codebase and framework docs, compares options in a pros/cons table, and ends with a concrete recommendation, implementation steps, and a testing strategy. Use when you need a quick answer to \"how should we do X\" or \"which library fits\" before coding. For a formal, adversarially verified decision with an ADR, use /tech-research instead."
     },
     {
-      "name": "laravel-12",
-      "ships": "core",
-      "category": "frameworks",
-      "invoke": "both",
-      "description": "Laravel 12 API patterns. Use for services, models, controllers, and backend architecture decisions."
-    },
-    {
-      "name": "laravel-migration-coordinator",
-      "ships": "core",
-      "category": "frameworks",
-      "invoke": "both",
-      "description": "Plan, write, and verify safe Laravel migrations. Use when adding/altering DB schema, splitting NOT-NULL backfills, fixing foreign-key ordering, designing zero-downtime migrations, or auditing an existing migration before merge. Pairs with Pest 3 integration tests and `php artisan migrate --pretend` for evidence-based safety checks."
-    },
-    {
       "name": "learn",
       "ships": "core",
       "category": "workflow",
       "invoke": "manual",
-      "description": "Fix the system, not the instance - turn one mistake into the cheapest durable guard so the whole class cannot recur. States the mistake class with file:line evidence, dedupes against CLAUDE.md GOTCHA/INV entries, .claude/rules and existing architecture tests, then proposes, in order, a regression or architecture test (Pest arch / Vitest), a PHPStan or ESLint rule, a line in the matching path-scoped .claude/rules file, or a GOTCHA/INV entry in CLAUDE.md (hooks are proposal text only), shows the exact diff, and writes only after explicit approval. Use after a fix-bug report's Prevention section, a recurring deep-review finding, a CI fix, an incident postmortem action item, or when the user corrects Claude (\"don't do that again\", \"remember this\", \"we never do X here\")."
+      "description": "Fix the system, not the instance - turn one mistake into the cheapest durable guard so the whole class cannot recur. States the mistake class with file:line evidence, dedupes against CLAUDE.md GOTCHA/INV entries, .claude/rules and existing architecture tests, then proposes, in order, a regression or architecture test, a static-analysis or lint rule, a line in the matching path-scoped .claude/rules file, or a GOTCHA/INV entry in CLAUDE.md (hooks are proposal text only), shows the exact diff, and writes only after explicit approval. Use after a fix-bug report's Prevention section, a recurring deep-review finding, a CI fix, an incident postmortem action item, or when the user corrects Claude (\"don't do that again\", \"remember this\", \"we never do X here\")."
     },
     {
       "name": "lint",
       "ships": "core",
       "category": "quality",
       "invoke": "both",
-      "description": "Run the code quality suite — Laravel Pint, PHPStan, and Rector for PHP; ESLint, TypeScript type-check, and Prettier for JS/TS — in check or auto-fix mode, scoped to PHP or JS if needed. Use when you want to validate style and static analysis before committing or opening a PR, or to auto-fix formatting issues."
+      "description": "Run the code quality suite - the format, lint and type-check gates of the detected stack (taken from the stack manifest) - in check or auto-fix mode, scoped to one repo or language if needed. Use when you want to validate style and static analysis before committing or opening a PR, or to auto-fix formatting issues."
     },
     {
-      "name": "migrate-db",
+      "name": "new-stack",
       "ships": "core",
-      "category": "execution",
+      "category": "workflow",
       "invoke": "manual",
-      "description": "Create, modify, roll back, and inspect Laravel database migrations schema-first — update the schema doc in docs/schemas/ before generating the migration, check it with the laravel-migration-coordinator safety rules, then run and report migration status. Use when adding or altering tables, rolling back a batch, or checking which migrations are pending. Runs migrations, so it is user-invoked only."
-    },
-    {
-      "name": "nextjs-15",
-      "ships": "core",
-      "category": "frameworks",
-      "invoke": "both",
-      "description": "Next.js 15 App Router patterns. Use for pages, components, server actions, and frontend architecture."
-    },
-    {
-      "name": "nextjs-auth",
-      "ships": "core",
-      "category": "security",
-      "invoke": "auto",
-      "description": "Next.js auth patterns for Laravel APIs. Use for token flow, middleware, and protected routes."
-    },
-    {
-      "name": "nextjs-performance-profiler",
-      "ships": "core",
-      "category": "frameworks",
-      "invoke": "both",
-      "description": "Profile and optimize Next.js 15 App Router apps for Core Web Vitals (LCP/INP/CLS), bundle size, server-component balance, and image/font delivery. Use when investigating slow page loads, before a release, or when CWV regress. Runs Lighthouse, bundle analysis, and provides targeted fix patterns."
-    },
-    {
-      "name": "nextjs-testing",
-      "ships": "core",
-      "category": "frameworks",
-      "invoke": "auto",
-      "description": "Testing patterns for the Next.js 15 half of a Laravel + Next.js app - Vitest with React Testing Library component tests, MSW mocks built from the Laravel API contract, Server Action and Route Handler tests, and Playwright E2E journeys against an isolated, seeded Laravel e2e environment (APP_ENV=e2e). Use when writing or fixing *.test.ts(x) or e2e/*.spec.ts files, setting up vitest.config or playwright.config, mocking the Laravel API in frontend tests, naming frontend tests after spec acceptance criteria (AC-n) for traceability, or deciding which layer a frontend behaviour belongs to."
-    },
-    {
-      "name": "oauth2-passport",
-      "ships": "core",
-      "category": "security",
-      "invoke": "auto",
-      "description": "Laravel Passport OAuth2 patterns. Use for token auth, scopes, PKCE, and API authentication."
+      "description": "Scaffold a new stack add-on (manifest, agent, conventions skill, lint hook) from the kit template, or stage a project-local stack. Use when the user wants SDD Kit to support a stack it does not ship, says \"add a stack\", \"new stack\", or \"scaffold a stack add-on\", or after /sdd reports that no stack matched."
     },
     {
       "name": "observability",
       "ships": "core",
       "category": "devops",
       "invoke": "both",
-      "description": "Observability for Laravel API + Next.js — structured logging, error tracking (Sentry), metrics, and OpenTelemetry tracing. Use when adding logging/monitoring, instrumenting requests, debugging production issues, or wiring alerting."
+      "description": "Observability for web applications - structured logging, error tracking, metrics, and OpenTelemetry tracing. Use when adding logging/monitoring, instrumenting requests, debugging production issues, or wiring alerting. Stack-specific setup comes from the stack add-on's references."
     },
     {
       "name": "open-pr",
@@ -224,13 +147,6 @@ window.CATALOG = {
       "category": "release",
       "invoke": "manual",
       "description": "Open spec-traced pull requests once a feature or fix is approved — one PR per changed repo, backend first, cross-linked. Checks the preconditions (spec in-progress or done, gates green, deep-review APPROVED when a report exists), builds each PR body from the spec (summary, every acceptance criterion mapped to its test, Must-NOT-change guards, manual test plan, ADR link, counterpart PR), uses a conventional-commit title, and shows the exact push and gh pr create commands before running them. Use when a spec or bug fix is built and reviewed and the user wants to open its PRs (/open-pr --spec=PROJ-123), when a ship-feature or fix-bug report ends with \"Next: /open-pr\", or when a polyrepo change needs linked backend and frontend PRs. Pushes branches and creates PRs, so it is user-invoked only."
-    },
-    {
-      "name": "pest-3",
-      "ships": "core",
-      "category": "frameworks",
-      "invoke": "auto",
-      "description": "Pest PHP 3.x testing patterns. Use for writing tests, expectations, and test architecture."
     },
     {
       "name": "product-brief",
@@ -251,7 +167,7 @@ window.CATALOG = {
       "ships": "core",
       "category": "quality",
       "invoke": "both",
-      "description": "Run the Pest, Vitest and Playwright suites of a Laravel + Next.js project - Pest with filtering by name, module, or unit/feature type, coverage thresholds and parallel runs; --frontend for Vitest with coverage; --e2e for Playwright journeys in an isolated e2e environment that playwright.config (webServer) and e2e/db.setup.ts start and seed. Polyrepo-aware, analyzes failures, and ends with a per-repo verdict. Use when you need to verify a change, investigate failing tests, check coverage, or confirm the suites are green before a merge or release."
+      "description": "Run the test suites of the detected stack - the test gates from the stack manifest, with filtering by name or module, coverage and parallel runs, plus --e2e for browser journeys (the manifest's e2e block). Polyrepo-aware, analyzes failures, and ends with a per-repo verdict. Use when you need to verify a change, investigate failing tests, check coverage, or confirm the suites are green before a merge or release."
     },
     {
       "name": "schema-first",
@@ -272,14 +188,7 @@ window.CATALOG = {
       "ships": "core",
       "category": "quality",
       "invoke": "both",
-      "description": "Run security checks — Composer and npm dependency vulnerability audits, code scans for SQL injection, XSS, CSRF gaps, hardcoded secrets, auth bypasses, and Next.js Server Actions or Route Handlers that skip server-side authorization, plus an OWASP Top 10 checklist — and report findings by severity with fixes. --dependencies is the kit's one read-only dependency audit (advisories plus outdated and unused packages) that /progress --health, /changelog --release and /upgrade-deps --audit-only rely on. Use when preparing a release, after adding dependencies or auth-related code, or for a periodic security review. Upgrading packages is /upgrade-deps."
-    },
-    {
-      "name": "service-repository",
-      "ships": "core",
-      "category": "patterns",
-      "invoke": "auto",
-      "description": "Service-Repository architecture pattern. Use for business logic, layer separation, and data access."
+      "description": "Run security checks — dependency vulnerability audits (the manifest's audit commands), code scans for SQL injection, XSS, CSRF gaps, hardcoded secrets, auth bypasses, and server-side handlers that skip authorization, plus an OWASP Top 10 checklist — and report findings by severity with fixes. --dependencies is the kit's one read-only dependency audit (advisories plus outdated and unused packages) that /progress --health, /changelog --release and /upgrade-deps --audit-only rely on. Use when preparing a release, after adding dependencies or auth-related code, or for a periodic security review. Upgrading packages is /upgrade-deps."
     },
     {
       "name": "simple-task",
@@ -303,6 +212,13 @@ window.CATALOG = {
       "description": "Visual Kanban board of the specs under .ai/specs - columns by status (draft, approved, in-progress, done) plus a Backlog column of product-brief slices from backlog.md that have no spec yet, task progress, open-question and approval warnings, filters and search, and a detail drawer with the rendered spec, task checklist with AC traceability, the other spec files, and execute-task resume hints. Runs as a live local server (127.0.0.1, auto-refresh) or writes one self-contained offline HTML file; supports polyrepo (api/.ai/specs web/.ai/specs) and legacy numbered specs. Use when the user wants to see, browse, share, or review the board of their specs, or asks what is awaiting approval or in flight. For where-was-I and next-task questions use progress."
     },
     {
+      "name": "stack-trust",
+      "ships": "core",
+      "category": "workflow",
+      "invoke": "manual",
+      "description": "Review and approve overlay stack manifests (project .claude/stacks, user stacks directory, third-party plugin stack.json) before their gate commands run. Shows the commands, asks for confirmation, and records the manifest hash. Use when a workflow reports \"not run (untrusted manifest)\", when /sdd lists untrusted manifests, or after authoring a stack with /new-stack."
+    },
+    {
       "name": "sync-obsidian",
       "ships": "core",
       "category": "workflow",
@@ -310,32 +226,18 @@ window.CATALOG = {
       "description": "Sync human-verified project knowledge - specs, review output, a spec-board status note, and architecture/context docs - into an Obsidian vault with frontmatter, tags, wiki-links, and an index note. Use when publishing reviewed project knowledge to a shared Obsidian vault; supports --dry-run to preview. Only content a human has verified is synced."
     },
     {
-      "name": "tailwind-4",
-      "ships": "core",
-      "category": "frameworks",
-      "invoke": "auto",
-      "description": "Tailwind CSS v4 patterns. Use for styling, layouts, responsive design, and dark mode."
-    },
-    {
-      "name": "typescript",
-      "ships": "core",
-      "category": "frameworks",
-      "invoke": "auto",
-      "description": "TypeScript patterns for full-stack apps. Use for type definitions, API clients, and Zod validation."
-    },
-    {
       "name": "upgrade-deps",
       "ships": "core",
       "category": "quality",
       "invoke": "manual",
-      "description": "Audit and upgrade Composer + npm/pnpm dependencies safely — report outdated/vulnerable packages, bump in tiers (patch → minor → major), and verify with the quality gates after each tier. Use when packages are outdated, a security advisory lands, or before a release."
+      "description": "Audit and upgrade dependencies (any package manager the stack uses) safely — report outdated/vulnerable packages, bump in tiers (patch → minor → major), and verify with the quality gates after each tier. Use when packages are outdated, a security advisory lands, or before a release."
     },
     {
       "name": "verification-gates",
       "ships": "core",
       "category": "quality",
       "invoke": "auto",
-      "description": "Standard post-implementation quality gates for Laravel and Next.js (formatter, static analysis, debug-call scan, tests, coverage, ESLint, type-check, production build, browser journeys, accessibility) and how to report them. Use after implementing any change, before declaring it done; \"tool unreachable\" is never a pass."
+      "description": "Standard post-implementation quality gates (format, lint, types, tests, coverage, build, browser journeys, accessibility, contract sync) taken from the stack manifest, the one recipe for finding stack data (gates, audit, scaffold, migrations) that /lint, /run-tests, /security-scan, /generate and the migrate commands share, and how to report gates. Use after implementing any change, before declaring it done; \"tool unreachable\" is never a pass."
     },
     {
       "name": "write-docs",
@@ -359,6 +261,20 @@ window.CATALOG = {
       "description": "Design UI/UX for a feature: user flows, component hierarchy, state management, data fetching, and accessibility, producing a UI design document for Next.js. Use when planning a new page, component, or user flow before implementation, or when reviewing existing frontend component patterns."
     },
     {
+      "name": "ddev",
+      "ships": "devenv plugin",
+      "category": "devops",
+      "invoke": "both",
+      "description": "DDEV local development environment. Use for container management, debugging, and Laravel/Next.js development."
+    },
+    {
+      "name": "docker",
+      "ships": "devenv plugin",
+      "category": "devops",
+      "invoke": "both",
+      "description": "Docker for Laravel + Next.js. Use for Dockerfiles, compose setup, and container configuration."
+    },
+    {
       "name": "drupal-11",
       "ships": "drupal plugin",
       "category": "drupal",
@@ -378,6 +294,104 @@ window.CATALOG = {
       "category": "ios",
       "invoke": "both",
       "description": "Testing iOS/Swift code with the Swift Testing framework (@Test / #expect) and XCTest. Use when writing unit tests for view models, clients, and Swift packages, or running xcodebuild test on the simulator."
+    },
+    {
+      "name": "dto-first",
+      "ships": "laravel plugin",
+      "category": "patterns",
+      "invoke": "auto",
+      "description": "DTO patterns with Spatie Laravel Data. Use for request/response data handling and layer boundaries."
+    },
+    {
+      "name": "event-driven",
+      "ships": "laravel plugin",
+      "category": "patterns",
+      "invoke": "auto",
+      "description": "Event-driven architecture in Laravel. Use for events, listeners, and async processing patterns."
+    },
+    {
+      "name": "laravel-12",
+      "ships": "laravel plugin",
+      "category": "frameworks",
+      "invoke": "both",
+      "description": "Laravel 12 API patterns. Use for services, models, controllers, and backend architecture decisions."
+    },
+    {
+      "name": "laravel-migration-coordinator",
+      "ships": "laravel plugin",
+      "category": "frameworks",
+      "invoke": "both",
+      "description": "Plan, write, and verify safe Laravel migrations. Use when adding/altering DB schema, splitting NOT-NULL backfills, fixing foreign-key ordering, designing zero-downtime migrations, or auditing an existing migration before merge. Pairs with Pest 3 integration tests and `php artisan migrate --pretend` for evidence-based safety checks."
+    },
+    {
+      "name": "migrate-db",
+      "ships": "laravel plugin",
+      "category": "execution",
+      "invoke": "manual",
+      "description": "Create, modify, roll back, and inspect Laravel database migrations schema-first — update the schema doc in docs/schemas/ before generating the migration, check it with the laravel-migration-coordinator safety rules, then run and report migration status. Use when adding or altering tables, rolling back a batch, or checking which migrations are pending. Runs migrations, so it is user-invoked only."
+    },
+    {
+      "name": "oauth2-passport",
+      "ships": "laravel plugin",
+      "category": "security",
+      "invoke": "auto",
+      "description": "Laravel Passport OAuth2 patterns. Use for token auth, scopes, PKCE, and API authentication."
+    },
+    {
+      "name": "pest-3",
+      "ships": "laravel plugin",
+      "category": "frameworks",
+      "invoke": "auto",
+      "description": "Pest PHP 3.x testing patterns. Use for writing tests, expectations, and test architecture."
+    },
+    {
+      "name": "service-repository",
+      "ships": "laravel plugin",
+      "category": "patterns",
+      "invoke": "auto",
+      "description": "Service-Repository architecture pattern. Use for business logic, layer separation, and data access."
+    },
+    {
+      "name": "nextjs-15",
+      "ships": "nextjs plugin",
+      "category": "frameworks",
+      "invoke": "both",
+      "description": "Next.js 15 App Router patterns. Use for pages, components, server actions, and frontend architecture."
+    },
+    {
+      "name": "nextjs-auth",
+      "ships": "nextjs plugin",
+      "category": "security",
+      "invoke": "auto",
+      "description": "Next.js auth patterns for a separate API backend (token proxy, HttpOnly cookies). Use for token flow, middleware, and protected routes."
+    },
+    {
+      "name": "nextjs-performance-profiler",
+      "ships": "nextjs plugin",
+      "category": "frameworks",
+      "invoke": "both",
+      "description": "Profile and optimize Next.js 15 App Router apps for Core Web Vitals (LCP/INP/CLS), bundle size, server-component balance, and image/font delivery. Use when investigating slow page loads, before a release, or when CWV regress. Runs Lighthouse, bundle analysis, and provides targeted fix patterns."
+    },
+    {
+      "name": "nextjs-testing",
+      "ships": "nextjs plugin",
+      "category": "frameworks",
+      "invoke": "auto",
+      "description": "Testing patterns for the Next.js 15 frontend of an API-backed app - Vitest with React Testing Library component tests, MSW mocks built from the backend's API contract, Server Action and Route Handler tests, and Playwright E2E journeys against an isolated, seeded e2e environment (the references use a Laravel API as the worked backend). Use when writing or fixing *.test.ts(x) or e2e/*.spec.ts files, setting up vitest.config or playwright.config, mocking the backend API in frontend tests, naming frontend tests after spec acceptance criteria (AC-n) for traceability, or deciding which layer a frontend behaviour belongs to."
+    },
+    {
+      "name": "tailwind-4",
+      "ships": "nextjs plugin",
+      "category": "frameworks",
+      "invoke": "auto",
+      "description": "Tailwind CSS v4 patterns. Use for styling, layouts, responsive design, and dark mode."
+    },
+    {
+      "name": "typescript",
+      "ships": "nextjs plugin",
+      "category": "frameworks",
+      "invoke": "auto",
+      "description": "TypeScript patterns for full-stack apps. Use for type definitions, API clients, and Zod validation."
     },
     {
       "name": "deploy",
@@ -430,7 +444,7 @@ window.CATALOG = {
       "category": "design",
       "model": "opus",
       "effort": "high",
-      "description": "API and system architecture - resource and contract design, integration patterns, scalability and technology-fit assessment for Laravel API + Next.js systems. Use PROACTIVELY for architectural decisions, design patterns, high-load planning, and integration design."
+      "description": "API and system architecture - resource and contract design, integration patterns, scalability and technology-fit assessment for API-backed web systems in any stack. Use PROACTIVELY for architectural decisions, design patterns, high-load planning, and integration design."
     },
     {
       "name": "changelog-writer",
@@ -446,7 +460,7 @@ window.CATALOG = {
       "category": "discovery",
       "model": "sonnet",
       "effort": "low",
-      "description": "Explore and analyze codebase structure, patterns, and implementations across Laravel and Next.js repos, including existing-implementation detection (present / partial / missing per layer, with file:line). Use for understanding existing code before making changes."
+      "description": "Explore and analyze codebase structure, patterns, and implementations across any repo, one or several, including existing-implementation detection (present / partial / missing per layer, with file:line). Use for understanding existing code before making changes."
     },
     {
       "name": "code-quality",
@@ -454,7 +468,7 @@ window.CATALOG = {
       "category": "quality",
       "model": "sonnet",
       "effort": "medium",
-      "description": "Single quality-gate runner for Laravel + Next.js repos - runs the detected gate commands per repo (Pint, PHPStan, Rector dry-run, Pest; ESLint, tsc, next build, Vitest), auto-fixes formatter-class issues only, and reports pass/fail per gate with condensed failure analysis. Also has a cleanup mode that reports dead code with evidence. Use after implementing a task, before a PR, or when tests fail."
+      "description": "Single quality-gate runner for any stack - runs the gate commands from the stack manifest per repo (format, lint, types, tests, build), auto-fixes formatter-class issues only, and reports pass/fail per gate with condensed failure analysis. Also has a cleanup mode that reports dead code with evidence. Use after implementing a task, before a PR, or when tests fail."
     },
     {
       "name": "database-designer",
@@ -462,7 +476,7 @@ window.CATALOG = {
       "category": "design",
       "model": "sonnet",
       "effort": "medium",
-      "description": "Database designer and migration author. MUST BE USED for schema design, data modeling, Laravel migrations, models and factories that mirror the schema, indexing, and query optimization. Use PROACTIVELY whenever a table, column, index, constraint, or relationship is added or changed, or when a query is slow. Works schema-first and keeps migrations safe and reversible."
+      "description": "Database designer and migration author. MUST BE USED for schema design, data modeling, migrations, models and factories that mirror the schema, indexing, and query optimization. Use PROACTIVELY whenever a table, column, index, constraint, or relationship is added or changed, or when a query is slow. Works schema-first and keeps migrations safe and reversible."
     },
     {
       "name": "devops-engineer",
@@ -470,7 +484,7 @@ window.CATALOG = {
       "category": "execution",
       "model": "sonnet",
       "effort": "medium",
-      "description": "DevOps engineering agent specializing in CI/CD pipelines, Docker containerization, and deployment automation for Laravel + Next.js applications."
+      "description": "DevOps engineering agent specializing in CI/CD pipelines, containerization, and deployment automation for web applications in any stack."
     },
     {
       "name": "doc-creator",
@@ -479,22 +493,6 @@ window.CATALOG = {
       "model": "sonnet",
       "effort": "",
       "description": "Documentation writer for write-docs (generate, --import, --audit) - turns cited code analysis and external material into clear markdown, verifies every behavioral claim against file:line, and enforces lowercase filenames."
-    },
-    {
-      "name": "laravel-backend-dev",
-      "ships": "core",
-      "category": "execution",
-      "model": "sonnet",
-      "effort": "medium",
-      "description": "Laravel backend implementer for domain features, REST API endpoints, and external integrations. Use PROACTIVELY for services, repositories, DTOs, invokable controllers, JsonResources, routes, policies, events and queued jobs, third-party API clients, and inbound or outbound webhooks. Follows service-repository and DTO-first patterns with consistent JSON responses."
-    },
-    {
-      "name": "nextjs-frontend-dev",
-      "ships": "core",
-      "category": "execution",
-      "model": "sonnet",
-      "effort": "medium",
-      "description": "Next.js frontend development agent with expertise in App Router, Server Components, TypeScript, API integration patterns, and the frontend tests that prove them (Vitest + Testing Library + MSW, Playwright E2E)."
     },
     {
       "name": "outcomes-grader",
@@ -510,7 +508,7 @@ window.CATALOG = {
       "category": "quality",
       "model": "sonnet",
       "effort": "medium",
-      "description": "Performance optimization for Laravel APIs and Next.js frontends - measures a baseline and requires a target before changing anything, then finds the bottleneck (queries, caching, queues, Core Web Vitals, bundles) and verifies the gain. Use PROACTIVELY for slow endpoints or pages, performance budgets, and scalability planning."
+      "description": "Performance optimization for APIs and web frontends in any stack - measures a baseline and requires a target before changing anything, then finds the bottleneck (queries, caching, queues, Core Web Vitals, bundles) and verifies the gain. Use PROACTIVELY for slow endpoints or pages, performance budgets, and scalability planning."
     },
     {
       "name": "requirements-analyst",
@@ -534,7 +532,7 @@ window.CATALOG = {
       "category": "quality",
       "model": "sonnet",
       "effort": "medium",
-      "description": "Laravel + Next.js test writing (Pest; Vitest/Testing Library; Playwright) with schema-first and DTO-first patterns. Writes RED-phase tests that carry the spec's AC ids. Use for creating feature, unit, integration, component, and end-to-end tests."
+      "description": "Test writing for any stack (unit, integration, component and end-to-end) with schema-first and data-object-first patterns, using the repo's own test runner. Writes RED-phase tests that carry the spec's AC ids. Use for creating feature, unit, integration, component, and end-to-end tests."
     },
     {
       "name": "ui-ux-advisor",
@@ -551,6 +549,22 @@ window.CATALOG = {
       "model": "sonnet",
       "effort": "",
       "description": "iOS mobile development agent with expertise in Swift 6, SwiftUI, @Observable MVVM, structured concurrency, and SwiftData persistence. Use for native iOS/iPadOS features and Swift package work."
+    },
+    {
+      "name": "laravel-backend-dev",
+      "ships": "laravel plugin",
+      "category": "execution",
+      "model": "sonnet",
+      "effort": "medium",
+      "description": "Laravel backend implementer for domain features, REST API endpoints, and external integrations. Use PROACTIVELY for services, repositories, DTOs, invokable controllers, JsonResources, routes, policies, events and queued jobs, third-party API clients, and inbound or outbound webhooks. Follows service-repository and DTO-first patterns with consistent JSON responses."
+    },
+    {
+      "name": "nextjs-frontend-dev",
+      "ships": "nextjs plugin",
+      "category": "execution",
+      "model": "sonnet",
+      "effort": "medium",
+      "description": "Next.js frontend development agent with expertise in App Router, Server Components, TypeScript, API integration patterns, and the frontend tests that prove them (Vitest + Testing Library + MSW, Playwright E2E)."
     },
     {
       "name": "deployment-specialist",
@@ -589,7 +603,7 @@ window.CATALOG = {
     {
       "name": "create-spec",
       "description": "Detect stack → research (codebase + web + docs) → synthesize → persist an execution-ready spec for a single feature, across one or more repos",
-      "whenToUse": "When a feature needs formal planning before implementation. Auto-detects the stack (Laravel / Drupal / Next.js) and supports split backend+frontend repos. Sizes the work first (XS returns no spec). Produces a draft spec under .ai/specs/ plus open questions from a fresh-context clarity gate; after human approval hand its id to ship-feature {spec:\"<id>\"} or /execute-task.",
+      "whenToUse": "When a feature needs formal planning before implementation. Auto-detects the stack from the stack manifests and supports split backend+frontend repos. Sizes the work first (XS returns no spec). Produces a draft spec under .ai/specs/ plus open questions from a fresh-context clarity gate; after human approval hand its id to ship-feature {spec:\"<id>\"} or /execute-task.",
       "phases": [
         {
           "title": "Detect",
@@ -659,7 +673,7 @@ window.CATALOG = {
     {
       "name": "greenfield-build",
       "description": "Detect/confirm empty target → load conventions as a constitution → decide architecture → scaffold repo + CI → build one vertical slice TDD → gates → acceptance → handoff docs",
-      "whenToUse": "When starting a brand-new app/service/module where little or no code exists yet (the inverse of ship-feature). Pass { idea, stack:\"laravel|nextjs|drupal|...\", repos:{backend,frontend}, url, brief:\"product-brief.md\" }. With a brief from /product-brief, it is read as the constitution and the first backlog slice is the idea. It scaffolds (gate tooling + CI included) and ships ONE end-to-end vertical slice, then appends the next slices to backlog.md; use ship-feature for subsequent features.",
+      "whenToUse": "When starting a brand-new app/service/module where little or no code exists yet (the inverse of ship-feature). Pass { idea, stack:\"<stack key from the stack manifests>\", repos:{backend,frontend}, url, brief:\"product-brief.md\" }. With a brief from /product-brief, it is read as the constitution and the first backlog slice is the idea. It scaffolds (gate tooling + CI included) and ships ONE end-to-end vertical slice, then appends the next slices to backlog.md; use ship-feature for subsequent features.",
       "phases": [
         {
           "title": "Detect",
@@ -737,7 +751,7 @@ window.CATALOG = {
     {
       "name": "ship-feature",
       "description": "Detect stack → investigate → spec → build → quality gates → converge (spec vs code) → visual → adversarial review → docs, for a single feature across one or more repos",
-      "whenToUse": "When a feature is well-scoped enough to implement end-to-end. Auto-detects the stack (Laravel / Drupal / Next.js) and supports split backend+frontend repos. Pass {spec:\"<ref>\"} to execute an approved spec (folder name, legacy number, ticket key, or timestamp id); pass {repos:{backend,frontend}} for a polyrepo project. With a playwright.config.* in the frontend, browser acceptance leaves an e2e/<spec>.spec.ts regression test ({e2e:false} skips it); with split repos and contract-sync installed, API drift is a gate. Saves its report to .ai/reports/ for /open-pr --report.",
+      "whenToUse": "When a feature is well-scoped enough to implement end-to-end. Auto-detects the stack from the stack manifests and supports split backend+frontend repos. Pass {spec:\"<ref>\"} to execute an approved spec (folder name, legacy number, ticket key, or timestamp id); pass {repos:{backend,frontend}} for a polyrepo project. When the frontend stack declares e2e and its config exists, browser acceptance leaves an E2E regression test traced to the acceptance criteria ({e2e:false} skips it); with split repos and contract-sync installed, API drift is a gate. Saves its report to .ai/reports/ for /open-pr --report.",
       "phases": [
         {
           "title": "Detect",
@@ -773,7 +787,7 @@ window.CATALOG = {
         },
         {
           "title": "Acceptance",
-          "detail": "Trace the reported scenario end-to-end; confirm the original problem resolves; write the Playwright regression test"
+          "detail": "Trace the reported scenario end-to-end; confirm the original problem resolves; write the E2E regression test"
         },
         {
           "title": "Docs",

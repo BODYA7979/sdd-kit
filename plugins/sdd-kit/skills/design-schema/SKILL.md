@@ -61,39 +61,7 @@ Order
 Decide how the change reaches the database, not the migration code: new table vs alter, the order of foreign keys, whether a NOT NULL column on an existing table needs a split backfill, and whether the change must be zero-downtime. The `laravel-migration-coordinator` skill has the rules; `/migrate-db` writes and runs the migration from the schema doc.
 
 ### Step 4: Model Design
-```php
-class Order extends Model
-{
-    use HasUuids, SoftDeletes, HasFactory;
-
-    protected $fillable = [
-        'user_id',
-        'total_amount',
-        'currency',
-        'status',
-        'metadata',
-    ];
-
-    protected function casts(): array
-    {
-        return [
-            'status' => OrderStatusEnum::class,
-            'metadata' => 'array',
-            'total_amount' => 'integer',
-        ];
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public function items(): HasMany
-    {
-        return $this->hasMany(OrderItem::class);
-    }
-}
-```
+> Framework implementation: see the stack add-on's skill references.
 
 ## Naming Conventions
 
@@ -107,15 +75,17 @@ class Order extends Model
 
 ## Data Types
 
-| Use Case | MySQL | Laravel | Cast |
-|----------|-------|---------|------|
-| Primary Key | CHAR(36) | `uuid()->primary()` | string |
-| Foreign Key | CHAR(36) | `foreignUuid()` | string |
-| Money | BIGINT | `unsignedBigInteger()` | integer |
-| Email | VARCHAR(255) | `string('email')` | string |
-| Status | ENUM | `enum()` | Enum::class |
-| JSON | JSON | `json()` | array |
-| Timestamps | TIMESTAMP | `timestamps()` | datetime |
+| Use Case | MySQL | Application type |
+|----------|-------|------------------|
+| Primary Key | CHAR(36) | string (UUID) |
+| Foreign Key | CHAR(36) | string (UUID) |
+| Money | BIGINT | integer (minor units) |
+| Email | VARCHAR(255) | string |
+| Status | ENUM | enumeration |
+| JSON | JSON | array or object |
+| Timestamps | TIMESTAMP | datetime |
+
+The migration builder call for each type is in the stack add-on's skill.
 
 ## Output: `docs/schemas/{table}.md`
 
@@ -155,15 +125,7 @@ Customer orders and their lifecycle from checkout to delivery.
 - currency: ISO 4217, uppercase
 
 ## Enums
-```php
-enum OrderStatus: string {
-    case Pending = 'pending';
-    case Confirmed = 'confirmed';
-    case Shipped = 'shipped';
-    case Delivered = 'delivered';
-    case Cancelled = 'cancelled';
-}
-```
+> Framework implementation: see the stack add-on's skill references.
 
 ## Notes
 - Money is stored as integer minor units plus a currency column (schema-first money rule).

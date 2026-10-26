@@ -59,7 +59,7 @@ chapter 03 as ADR-0001):
 
 ## Route map
 
-`/sdd` is the single front door ([src/skills/sdd/SKILL.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/plugins/sdd-kit/skills/sdd/SKILL.md)).
+`/sdd` is the single front door ([src/skills/sdd/SKILL.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/plugins/sdd-kit/skills/sdd/SKILL.md)).
 It sorts each request into one of six routes, confirms the route with you, collects the inputs,
 and launches exactly one fixed pipeline:
 

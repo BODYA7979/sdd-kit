@@ -39,18 +39,18 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/api:$IMAGE_TAG -t $ECR_REGISTRY/api:staging ./api
-          docker push $ECR_REGISTRY/api:$IMAGE_TAG
-          docker push $ECR_REGISTRY/api:staging
+          <container build command> -t $ECR_REGISTRY/api:$IMAGE_TAG -t $ECR_REGISTRY/api:staging ./api
+          <container push command> $ECR_REGISTRY/api:$IMAGE_TAG
+          <container push command> $ECR_REGISTRY/api:staging
 
       - name: Build and push Frontend image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/frontend:$IMAGE_TAG -t $ECR_REGISTRY/frontend:staging ./frontend
-          docker push $ECR_REGISTRY/frontend:$IMAGE_TAG
-          docker push $ECR_REGISTRY/frontend:staging
+          <container build command> -t $ECR_REGISTRY/frontend:$IMAGE_TAG -t $ECR_REGISTRY/frontend:staging ./frontend
+          <container push command> $ECR_REGISTRY/frontend:$IMAGE_TAG
+          <container push command> $ECR_REGISTRY/frontend:staging
 
       - name: Deploy to ECS
         run: |
@@ -117,17 +117,17 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           VERSION: ${{ github.event.release.tag_name }}
         run: |
-          docker pull $ECR_REGISTRY/api:staging
-          docker tag $ECR_REGISTRY/api:staging $ECR_REGISTRY/api:$VERSION
-          docker tag $ECR_REGISTRY/api:staging $ECR_REGISTRY/api:latest
-          docker push $ECR_REGISTRY/api:$VERSION
-          docker push $ECR_REGISTRY/api:latest
+          <container pull command> $ECR_REGISTRY/api:staging
+          <container tag command> $ECR_REGISTRY/api:staging $ECR_REGISTRY/api:$VERSION
+          <container tag command> $ECR_REGISTRY/api:staging $ECR_REGISTRY/api:latest
+          <container push command> $ECR_REGISTRY/api:$VERSION
+          <container push command> $ECR_REGISTRY/api:latest
 
-          docker pull $ECR_REGISTRY/frontend:staging
-          docker tag $ECR_REGISTRY/frontend:staging $ECR_REGISTRY/frontend:$VERSION
-          docker tag $ECR_REGISTRY/frontend:staging $ECR_REGISTRY/frontend:latest
-          docker push $ECR_REGISTRY/frontend:$VERSION
-          docker push $ECR_REGISTRY/frontend:latest
+          <container pull command> $ECR_REGISTRY/frontend:staging
+          <container tag command> $ECR_REGISTRY/frontend:staging $ECR_REGISTRY/frontend:$VERSION
+          <container tag command> $ECR_REGISTRY/frontend:staging $ECR_REGISTRY/frontend:latest
+          <container push command> $ECR_REGISTRY/frontend:$VERSION
+          <container push command> $ECR_REGISTRY/frontend:latest
 
       - name: Create database backup
         run: |

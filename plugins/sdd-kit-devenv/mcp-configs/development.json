@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ddev": {
+      "command": "ddev-mcp",
+      "args": [
+        "--single-project"
+      ],
+      "description": "Optional. DDEV environment control (npm install -g ddev-mcp)."
+    }
+  }
+}

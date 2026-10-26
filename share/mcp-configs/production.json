@@ -51,17 +51,6 @@
         "SLACK_TOKEN": "${SLACK_TOKEN}"
       },
       "description": "Team notifications for incidents and releases"
-    },
-    "vercel": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@vercel/mcp-server"
-      ],
-      "env": {
-        "VERCEL_TOKEN": "${VERCEL_TOKEN}"
-      },
-      "description": "Vercel deployment management for Next.js"
     }
   }
 }

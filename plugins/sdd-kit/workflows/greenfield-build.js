@@ -1,7 +1,7 @@
 export const meta = {
   name: 'greenfield-build',
   description: 'Detect/confirm empty target → load conventions as a constitution → decide architecture → scaffold repo + CI → build one vertical slice TDD → gates → acceptance → handoff docs',
-  whenToUse: 'When starting a brand-new app/service/module where little or no code exists yet (the inverse of ship-feature). Pass { idea, stack:"laravel|nextjs|drupal|...", repos:{backend,frontend}, url, brief:"product-brief.md" }. With a brief from /product-brief, it is read as the constitution and the first backlog slice is the idea. It scaffolds (gate tooling + CI included) and ships ONE end-to-end vertical slice, then appends the next slices to backlog.md; use ship-feature for subsequent features.',
+  whenToUse: 'When starting a brand-new app/service/module where little or no code exists yet (the inverse of ship-feature). Pass { idea, stack:"<stack key from the stack manifests>", repos:{backend,frontend}, url, brief:"product-brief.md" }. With a brief from /product-brief, it is read as the constitution and the first backlog slice is the idea. It scaffolds (gate tooling + CI included) and ships ONE end-to-end vertical slice, then appends the next slices to backlog.md; use ship-feature for subsequent features.',
   phases: [
     { title: 'Detect', detail: 'Confirm the target is empty/greenfield; capture intended stack', model: 'sonnet' },
     { title: 'Constitution', detail: 'Load the product brief, conventions + skills as governing architecture constraints', model: 'opus' },
@@ -19,8 +19,10 @@ export const meta = {
 // Registry runtime shared by every workflow. The stack data below comes from
 // the stack.json manifests: adding a stack is a manifest edit, and the schema
 // `stack` enum, the specialist-agent map, the Detect-phase catalog and the
-// debug scan all derive from STACKS. A Drupal/Next-only project never gets a
-// Laravel specialist because the agent is looked up per detected stack.
+// debug scan all derive from STACKS. A project never gets a
+// specialist for a stack it does not use, because the agent is looked up per detected stack.
+const STACK_SCHEMA = {"oneOf":[{"type":"object","required":["name","order","role","detect","agent","conventions","gates","debugPatterns","acceptance"],"additionalProperties":false,"properties":{"$schema":{"type":"string"},"name":{"type":"string","pattern":"^[a-z][a-z0-9-]{1,31}$"},"order":{"type":"integer"},"role":{"type":"string","enum":["backend","frontend","fullstack","mobile"]},"detect":{"type":"string"},"agent":{"type":"object","required":["name"],"additionalProperties":false,"properties":{"name":{"type":"string","pattern":"^[a-z][a-z0-9-]*$"},"plugin":{"type":"string","pattern":"^[a-z][a-z0-9-]*$"}}},"conventions":{"type":"array","items":{"type":"string"}},"gates":{"type":"array","items":{"type":"object","required":["name","command"],"additionalProperties":false,"properties":{"name":{"type":"string"},"command":{"type":"string"},"skipWhenScaffolded":{"type":"boolean","enum":[true]},"kind":{"type":"string","enum":["format","lint","types","test","e2e","build","other"]},"unless":{"type":"array","items":{"type":"string"}}}}},"debugPatterns":{"type":"array","items":{"type":"string"}},"acceptance":{"type":"string"},"notes":{"type":"string"},"devUrl":{"type":"string"},"visual":{"type":"string"},"buildGateGuard":{"type":"string"},"contractSync":{"type":"object","additionalProperties":false,"properties":{"routeListCommand":{"type":"string"},"consumer":{"type":"boolean","enum":[true]},"template":{"type":"string"}}},"skills":{"type":"object","additionalProperties":false,"properties":{"conventions":{"type":"array","items":{"type":"string"}},"testing":{"type":"array","items":{"type":"string"}},"scaffold":{"type":"array","items":{"type":"string"}}}},"packageManagers":{"type":"array","items":{"type":"object","required":["name","lockfiles","run"],"additionalProperties":false,"properties":{"name":{"type":"string"},"lockfiles":{"type":"array","items":{"type":"string"}},"run":{"type":"string"},"exec":{"type":"string"}}}},"scaffold":{"type":"object","additionalProperties":false,"properties":{"command":{"type":"string"},"tooling":{"type":"array","items":{"type":"string"}}}},"ci":{"type":"object","additionalProperties":false,"properties":{"services":{"type":"array","items":{"type":"string"}},"setup":{"type":"array","items":{"type":"string"}}}},"e2e":{"type":"object","required":["configGlob","run","convention"],"additionalProperties":false,"properties":{"configGlob":{"type":"string"},"run":{"type":"string"},"convention":{"type":"string"},"seed":{"type":"string"},"file":{"type":"string"}}},"migrations":{"type":"object","additionalProperties":false,"properties":{"status":{"type":"string"},"run":{"type":"string"},"fresh":{"type":"string"}}},"audit":{"type":"array","items":{"type":"object","required":["name","command"],"additionalProperties":false,"properties":{"name":{"type":"string"},"command":{"type":"string"}}}},"markers":{"type":"array","items":{"type":"string"}},"e2eBackend":{"type":"object","required":["convention"],"additionalProperties":false,"properties":{"convention":{"type":"string"},"seed":{"type":"string"}}},"sourceDirs":{"type":"array","items":{"type":"string"}},"gateTemplates":{"type":"array","items":{"type":"object","required":["evidence","command"],"additionalProperties":false,"properties":{"evidence":{"type":"string"},"command":{"type":"string","pattern":"\\{script\\}"}}}}}},{"type":"array","items":{"type":"object","required":["name","order","role","detect","agent","conventions","gates","debugPatterns","acceptance"],"additionalProperties":false,"properties":{"$schema":{"type":"string"},"name":{"type":"string","pattern":"^[a-z][a-z0-9-]{1,31}$"},"order":{"type":"integer"},"role":{"type":"string","enum":["backend","frontend","fullstack","mobile"]},"detect":{"type":"string"},"agent":{"type":"object","required":["name"],"additionalProperties":false,"properties":{"name":{"type":"string","pattern":"^[a-z][a-z0-9-]*$"},"plugin":{"type":"string","pattern":"^[a-z][a-z0-9-]*$"}}},"conventions":{"type":"array","items":{"type":"string"}},"gates":{"type":"array","items":{"type":"object","required":["name","command"],"additionalProperties":false,"properties":{"name":{"type":"string"},"command":{"type":"string"},"skipWhenScaffolded":{"type":"boolean","enum":[true]},"kind":{"type":"string","enum":["format","lint","types","test","e2e","build","other"]},"unless":{"type":"array","items":{"type":"string"}}}}},"debugPatterns":{"type":"array","items":{"type":"string"}},"acceptance":{"type":"string"},"notes":{"type":"string"},"devUrl":{"type":"string"},"visual":{"type":"string"},"buildGateGuard":{"type":"string"},"contractSync":{"type":"object","additionalProperties":false,"properties":{"routeListCommand":{"type":"string"},"consumer":{"type":"boolean","enum":[true]},"template":{"type":"string"}}},"skills":{"type":"object","additionalProperties":false,"properties":{"conventions":{"type":"array","items":{"type":"string"}},"testing":{"type":"array","items":{"type":"string"}},"scaffold":{"type":"array","items":{"type":"string"}}}},"packageManagers":{"type":"array","items":{"type":"object","required":["name","lockfiles","run"],"additionalProperties":false,"properties":{"name":{"type":"string"},"lockfiles":{"type":"array","items":{"type":"string"}},"run":{"type":"string"},"exec":{"type":"string"}}}},"scaffold":{"type":"object","additionalProperties":false,"properties":{"command":{"type":"string"},"tooling":{"type":"array","items":{"type":"string"}}}},"ci":{"type":"object","additionalProperties":false,"properties":{"services":{"type":"array","items":{"type":"string"}},"setup":{"type":"array","items":{"type":"string"}}}},"e2e":{"type":"object","required":["configGlob","run","convention"],"additionalProperties":false,"properties":{"configGlob":{"type":"string"},"run":{"type":"string"},"convention":{"type":"string"},"seed":{"type":"string"},"file":{"type":"string"}}},"migrations":{"type":"object","additionalProperties":false,"properties":{"status":{"type":"string"},"run":{"type":"string"},"fresh":{"type":"string"}}},"audit":{"type":"array","items":{"type":"object","required":["name","command"],"additionalProperties":false,"properties":{"name":{"type":"string"},"command":{"type":"string"}}}},"markers":{"type":"array","items":{"type":"string"}},"e2eBackend":{"type":"object","required":["convention"],"additionalProperties":false,"properties":{"convention":{"type":"string"},"seed":{"type":"string"}}},"sourceDirs":{"type":"array","items":{"type":"string"}},"gateTemplates":{"type":"array","items":{"type":"object","required":["evidence","command"],"additionalProperties":false,"properties":{"evidence":{"type":"string"},"command":{"type":"string","pattern":"\\{script\\}"}}}}}}}]}
+const STACK_LIMITS = { maxString: 500, maxItems: 32, maxEntries: 8, maxRawLength: 65536 }
 const STACKS = {
   laravel: {
     role: 'backend',
@@ -60,7 +62,7 @@ const STACKS = {
       { name: 'Build', command: '<pmx> next build' },
       { name: 'Vitest', command: '<pmx> vitest run' },
       { name: 'Playwright', command: '<pmx> playwright test' },
-      { name: 'tests', command: '<pm> test (only when neither Vitest nor Playwright is installed)' },
+      { name: 'tests', command: '<pm> test' },
     ],
     debugPatterns: ['console.log(', 'debugger'],
     devUrl: 'http://localhost:3000',
@@ -85,7 +87,7 @@ const STACKS = {
   ios: {
     role: 'mobile',
     detect: 'a Package.swift, an *.xcodeproj / *.xcworkspace, or Sources/**/*.swift',
-    agent: 'general-purpose',
+    agent: 'ios-mobile-dev',
     conventions: ['SwiftUI + @Observable MVVM', 'async/await + Swift 6 strict concurrency', 'SwiftData persistence', 'URLSession networking'],
     gates: [
       { name: 'SwiftFormat', command: 'swiftformat --lint .' },
@@ -110,6 +112,7 @@ const STACKS = {
 const STACK_TRAITS = {
   laravel: {
     routeListCommand: 'php artisan route:list --json',
+    contractTemplate: 'templates/contract-sync',
   },
   nextjs: {
     buildGateGuard: 'Build gate and the dev server: `next build` writes the same .next/ directory a running `next dev` serves from, and later phases browse {devUrl}. Before the build, note whether {devUrl} responds (curl -s -o /dev/null -w \'%{http_code}\'). If next.config reads distDir from an environment variable, point the build at a separate directory (e.g. .next-gate) and delete it afterwards. Otherwise, after the build, curl {devUrl} again; if it responded before and does not now, restart the dev server in the background with the repo\'s dev script, wait until it responds, and say so in the Build gate\'s details.',
@@ -117,29 +120,186 @@ const STACK_TRAITS = {
     scaffoldSkipGates: ['tests'],
   },
 }
+const STACK_EXTRAS = {
+  laravel: {
+    gates: {
+      Pint: { kind: 'format' },
+      PHPStan: { kind: 'types' },
+      'Pest/PHPUnit': { kind: 'test' },
+    },
+    skills: {
+      conventions: ['service-repository', 'dto-first', 'api-design', 'schema-first'],
+      testing: ['pest-3'],
+      scaffold: ['laravel-12'],
+    },
+    scaffold: {
+      command: 'laravel new',
+      tooling: ['Pest (pestphp/pest + the Laravel plugin, tests/Pest.php)', 'Larastan (larastan/larastan) with a phpstan.neon that includes the Larastan extension, sets a level (start at 5 or higher) and paths: [app]', 'Pint (laravel/pint) with a pint.json using the laravel preset'],
+    },
+    ci: {
+      services: ['a database service for the tests when they need one'],
+      setup: ['php artisan migrate --force'],
+    },
+    e2eBackend: {
+      convention: 'a frontend\'s E2E run starts this API with APP_ENV=e2e on its own database and resets it with migrate:fresh in its setup project: do not run migrate:fresh yourself, and never point the run at the dev database or the Pest testing database',
+      seed: 'the E2ESeeder baseline (the users, OAuth clients and reference data the journey needs)',
+    },
+    migrations: {
+      status: 'php artisan migrate:status',
+      run: 'php artisan migrate',
+      fresh: 'php artisan migrate:fresh --seed',
+    },
+    audit: [
+      { name: 'composer audit', command: 'composer audit --format=json' },
+    ],
+    markers: ['artisan'],
+    sourceDirs: ['app/', 'routes/', 'database/'],
+  },
+  drupal: {
+    gates: {
+      PHPCS: { kind: 'lint' },
+      PHPStan: { kind: 'types' },
+      PHPUnit: { kind: 'test' },
+    },
+    skills: { conventions: ['drupal-11'] },
+    markers: ['core/lib/Drupal.php', 'web/core/lib/Drupal.php'],
+    sourceDirs: ['web/modules/custom/', 'web/themes/custom/', 'modules/'],
+  },
+  nextjs: {
+    gates: {
+      ESLint: { kind: 'lint' },
+      tsc: { kind: 'types' },
+      Build: { kind: 'build' },
+      Vitest: { kind: 'test' },
+      Playwright: { kind: 'e2e' },
+      tests: { kind: 'test', unless: ['vitest.config.*', 'playwright.config.*'] },
+    },
+    skills: {
+      conventions: ['nextjs-15', 'typescript', 'tailwind-4', 'accessibility'],
+      testing: ['nextjs-testing'],
+      scaffold: ['nextjs-15'],
+    },
+    scaffold: {
+      command: 'create-next-app',
+      tooling: ['ESLint (the create-next-app config)', 'TypeScript strict with `tsc --noEmit` clean', 'Vitest + React Testing Library (vitest.config.ts with jsdom, a setup file)', 'a `next build` that succeeds', 'Playwright (playwright.config.ts with the dev server as webServer, one smoke test) when the first slice has a UI journey'],
+    },
+    ci: { services: [], setup: ['<pm> install from the lockfile'] },
+    e2e: {
+      configGlob: 'playwright.config.*',
+      file: 'e2e/{slug}.spec.ts',
+      run: '<pmx> playwright test <file>',
+      convention: 'one test per user-visible acceptance criterion, named with its id; role- and label-based locators, no sleeps; the nextjs-testing skill\'s references/playwright-e2e.md is the convention. playwright.config.* (webServer) and its setup project start and seed the isolated e2e environment on its own database: do not reset that database yourself, and never point the run at the dev database or the backend\'s test database.',
+      seed: 'the project\'s E2E baseline seed, or data created through the UI or API in the test; never production data',
+    },
+    audit: [
+      { name: 'package audit', command: '<pm> audit --json' },
+    ],
+    markers: ['next.config.*'],
+    packageManagers: [
+      { name: 'pnpm', lockfiles: ['pnpm-lock.yaml'], run: 'pnpm', exec: 'pnpm exec' },
+      { name: 'yarn', lockfiles: ['yarn.lock'], run: 'yarn', exec: 'yarn' },
+      { name: 'bun', lockfiles: ['bun.lockb', 'bun.lock'], run: 'bun', exec: 'bunx' },
+      { name: 'npm', lockfiles: ['package-lock.json'], run: 'npm', exec: 'npx' },
+    ],
+    sourceDirs: ['app/', 'src/', 'components/', 'lib/'],
+  },
+  nuxt: {
+    gates: {
+      ESLint: { kind: 'lint' },
+      tests: { kind: 'test' },
+    },
+    markers: ['nuxt.config.*'],
+    packageManagers: [
+      { name: 'pnpm', lockfiles: ['pnpm-lock.yaml'], run: 'pnpm', exec: 'pnpm exec' },
+      { name: 'yarn', lockfiles: ['yarn.lock'], run: 'yarn', exec: 'yarn' },
+      { name: 'bun', lockfiles: ['bun.lockb', 'bun.lock'], run: 'bun', exec: 'bunx' },
+      { name: 'npm', lockfiles: ['package-lock.json'], run: 'npm', exec: 'npx' },
+    ],
+    sourceDirs: ['app/', 'src/', 'components/', 'pages/', 'composables/', 'server/'],
+  },
+  ios: {
+    gates: {
+      SwiftFormat: { kind: 'format' },
+      SwiftLint: { kind: 'lint' },
+      Build: { kind: 'build' },
+      Test: { kind: 'test' },
+    },
+    markers: ['*.xcodeproj', 'Package.swift'],
+    sourceDirs: ['Sources/'],
+  },
+  other: {
+    gateTemplates: [
+      { evidence: 'package.json', command: 'npm run {script}' },
+      { evidence: 'package.json', command: 'pnpm run {script}' },
+      { evidence: 'package.json', command: 'yarn run {script}' },
+      { evidence: 'package.json', command: 'bun run {script}' },
+      { evidence: 'composer.json', command: 'composer run-script {script}' },
+      { evidence: 'Makefile', command: 'make {script}' },
+      { evidence: 'justfile', command: 'just {script}' },
+    ],
+  },
+}
 const AGENT_PLUGIN = {
-  'laravel-backend-dev': 'sdd-kit',
-  'nextjs-frontend-dev': 'sdd-kit',
+  'laravel-backend-dev': 'sdd-kit-laravel',
+  'nextjs-frontend-dev': 'sdd-kit-nextjs',
+  'ios-mobile-dev': 'sdd-kit-ios',
 }
-const STACK_KEYS = Object.keys(STACKS)
-// JS repos: the lockfile names the package manager. Gate commands use <pm>
-// (runs a package script) and <pmx> (runs a local binary); Detect substitutes
-// both, so no gate hardcodes npm/npx in a pnpm, yarn or bun repo.
-const PACKAGE_MANAGERS = [
-  { name: 'pnpm', lockfiles: ['pnpm-lock.yaml'], pm: 'pnpm', pmx: 'pnpm exec' },
-  { name: 'yarn', lockfiles: ['yarn.lock'], pm: 'yarn', pmx: 'yarn' },
-  { name: 'bun', lockfiles: ['bun.lockb', 'bun.lock'], pm: 'bun', pmx: 'bunx' },
-  { name: 'npm', lockfiles: ['package-lock.json'], pm: 'npm', pmx: 'npx' },
+const CORE_AGENTS = [
+  'adversarial-reviewer', 'api-architect', 'changelog-writer', 'code-explorer',
+  'code-quality', 'database-designer', 'devops-engineer', 'doc-creator',
+  'outcomes-grader', 'performance-tester', 'requirements-analyst', 'security-auditor',
+  'test-writer',
 ]
-const STACK_AGENT = Object.fromEntries(Object.entries(STACKS).map(([k, v]) => [k, v.agent]))
-const DEFAULT_DEBUG = ['dd(', 'dump(', 'console.log(']
-
-// Space-joined debug-statement patterns for a stack, for the gate grep.
-function debugScanFor(stack) {
-  return ((STACKS[stack] && STACKS[stack].debugPatterns) || DEFAULT_DEBUG).join(' ')
+const FIRST_PARTY_FILES = { drupal: ['drupal'], ios: ['ios'], laravel: ['laravel'], nextjs: ['nextjs', 'nuxt'] }
+const FIRST_PARTY_PLUGINS = [
+  'sdd-kit-drupal', 'sdd-kit-ios', 'sdd-kit-laravel', 'sdd-kit-nextjs',
+]
+const FIRST_PARTY_HASHES = {
+  drupal: '9f655e942841d08e62204f86147ba48f3749a71dd898714af6721a30c9299749',
+  ios: '9da615defa84b98b3c85cbb8041df8e4885249d750a5dfcdf3e2148a5d48ebb4',
+  laravel: '18d7c1e885d5553b82d15580c8db515054c2603ce8316fbb449c4a966474f8af',
+  nextjs: '07da9daaf6dd169186ea1264cdba5f8ed9727ffae9403591c491cdc9d8438b57',
+  nuxt: '05cc03e90cd8df462339fec8b168f8f167f5a3438b5a5ef55c4e40ab31f6ab24',
 }
-
+const FIRST_PARTY_FILE_HASHES = {
+  drupal: '9f655e942841d08e62204f86147ba48f3749a71dd898714af6721a30c9299749',
+  ios: '9da615defa84b98b3c85cbb8041df8e4885249d750a5dfcdf3e2148a5d48ebb4',
+  laravel: '18d7c1e885d5553b82d15580c8db515054c2603ce8316fbb449c4a966474f8af',
+  nextjs: '423048dc0e4f80025163894bf876eb9f95f2ba09721c2a2294eaeb4720cf421e',
+}
 const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key)
+
+// Keys inlined at build time. Overlay manifests can never replace them.
+const FIRST_PARTY_KEYS = Object.keys(STACKS)
+let STACK_KEYS = Object.keys(STACKS)
+let STACK_AGENT = Object.fromEntries(Object.entries(STACKS).map(([k, v]) => [k, v.agent]))
+// Agent name -> { plugin, stacks, source }; rebuilt by installOverlay.
+let AGENT_INFO = buildAgentInfo({})
+// Overlay key -> { source, plugin, trusted, sha256 }; empty until installOverlay runs.
+let OVERLAY_META = {}
+// Stack keys named by a manifest the run rejected -> why, and the sources of rejected manifests whose keys
+// could not be read; see resolveRepo.
+let DECLINED_KEYS = {}
+let DECLINED_UNNAMED = []
+// True when this run rejected, ignored or distrusted any manifest; see toolingFallbackAllowed.
+let MANIFESTS_DECLINED = false
+
+const NOT_RUN_UNTRUSTED = 'not run (untrusted manifest)'
+const NOT_RUN_DECLINED = 'not run (stack manifest not used'
+
+// True for an overlay key whose manifest hash is not in the trust store. No command
+// from such a manifest may run: every command accessor below returns empty for it.
+const isUntrustedStack = (stack) => hasOwn(OVERLAY_META, stack) && !OVERLAY_META[stack].trusted
+
+// Command-bearing manifest blocks (traits, extras) as the workflows may use them: empty for an untrusted overlay.
+const traitsFor = (stack) => (hasOwn(STACK_TRAITS, stack) && !isUntrustedStack(stack) ? STACK_TRAITS[stack] : {})
+
+// Space-joined debug-statement patterns for a stack, for the gate grep. A key
+// without an entry, or an untrusted overlay key, uses the patterns of the catch-all `other` entry.
+function debugScanFor(stack) {
+  const entry = hasOwn(STACKS, stack) && !isUntrustedStack(stack) ? STACKS[stack] : STACKS.other
+  return entry.debugPatterns.join(' ')
+}
 
 // A repo is the frontend when its detected role says so or its stack's manifest does.
 function isFrontendRepo(r) {
@@ -148,25 +308,192 @@ function isFrontendRepo(r) {
 
 // Stack-specific build-gate warning from the manifest, with {devUrl} filled in; '' when the stack has none.
 function buildGateGuardFor(repo, devUrl) {
-  const text = repo && hasOwn(STACK_TRAITS, repo.stack) && STACK_TRAITS[repo.stack].buildGateGuard
+  const text = repo && traitsFor(repo.stack).buildGateGuard
   if (!text) return ''
   return '\n- ' + text.split('{devUrl}').join(String(devUrl))
 }
 
-// Gates the greenfield scaffold installs: the stack's gates minus those it skips.
+// Gates the greenfield scaffold installs: the stack's gates minus those it skips; none for an untrusted overlay.
 function scaffoldGatesFor(stack) {
-  if (!hasOwn(STACKS, stack)) return []
-  const skip = (hasOwn(STACK_TRAITS, stack) && STACK_TRAITS[stack].scaffoldSkipGates) || []
+  if (!hasOwn(STACKS, stack) || isUntrustedStack(stack)) return []
+  const skip = traitsFor(stack).scaffoldSkipGates || []
   return STACKS[stack].gates.filter((g) => !skip.includes(g.name))
 }
 
-// Command that exports a backend's route list for contract-sync; '' when the stack has none.
+// Command that exports a backend's route list for contract-sync; '' when the stack has none or is untrusted.
 function routeListCommandFor(stack) {
-  return (hasOwn(STACK_TRAITS, stack) && STACK_TRAITS[stack].routeListCommand) || ''
+  return traitsFor(stack).routeListCommand || ''
+}
+
+/**
+ * The add-on that ships a stack: a first-party key through FIRST_PARTY_FILES, an overlay key through its source.
+ * @param {string} stack Stack key.
+ * @returns {{ dir: string|null, plugin: string|null, source: string|null }} dir: the add-on directory (file-copy
+ *   installs stage its files under .claude/<kind>/<dir>/); plugin: the plugin name; source: the overlay's manifest source.
+ */
+function addonFor(stack) {
+  for (const [dir, keys] of Object.entries(FIRST_PARTY_FILES)) {
+    if (keys.includes(stack)) return { dir, plugin: FIRST_PARTY_PLUGINS.find((p) => p === `sdd-kit-${dir}`) || null, source: null }
+  }
+  if (!hasOwn(OVERLAY_META, stack)) return { dir: null, plugin: null, source: null }
+  const source = OVERLAY_META[stack].source
+  const plugin = /^plugin:([^@]+)/.exec(source)
+  return { dir: null, plugin: plugin ? plugin[1] : null, source }
+}
+
+/**
+ * Where a backend stack's contract-sync template lives, from its manifest's contractSync.template (a path
+ * relative to the add-on root). The add-on is named explicitly: a workflow agent gets no placeholder
+ * substitution and runs from the core plugin, so it must look the add-on's install directory up itself.
+ * @param {string} stack Stack key.
+ * @returns {string} Prompt text naming every location, or '' when the stack declares no template or is untrusted.
+ * @example contractTemplateFor('acme') // first-party add-on directory "acme", plugin "sdd-kit-acme"
+ * // "templates/contract-sync in the sdd-kit-acme plugin's install directory (plugin mode: ...), or .claude/templates/acme/contract-sync in file-copy installs"
+ */
+function contractTemplateFor(stack) {
+  const template = traitsFor(stack).contractTemplate
+  if (!template) return ''
+  const { dir, plugin, source } = addonFor(stack)
+  const locations = []
+  if (plugin) locations.push(`${template} in the ${plugin} plugin's install directory (plugin mode: its installPath in \`claude plugin list --json\` or ~/.claude/plugins/installed_plugins.json, or its --plugin-dir path)`)
+  if (dir) locations.push(`.claude/templates/${dir}/${template.replace(/^templates\//, '')} in file-copy installs`)
+  if (!locations.length) locations.push(`${template} in the add-on that provides ${source || `the ${stack} stack`}`)
+  return locations.join(', or ')
 }
 
 function isContractConsumer(stack) {
   return !!(hasOwn(STACK_TRAITS, stack) && STACK_TRAITS[stack].contractConsumer)
+}
+
+// Extras whose fields carry commands (scaffold, ci, e2e, migrations, audit, packageManagers): empty for an untrusted overlay.
+const extrasFor = (stack) => (hasOwn(STACK_EXTRAS, stack) && !isUntrustedStack(stack) ? STACK_EXTRAS[stack] : {})
+
+// Skill names the manifest lists for a stack: { conventions, testing, scaffold } (absent groups are empty).
+// Empty for an untrusted overlay (OD-17a): its steps run as the default agent with no stack skills.
+function skillsFor(stack) {
+  const s = (hasOwn(STACK_EXTRAS, stack) && !isUntrustedStack(stack) ? STACK_EXTRAS[stack] : {}).skills || {}
+  return { conventions: s.conventions || [], testing: s.testing || [], scaffold: s.scaffold || [] }
+}
+
+// Every distinct skill name the manifest lists for a stack, conventions first.
+function skillNamesFor(stack) {
+  const s = skillsFor(stack)
+  return Array.from(new Set([...s.conventions, ...s.testing, ...s.scaffold]))
+}
+
+// Skills for a phase that only writes tests: the manifest's testing group, else its conventions group.
+function testSkillNamesFor(stack) {
+  const s = skillsFor(stack)
+  return s.testing.length ? s.testing : s.conventions
+}
+
+// Source directories the debug scan greps, as one prompt fragment; the repo's own source roots when the
+// manifest names none or is untrusted (the directories are pasted into a command line).
+function sourceDirsFor(stack) {
+  const dirs = extrasFor(stack).sourceDirs || []
+  return dirs.length ? dirs.join(' ') : "the repo's source directories"
+}
+
+/**
+ * Package managers a stack's manifest declares, in manifest order; the last entry is the default
+ * (no lockfile). Empty when the stack declares none or is untrusted.
+ * @param {string} stack Stack key.
+ * @returns {{ name: string, lockfiles: string[], run: string, exec?: string }[]}
+ */
+function packageManagersFor(stack) {
+  return extrasFor(stack).packageManagers || []
+}
+
+// The package manager a repo uses: the one Detect recorded, else its stack's default; null when the stack declares none.
+function packageManagerFor(repo, fallbackToDefault) {
+  const pms = packageManagersFor(repo.stack)
+  const found = pms.find((p) => p.name === repo.packageManager)
+  if (found) return found
+  return fallbackToDefault === false ? null : pms[pms.length - 1] || null
+}
+
+// Fills <pm> and <pmx> in a manifest command; unchanged when there is no package manager.
+function fillPackageManager(command, pm) {
+  return pm ? command.split('<pmx>').join(pm.exec || pm.run).split('<pm>').join(pm.run) : command
+}
+
+// Prompt sentence telling an agent how <pm>/<pmx> expand for a stack; '' when the stack declares no package managers.
+function packageManagerLine(stack) {
+  const pms = packageManagersFor(stack)
+  if (!pms.length) return ''
+  return `Use the package manager the repo uses (its lockfile; default ${pms[pms.length - 1].name}) for every command: <pm> is ${pms.map((p) => p.run).join(', ')}, and <pmx> is ${pms.map((p) => p.exec || p.run).join(', ')} respectively.`
+}
+
+// Scaffold block of the manifest ({ command, tooling[] }); empty when the stack declares none or is untrusted.
+function scaffoldFor(stack) {
+  const sc = extrasFor(stack).scaffold || {}
+  return { command: sc.command || '', tooling: sc.tooling || [] }
+}
+
+// CI block of the manifest ({ services[], setup[] }); empty when the stack declares none or is untrusted.
+function ciFor(stack) {
+  const ci = extrasFor(stack).ci || {}
+  return { services: ci.services || [], setup: ci.setup || [] }
+}
+
+// E2E block of the manifest ({ configGlob, file, run, convention, seed }); null when the stack declares none or is untrusted.
+function e2eFor(stack) {
+  return extrasFor(stack).e2e || null
+}
+
+// What a backend stack adds to a frontend's E2E step ({ convention, seed }); null when it declares nothing or is untrusted.
+function e2eBackendFor(stack) {
+  return extrasFor(stack).e2eBackend || null
+}
+
+// Regression test file for the E2E step from the manifest's e2e.file pattern ({slug} filled in); '' when the manifest names none.
+function e2eFileFor(stack, slug) {
+  const e2e = e2eFor(stack)
+  if (!e2e || !e2e.file) return ''
+  return e2e.file.split('{slug}').join(slug || '<short-feature-slug>')
+}
+
+const NO_E2E_DECLARED = 'not run (stack declares no e2e)'
+const NO_APP_URL = 'not run (no reachable app URL)'
+
+// A skipped step reports status 'skip' with its reason. Skips are informational: they never change the recommendation.
+function skipResult(reason) {
+  return { status: 'skip', ran: false, written: false, details: reason }
+}
+
+// Why the E2E step does not run for a frontend repo, as a skip result; null when it should run.
+// `requested` is the explicit e2e argument (true, false or null), `configFound` whether a file matches the manifest's configGlob.
+function e2eSkipFor(frontend, requested, configFound) {
+  if (requested === false) return skipResult('skipped — e2e:false')
+  if (frontend && isUntrustedStack(frontend.stack)) return skipResult(NOT_RUN_UNTRUSTED)
+  const e2e = frontend ? e2eFor(frontend.stack) : null
+  if (!e2e) return skipResult(NO_E2E_DECLARED)
+  if (requested === true || configFound) return null
+  return skipResult(`skipped — no ${e2e.configGlob} in the repo (pass e2e:true to add one)`)
+}
+
+// Detect prompt fragment: which file proves a repo has e2e set up, per stack, from the manifests.
+function e2eGlobsLine() {
+  const rows = STACK_KEYS.filter((k) => e2eFor(k)).map((k) => `${k}: ${e2eFor(k).configGlob}`)
+  return rows.length ? `e2eConfig=true when the repo has a file matching its stack's e2e config glob (${rows.join('; ')})` : ''
+}
+
+// Browser URL: the url argument, else the frontend repo's devUrl, else any repo's devUrl, else ''.
+// A repo's own devUrl (from Detect) wins over its manifest's default. Detect's value is used only when it
+// passes DEV_URL_PATTERN, and a manifest's default only when the manifest is first-party or trusted.
+function resolveDevUrl(hint, repos) {
+  if (hint) return hint
+  const manifestUrl = (r) => (hasOwn(STACKS, r.stack) && !isUntrustedStack(r.stack) && !r.declinedStack && STACKS[r.stack].devUrl) || ''
+  const urlOf = (r) => (isDevUrl(r.devUrl) ? r.devUrl : '') || manifestUrl(r)
+  const list = repos || []
+  const front = list.find((r) => isFrontendRepo(r) && urlOf(r))
+  const any = front || list.find((r) => urlOf(r))
+  return any ? urlOf(any) : ''
+}
+
+// Prompt fragment for the app URL: the URL, or the instruction to discover and probe one.
+function appUrlLine(devUrl) {
+  return devUrl || `none declared — discover the dev server URL (the repo's dev script, its config) and probe it; if nothing responds, report the browser check as ${NO_APP_URL}`
 }
 
 // Renders the Detect-phase catalog straight from the registry so the detector
@@ -174,12 +501,16 @@ function isContractConsumer(stack) {
 function stackCatalog() {
   const known = STACK_KEYS.filter((k) => k !== 'other').map((k) => {
     const s = STACKS[k]
-    const gates = s.gates.length ? s.gates.map((g) => `{${g.name}: ${g.command}}`).join(', ') : '(whatever lint/test tooling exists)'
-    return `- ${k} — detect: ${s.detect}. specialistAgent: ${s.agent}. conventions: ${s.conventions.join(', ') || '(infer)'}. gateCommands (only those whose tool actually exists): ${gates}. debug patterns: ${s.debugPatterns.join(' ')}.${s.devUrl ? ` devUrl default ${s.devUrl}.` : ''}`
+    const extras = hasOwn(STACK_EXTRAS, k) ? STACK_EXTRAS[k] : {}
+    const skipRules = (extras.gates || {})
+    const gates = s.gates.length
+      ? s.gates.map((g) => `{${g.name}: ${g.command}${skipRules[g.name] && skipRules[g.name].unless ? ` — skip when any of ${skipRules[g.name].unless.join(', ')} exists` : ''}}`).join(', ')
+      : '(whatever lint/test tooling exists)'
+    const pms = (extras.packageManagers || []).map((p) => `${p.lockfiles.join(' or ')} → packageManager ${p.name} (<pm> = ${p.run}, <pmx> = ${p.exec || p.run})`)
+    const pmLine = pms.length ? ` package managers (record packageManager from the lockfile; no lockfile → ${extras.packageManagers[extras.packageManagers.length - 1].name}; write gateCommands with <pm>/<pmx> replaced by the real commands): ${pms.join('; ')}.` : ''
+    return `- ${k} — detect: ${s.detect}. specialistAgent: ${s.agent}. conventions: ${s.conventions.join(', ') || '(infer)'}. gateCommands (only those whose tool actually exists): ${gates}. debug patterns: ${s.debugPatterns.join(' ')}.${s.devUrl ? ` devUrl default ${s.devUrl}.` : ''}${pmLine}`
   })
-  known.push('- other — anything unrecognized; specialistAgent: general-purpose; conventions + gateCommands = whatever actually exists.')
-  const pms = PACKAGE_MANAGERS.map((p) => `${p.lockfiles.join(' or ')} → packageManager ${p.name} (<pm> = ${p.pm}, <pmx> = ${p.pmx})`).join('; ')
-  known.push(`- JS repos (any package.json): record packageManager from the lockfile: ${pms}; no lockfile → npm. Write gateCommands with <pm>/<pmx> replaced by the real commands.`)
+  known.push(`- other — anything unrecognized; specialistAgent: general-purpose; conventions = whatever actually exists. gateCommands only from these templates, one item per script or target the evidence file defines, as {name, command, evidence, script} (evidence = the file relative to the repo root, script = the script or target name, command = the template with {script} replaced): ${gateTemplatesLine()}. Any other command is dropped.`)
   return known.join('\n')
 }
 
@@ -212,26 +543,1049 @@ function phaseModels(phaseTiers) {
 // first (built in), Claude in Chrome as a fallback, and an honest "not run".
 const BROWSER_PHASES = new Set(['Reproduce', 'Acceptance', 'Visual'])
 const BROWSER_GUIDE = `BROWSER: when this step needs a browser (web UI, navigation, visual or end-to-end checks), drive it with the Playwright MCP tools: mcp__playwright__browser_navigate, browser_snapshot, browser_click, browser_type, browser_fill_form, browser_wait_for, browser_take_screenshot, browser_console_messages, browser_network_requests, browser_resize (load each with ToolSearch "select:<name>" before its first call). Assert against browser_snapshot (the accessibility tree), use screenshots only as evidence, and check console errors and failed network requests on every page you visit. If the Playwright tools are unavailable, use Claude in Chrome (mcp__claude-in-chrome__*). If neither is available, report the browser check as not run — never claim it passed. API-only checks use HTTP (curl) instead of a browser.`
-// Plugin installs namespace agents ("sdd-kit:code-explorer", "sdd-kit-ios:ios-mobile-dev");
+// Plugin installs namespace agents ("sdd-kit:code-explorer", "<plugin>:<agent>");
 // file-copy installs use bare names. Workflows cannot tell which mode they run
-// in, so specialist agents are tried bare, then qualified with their plugin
-// (AGENT_PLUGIN, default sdd-kit), then replaced by the default agent.
+// in, so candidates are tried in order and the default agent is the last resort:
+//   - a core agent (CORE_AGENTS): the bare name, then "sdd-kit:<name>";
+//   - a stack specialist (AGENT_INFO): the bare name, then "<plugin>:<name>" only when its manifest sets agent.plugin;
+//   - general-purpose is never resolved.
+// A candidate fails only when agent() throws (unknown agent type). A null result is the agent's own
+// outcome (skipped, or ended without output) and is returned, so a resolved prompt never runs twice.
+// The form that resolved, or null for the default agent, is remembered per agent name for the run,
+// so later calls go straight to it and the fallback is logged once.
+const resolvedAgents = new Map()
+
+function agentCandidates(name) {
+  if (CORE_AGENTS.includes(name)) return { candidates: [name, `sdd-kit:${name}`], hint: 'reinstall sdd-kit (core agent missing)' }
+  if (hasOwn(AGENT_INFO, name)) {
+    const info = AGENT_INFO[name]
+    const candidates = info.plugin ? [name, `${info.plugin}:${name}`] : [name]
+    const stacks = info.stacks.join(', ')
+    const hint = info.plugin
+      ? `install ${info.plugin} for ${stacks}`
+      : `add ${name}.md to .claude/agents/${info.source ? ` or set agent.plugin in ${info.source}` : ''}`
+    return { candidates, hint }
+  }
+  return { candidates: [name], hint: `add ${name}.md to .claude/agents/` }
+}
+
 async function runAgent(prompt, opts) {
   if (opts && BROWSER_PHASES.has(opts.phase)) prompt = `${prompt}\n\n${BROWSER_GUIDE}`
   if (!opts || !opts.agentType || opts.agentType === 'general-purpose') return agent(prompt, opts)
   const name = opts.agentType
-  const plugin = (Object.prototype.hasOwnProperty.call(AGENT_PLUGIN, name) && AGENT_PLUGIN[name]) || 'sdd-kit'
-  for (const candidate of [name, `${plugin}:${name}`]) {
+  const { agentType, ...rest } = opts
+  if (resolvedAgents.has(name)) {
+    const known = resolvedAgents.get(name)
+    return known === null ? agent(prompt, rest) : agent(prompt, { ...opts, agentType: known })
+  }
+  const { candidates, hint } = agentCandidates(name)
+  for (const candidate of candidates) {
+    let result
     try {
-      const result = await agent(prompt, { ...opts, agentType: candidate })
-      if (result !== null) return result
+      result = await agent(prompt, { ...opts, agentType: candidate })
     } catch (e) {
       // Unknown agent type in this install mode; try the next form.
+      continue
+    }
+    resolvedAgents.set(name, candidate)
+    return result
+  }
+  resolvedAgents.set(name, null)
+  log(`Specialist ${name} not available (tried: ${candidates.join(', ')}); ${hint}. Falling back to general-purpose.`)
+  return agent(prompt, rest)
+}
+
+// --- manifest validation ------------------------------------------------
+// One validator for the generator and the runtime. It interprets STACK_SCHEMA
+// (type, required, enum, additionalProperties, properties, items, pattern and
+// oneOf) and adds the rules a schema cannot express. Problems come back in
+// validation order as { pointer, rule, problem, fix }; the caller formats them as
+// "<pointer> <problem>. Fix: <fix>". problem and fix may quote manifest values; rule
+// never does, so text that reaches a prompt is built from pointer and rule only (redactedReason).
+function manifestTypeOf(v) {
+  if (Array.isArray(v)) return 'array'
+  if (v === null) return 'null'
+  if (Number.isInteger(v)) return 'integer'
+  return typeof v
+}
+
+const manifestPointer = (parent, key) => `${parent}/${String(key).replace(/~/g, '~0').replace(/\//g, '~1')}`
+
+function manifestSchemaCheck(value, schema, ptr, overlay, out) {
+  const at = ptr || '/'
+  const actual = manifestTypeOf(value)
+  if (schema.oneOf) {
+    const branch = schema.oneOf.find((b) => b.type === actual)
+    if (!branch) {
+      out.push({ pointer: at, rule: 'type', problem: `has the wrong type (found ${actual})`, fix: `use ${schema.oneOf.map((b) => `an ${b.type}`).join(' or ')}` })
+      return
+    }
+    manifestSchemaCheck(value, branch, ptr, overlay, out)
+    return
+  }
+  if (schema.type) {
+    const ok = schema.type === actual || (schema.type === 'number' && actual === 'integer')
+    if (!ok) {
+      out.push({ pointer: at, rule: 'type', problem: `has the wrong type (found ${actual})`, fix: `use a ${schema.type}` })
+      return
     }
   }
-  log(`runAgent: agent "${name}" not found as "${name}" (file-copy install) or "${plugin}:${name}" (plugin install); falling back to the default agent`)
-  const { agentType, ...rest } = opts
-  return agent(prompt, rest)
+  if (schema.enum && !schema.enum.some((e) => e === value)) {
+    out.push({ pointer: at, rule: 'enum', problem: `has the invalid value ${JSON.stringify(value)}`, fix: `use one of: ${schema.enum.map((e) => JSON.stringify(e)).join(', ')}` })
+  }
+  if (typeof value === 'string') {
+    if (schema.pattern && !new RegExp(schema.pattern).test(value)) {
+      out.push({ pointer: at, rule: 'pattern', problem: `does not match the pattern (found ${JSON.stringify(value)})`, fix: `match ${schema.pattern}` })
+    }
+    if (overlay && value.length > STACK_LIMITS.maxString) {
+      out.push({ pointer: at, rule: 'maxLength', problem: `is longer than ${STACK_LIMITS.maxString} characters`, fix: 'shorten it' })
+    }
+  }
+  if (actual === 'object' && schema.properties) {
+    for (const key of schema.required || []) {
+      if (!hasOwn(value, key)) out.push({ pointer: manifestPointer(ptr, key), rule: 'required', problem: 'is missing', fix: `add "${key}"` })
+    }
+    for (const key of Object.keys(value)) {
+      if (!hasOwn(schema.properties, key)) {
+        if (schema.additionalProperties === false) {
+          out.push({ pointer: manifestPointer(ptr, key), rule: 'additionalProperties', problem: 'is not an allowed key', fix: `remove "${key}" (allowed: ${Object.keys(schema.properties).join(', ')})` })
+        }
+      } else {
+        manifestSchemaCheck(value[key], schema.properties[key], manifestPointer(ptr, key), overlay, out)
+      }
+    }
+  }
+  if (actual === 'array') {
+    if (overlay && value.length > STACK_LIMITS.maxItems) {
+      out.push({ pointer: at, rule: 'maxItems', problem: `has more than ${STACK_LIMITS.maxItems} items`, fix: 'remove items' })
+    }
+    if (schema.items) value.forEach((item, i) => manifestSchemaCheck(item, schema.items, manifestPointer(ptr, i), overlay, out))
+  }
+}
+
+// Rules per entry that the schema cannot express: unique keys in an array
+// manifest, the 1-8 entry bound, where agent.plugin is allowed, and that only
+// the core other manifest declares gateTemplates.
+function manifestEntryRules(value, overlay, out) {
+  const isList = Array.isArray(value)
+  const entries = isList ? value : [value]
+  if (isList && (value.length < 1 || value.length > STACK_LIMITS.maxEntries)) {
+    out.push({ pointer: '/', rule: 'entryCount', problem: `must hold 1 to ${STACK_LIMITS.maxEntries} entries`, fix: 'split the manifest' })
+  }
+  const seen = new Set()
+  entries.forEach((entry, i) => {
+    if (manifestTypeOf(entry) !== 'object') return
+    const ptr = isList ? `/${i}` : ''
+    if (typeof entry.name === 'string') {
+      if (seen.has(entry.name)) out.push({ pointer: `${ptr}/name`, rule: 'uniqueKeys', problem: `duplicates key "${entry.name}" in this file`, fix: 'use unique keys' })
+      seen.add(entry.name)
+    }
+    if (hasOwn(entry, 'gateTemplates') && (overlay || entry.name !== 'other')) {
+      out.push({ pointer: `${ptr}/gateTemplates`, rule: 'gateTemplates', problem: 'is reserved for the core other manifest', fix: 'remove "gateTemplates" and list the gates under "gates"' })
+    }
+    const agent = entry.agent
+    if (overlay && manifestTypeOf(agent) === 'object' && CORE_AGENTS.includes(agent.name)) {
+      out.push({ pointer: `${ptr}/agent/name`, rule: 'coreAgent', problem: `names the core agent "${agent.name}"`, fix: 'name your own specialist, for example "<stack>-dev"' })
+    }
+    if (manifestTypeOf(agent) !== 'object' || !hasOwn(agent, 'plugin')) return
+    if (agent.name === 'general-purpose') {
+      out.push({ pointer: `${ptr}/agent/plugin`, rule: 'agentPlugin', problem: 'is not allowed for general-purpose', fix: 'remove "plugin"' })
+    } else if (overlay && agent.plugin === 'sdd-kit') {
+      out.push({ pointer: `${ptr}/agent/plugin`, rule: 'corePlugin', problem: 'names the core plugin "sdd-kit"', fix: "set your add-on's plugin name" })
+    }
+  })
+}
+
+/**
+ * Validates a parsed stack manifest (one entry object, or an array of entries).
+ * @param {unknown} value the parsed JSON
+ * @param {{ overlay?: boolean }} [options] overlay: also apply the string, item and agent.plugin limits that guard project and user manifests
+ * @returns {{ pointer: string, rule: string, problem: string, fix: string }[]} every problem, empty when valid
+ */
+function validateStackManifest(value, options) {
+  const overlay = !!(options && options.overlay)
+  const out = []
+  manifestSchemaCheck(value, STACK_SCHEMA, '', overlay, out)
+  manifestEntryRules(value, overlay, out)
+  return out
+}
+
+// --- canonical JSON, sha256 and trust ----------------------------------------
+// Workflow scripts cannot import modules, so the hash that identifies a manifest
+// is computed here without crypto. src/skills/stack-trust/scripts/trust-store.mjs
+// uses node:crypto over the same canonical text; tools/test/fixtures/trust-vectors.json
+// pins both to the same digests.
+
+/**
+ * Serializes a JSON value with object keys sorted in code-unit order and no whitespace.
+ * @param {unknown} value parsed JSON
+ * @returns {string} the canonical text
+ */
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
+  if (value !== null && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${canonicalJson(value[k])}`).join(',')}}`
+  }
+  return JSON.stringify(value)
+}
+
+// Canonical text of a parsed manifest: `$schema` is dropped from the top-level object, or from each top-level element of an array.
+function canonicalManifest(parsed) {
+  const strip = (e) => {
+    if (e === null || typeof e !== 'object' || Array.isArray(e) || !hasOwn(e, '$schema')) return e
+    const { $schema, ...rest } = e
+    return rest
+  }
+  return canonicalJson(Array.isArray(parsed) ? parsed.map(strip) : strip(parsed))
+}
+
+const SHA256_K = [
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+]
+
+// UTF-8 bytes of a string; a lone surrogate encodes as U+FFFD, as node does.
+function utf8Bytes(text) {
+  const bytes = []
+  for (const ch of text) {
+    let c = ch.codePointAt(0)
+    if (c >= 0xd800 && c <= 0xdfff) c = 0xfffd
+    if (c < 0x80) bytes.push(c)
+    else if (c < 0x800) bytes.push(0xc0 | (c >> 6), 0x80 | (c & 63))
+    else if (c < 0x10000) bytes.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63))
+    else bytes.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63))
+  }
+  return bytes
+}
+
+/**
+ * SHA-256 of a string's UTF-8 bytes, as lowercase hex.
+ * @param {string} text
+ * @returns {string} 64 hex characters
+ */
+function sha256Hex(text) {
+  const bytes = utf8Bytes(text)
+  const bitLength = bytes.length * 8
+  bytes.push(0x80)
+  while (bytes.length % 64 !== 56) bytes.push(0)
+  const high = Math.floor(bitLength / 0x100000000)
+  const low = bitLength >>> 0
+  for (const word of [high, low]) bytes.push((word >>> 24) & 255, (word >>> 16) & 255, (word >>> 8) & 255, word & 255)
+  const h = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19]
+  const w = new Array(64)
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n))
+  for (let offset = 0; offset < bytes.length; offset += 64) {
+    for (let i = 0; i < 16; i++) {
+      const j = offset + i * 4
+      w[i] = ((bytes[j] << 24) | (bytes[j + 1] << 16) | (bytes[j + 2] << 8) | bytes[j + 3]) >>> 0
+    }
+    for (let i = 16; i < 64; i++) {
+      const s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3)
+      const s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10)
+      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0
+    }
+    let [a, b, c, d, e, f, g, hh] = h
+    for (let i = 0; i < 64; i++) {
+      const t1 = (hh + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + SHA256_K[i] + w[i]) >>> 0
+      const t2 = ((rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0
+      hh = g
+      g = f
+      f = e
+      e = (d + t1) >>> 0
+      d = c
+      c = b
+      b = a
+      a = (t1 + t2) >>> 0
+    }
+    const next = [a, b, c, d, e, f, g, hh]
+    for (let i = 0; i < 8; i++) h[i] = (h[i] + next[i]) >>> 0
+  }
+  return h.map((x) => x.toString(16).padStart(8, '0')).join('')
+}
+
+// Hash that identifies a manifest (file or entry) in the trust store and in FIRST_PARTY_HASHES.
+const manifestHash = (parsed) => sha256Hex(canonicalManifest(parsed))
+
+// Approved hashes from the trust store text Detect read. A store that is present but does not parse approves nothing.
+function parseTrustStore(text) {
+  if (text === null || text === undefined) return { hashes: new Set(), unreadable: false }
+  try {
+    const store = JSON.parse(text)
+    if (store && typeof store === 'object' && Array.isArray(store.trusted)) {
+      return { hashes: new Set(store.trusted.map((t) => t && t.sha256).filter((h) => typeof h === 'string')), unreadable: false }
+    }
+  } catch (e) {
+    // falls through to unreadable
+  }
+  return { hashes: new Set(), unreadable: true }
+}
+
+// --- overlay: third-party manifests merged over the inlined registry ----------
+// Workflow scripts cannot read files, so Detect returns raw manifest text and this code
+// validates, deduplicates and trusts it. First-party entries are inlined and always win.
+
+const DISCOVERY_MODES = ['plugin', 'file-copy', 'mixed', 'unknown', 'none']
+const DISCOVERY_METHODS = ['plugin-list', 'installed-plugins', 'cache-sweep', 'stacks-dir', 'none']
+const SCOPE_RANK = { project: 0, plugin: 1, user: 2 }
+const STALE_FIX = {
+  file: 're-run install.sh to refresh it',
+  plugin: (plugin) => `update sdd-kit and ${plugin} to the same version`,
+}
+
+const problemReason = (p) => `${p.pointer} ${p.problem}. Fix: ${p.fix}`
+
+// What each validation rule means, as the run reports it. A rejected manifest's reason carries its JSON
+// pointer, the rule name and this fixed text; no value, key or other text of the manifest reaches a prompt.
+const RULE_TEXT = {
+  type: ['has the wrong type', 'use the type stack.schema.json gives for it'],
+  enum: ['has a value outside the allowed list', 'use one of the values stack.schema.json lists for it'],
+  pattern: ['does not match its pattern', 'match the pattern stack.schema.json gives for it'],
+  maxLength: [`is longer than ${STACK_LIMITS.maxString} characters`, 'shorten it'],
+  required: ['is missing', 'add it'],
+  additionalProperties: ['is not an allowed key', 'remove it (stack.schema.json lists the allowed keys)'],
+  maxItems: [`has more than ${STACK_LIMITS.maxItems} items`, 'remove items'],
+  entryCount: [`must hold 1 to ${STACK_LIMITS.maxEntries} entries`, 'split the manifest'],
+  uniqueKeys: ['duplicates another key in this file', 'use unique keys'],
+  gateTemplates: ['is reserved for the core other manifest', 'remove "gateTemplates" and list the gates under "gates"'],
+  coreAgent: ['names a core agent', 'name your own specialist, for example "<stack>-dev"'],
+  agentPlugin: ['is not allowed for general-purpose', 'remove "plugin"'],
+  corePlugin: ['names the core plugin "sdd-kit"', "set your add-on's plugin name"],
+  json: ['is not valid JSON', 'correct the JSON syntax'],
+  maxSize: [`is larger than ${STACK_LIMITS.maxRawLength / 1024} KB`, 'shorten the manifest'],
+}
+
+// Every property name the schema declares; a pointer segment that is neither one of these nor an array index
+// is a key the manifest chose, and is reported as <key>.
+const SCHEMA_KEY_NAMES = (() => {
+  const names = new Set()
+  const walk = (node) => {
+    if (Array.isArray(node)) return node.forEach(walk)
+    if (node === null || typeof node !== 'object') return
+    if (node.properties) for (const k of Object.keys(node.properties)) names.add(k)
+    for (const v of Object.values(node)) walk(v)
+  }
+  walk(STACK_SCHEMA)
+  return names
+})()
+
+/**
+ * A rejection reason as the run reports it: the problem's JSON pointer (manifest-chosen keys replaced by
+ * <key>), the rule it breaks and that rule's fixed text.
+ * @param {{ pointer: string, rule: string }} p a validator problem, or { pointer: '/', rule: 'json' | 'maxSize' }
+ * @returns {string} for example '/role has a value outside the allowed list (rule enum). Fix: use one of the values stack.schema.json lists for it'
+ */
+function redactedReason(p) {
+  const pointer = !p.pointer || p.pointer === '/' ? '/' : p.pointer.split('/').map((seg, i) => (i === 0 || /^\d{1,3}$/.test(seg) || SCHEMA_KEY_NAMES.has(seg) ? seg : '<key>')).join('/')
+  const rule = hasOwn(RULE_TEXT, p.rule) ? p.rule : 'schema'
+  const [problem, fix] = hasOwn(RULE_TEXT, rule) ? RULE_TEXT[rule] : ['breaks the manifest schema', 'check the manifest against stack.schema.json']
+  return `${pointer} ${problem} (rule ${rule}). Fix: ${fix}`
+}
+const SOURCE_LABEL_PATTERN = /^[A-Za-z0-9:._~/@-]{1,120}$/
+
+// The source labels Detect may report. Anything else is rejected before its text is read.
+const MANIFEST_SOURCE_FORMS = [
+  /^project:\.claude\/stacks\/[^/\\\s]+$/,
+  /^user:~\/\.claude\/stacks\/[^/\\\s]+$/,
+  /^plugin:[A-Za-z0-9][A-Za-z0-9._-]*@[A-Za-z0-9._-]+$/,
+]
+const MISSING_SOURCE = 'missing or invalid source. Fix: report source as project:.claude/stacks/<file>, user:~/.claude/stacks/<file> or plugin:<name>@<marketplace>'
+// A label must pass SOURCE_LABEL_PATTERN as well as one of the forms: it is pasted into prompts and logs.
+const isManifestSource = (source) => SOURCE_LABEL_PATTERN.test(source) && MANIFEST_SOURCE_FORMS.some((re) => re.test(source))
+const STACK_KEY_PATTERN = /^[a-z][a-z0-9-]{1,31}$/
+
+// Which add-on directory a manifest source stands in for, or null when the source is not a first-party location.
+function firstPartyLocation(source) {
+  const colon = source.indexOf(':')
+  const scope = colon > 0 ? source.slice(0, colon) : ''
+  const rest = source.slice(colon + 1)
+  let dir = null
+  let plugin = null
+  if (scope === 'project') {
+    const m = /^\.claude\/stacks\/([^/]+)\.json$/.exec(rest)
+    dir = m && m[1]
+  } else if (scope === 'user') {
+    const m = /^~\/\.claude\/stacks\/([^/]+)\.json$/.exec(rest)
+    dir = m && m[1]
+  } else if (scope === 'plugin') {
+    plugin = rest.split('@')[0]
+    dir = FIRST_PARTY_PLUGINS.includes(plugin) ? plugin.replace(/^sdd-kit-/, '') : null
+  }
+  if (!dir || !hasOwn(FIRST_PARTY_FILES, dir)) return null
+  return { dir, plugin, kind: scope === 'plugin' ? 'plugin' : 'file' }
+}
+
+const manifestEntries = (parsed) => (Array.isArray(parsed) ? parsed : [parsed])
+
+const entryName = (e) => (e !== null && typeof e === 'object' && typeof e.name === 'string' ? e.name : null)
+
+/**
+ * Validates Detect's manifests and decides which keys join the registry.
+ * Pure: nothing is installed until installOverlay(result) runs.
+ * A first-party location may come back as { source, sha256 } (the canonical hash, no text): it is present
+ * when the hash equals FIRST_PARTY_FILE_HASHES for its add-on, a stale copy otherwise.
+ * @param {{ source: string, raw?: string, sha256?: string }[]} manifests manifest files from Detect
+ * @param {string|null} trustStoreText verbatim trust store text, null when absent
+ * A manifest without a string source, or with a source outside the forms in MANIFEST_SOURCE_FORMS, is
+ * rejected and its text is never parsed. declinedKeys maps every stack key a rejected manifest names to the
+ * reason, and unnamedRejections lists the rejected manifests whose keys could not be read, so resolveRepo can
+ * report a repo of such a stack as not run.
+ * @returns {{ present: string[], added: { key: string, source: string }[], ignored: { key: string, source: string, reason: string }[], rejected: { source: string, reason: string, firstParty: boolean }[], entries: object, keys: string[], untrusted: { source: string, keys: string[], sha256: string }[], logs: string[], storeUnreadable: boolean, declinedKeys: Object<string, string>, unnamedRejections: string[] }}
+ */
+function mergeOverlay(manifests, trustStoreText) {
+  const present = []
+  const ignored = []
+  const rejected = []
+  const logs = []
+  const stale = []
+  const candidates = []
+  const trust = parseTrustStore(trustStoreText)
+  const declinedKeys = {}
+  const unnamedRejections = []
+  const declineKeys = (value, reason) => {
+    for (const e of manifestEntries(value)) {
+      const key = entryName(e)
+      if (key !== null && STACK_KEY_PATTERN.test(key) && !hasOwn(declinedKeys, key)) declinedKeys[key] = reason.slice(0, 300)
+    }
+  }
+
+  const markStale = (source, where, keys) => {
+    const fix = where.kind === 'plugin' ? STALE_FIX.plugin(where.plugin) : STALE_FIX.file
+    for (const key of keys) ignored.push({ key, source, reason: `first-party key (stale or edited copy; ${fix})` })
+    stale.push({ source, kind: where.kind, fix })
+  }
+
+  for (const m of Array.isArray(manifests) ? manifests : []) {
+    if (!m || typeof m !== 'object' || typeof m.source !== 'string' || !isManifestSource(m.source)) {
+      const label = m && typeof m === 'object' && typeof m.source === 'string' ? (SOURCE_LABEL_PATTERN.test(m.source) ? m.source : '(invalid source)') : '(no source)'
+      rejected.push({ source: label, reason: MISSING_SOURCE, firstParty: false })
+      unnamedRejections.push(label)
+      logs.push(`Stack manifest rejected: ${label} — ${MISSING_SOURCE}`)
+      continue
+    }
+    const source = m.source
+    const where = firstPartyLocation(source)
+    const reject = (reason, firstParty) => {
+      rejected.push({ source, reason, firstParty })
+      logs.push(`Stack manifest rejected: ${source} — ${reason}`)
+    }
+    if (typeof m.raw !== 'string' && typeof m.sha256 === 'string') {
+      if (!where) reject('/ came back as a hash, but only a first-party location may. Fix: return the manifest text as raw', false)
+      else if (m.sha256 === FIRST_PARTY_FILE_HASHES[where.dir]) present.push(source)
+      else markStale(source, where, FIRST_PARTY_FILES[where.dir])
+      continue
+    }
+    const raw = typeof m.raw === 'string' ? m.raw : ''
+    let parsed
+    let parseError = null
+    try {
+      parsed = JSON.parse(raw)
+    } catch (e) {
+      parseError = e
+    }
+    if (raw.length > STACK_LIMITS.maxRawLength || parseError) {
+      if (raw.length > STACK_LIMITS.maxRawLength) {
+        if (!parseError) declineKeys(parsed, `${source} was rejected (larger than ${STACK_LIMITS.maxRawLength / 1024} KB)`)
+        else unnamedRejections.push(source)
+        reject(redactedReason({ pointer: '/', rule: 'maxSize' }), !!where)
+      } else {
+        unnamedRejections.push(source)
+        reject(redactedReason({ pointer: '/', rule: 'json' }), !!where)
+      }
+      continue
+    }
+    const keys = manifestEntries(parsed).map(entryName)
+    const firstParty = !!where && keys.every((k) => k !== null && FIRST_PARTY_FILES[where.dir].includes(k))
+    const problems = validateStackManifest(parsed, { overlay: !firstParty })
+    if (problems.length) {
+      declineKeys(parsed, `${source} was rejected (${redactedReason(problems[0])})`)
+      reject(redactedReason(problems[0]), firstParty)
+      continue
+    }
+    if (firstParty) {
+      if (manifestEntries(parsed).every((e) => FIRST_PARTY_HASHES[e.name] === manifestHash(e))) {
+        present.push(source)
+      } else {
+        markStale(source, where, keys)
+      }
+      continue
+    }
+    const scope = source.slice(0, source.indexOf(':'))
+    candidates.push({ source, rank: hasOwn(SCOPE_RANK, scope) ? SCOPE_RANK[scope] : 3, parsed, sha256: manifestHash(parsed) })
+  }
+
+  // The first valid entry for a key wins: project before plugin before user, then by source.
+  candidates.sort((a, b) => a.rank - b.rank || (a.source < b.source ? -1 : a.source > b.source ? 1 : 0))
+  const entries = {}
+  const bySource = new Map()
+  for (const c of candidates) {
+    for (const entry of manifestEntries(c.parsed)) {
+      if (FIRST_PARTY_KEYS.includes(entry.name)) {
+        ignored.push({ key: entry.name, source: c.source, reason: 'first-party key' })
+      } else if (hasOwn(entries, entry.name)) {
+        ignored.push({ key: entry.name, source: c.source, reason: `duplicate key (kept ${entries[entry.name].source})` })
+      } else {
+        entries[entry.name] = { entry, source: c.source, sha256: c.sha256, trusted: trust.hashes.has(c.sha256) }
+        if (!bySource.has(c.source)) bySource.set(c.source, [])
+        bySource.get(c.source).push(entry.name)
+      }
+    }
+  }
+  const added = candidates.flatMap((c) => (bySource.get(c.source) || []).map((key) => ({ key, source: c.source })))
+  const untrusted = [...bySource].filter(([source]) => !entries[bySource.get(source)[0]].trusted).map(([source, keys]) => ({ source, keys, sha256: entries[keys[0]].sha256 }))
+
+  for (const i of ignored) if (!i.reason.startsWith('first-party key (')) logs.push(`Stack manifest ignored: ${i.source} — ${i.reason}`)
+  if (stale.length) {
+    const sources = stale.map((s) => s.source).join(', ')
+    const fixes = ['file', 'plugin'].flatMap((kind) => [...new Set(stale.filter((s) => s.kind === kind).map((s) => s.fix))])
+    logs.push(`First-party stack manifests differ from this core (${sources}). Fix: ${fixes.join('; ')}.`)
+  }
+
+  const overlayKeys = Object.keys(entries).sort()
+  const keys = [...FIRST_PARTY_KEYS.filter((k) => k !== 'other'), ...overlayKeys, 'other']
+  return { present, added, ignored, rejected, entries, keys, untrusted, logs, storeUnreadable: trust.unreadable, declinedKeys, unnamedRejections }
+}
+
+// Optional manifest blocks copied unchanged into STACK_EXTRAS.
+const MANIFEST_EXTRA_FIELDS = ['skills', 'scaffold', 'ci', 'e2e', 'e2eBackend', 'migrations', 'audit', 'markers', 'packageManagers', 'sourceDirs', 'gateTemplates']
+
+/**
+ * The one projection of a manifest entry onto the registry: its STACKS row plus the trait and extra
+ * blocks that sit beside it. gen-stacks renders the first-party registry through this function and
+ * installOverlay applies it to overlay entries, so a schema field reaches both or neither.
+ * @param {object} entry a validated manifest entry
+ * @returns {{ row: object, traits: object, extras: object }} traits/extras are {} when the entry has none
+ */
+function manifestRows(entry) {
+  const row = {
+    role: entry.role,
+    detect: entry.detect,
+    agent: entry.agent.name,
+    conventions: entry.conventions,
+    gates: entry.gates.map((g) => ({ name: g.name, command: g.command })),
+    debugPatterns: entry.debugPatterns,
+  }
+  if (entry.devUrl !== undefined) row.devUrl = entry.devUrl
+  if (entry.visual !== undefined) row.visual = entry.visual
+  row.acceptance = entry.acceptance
+  const traits = {}
+  if (entry.buildGateGuard !== undefined) traits.buildGateGuard = entry.buildGateGuard
+  const cs = entry.contractSync || {}
+  if (cs.routeListCommand !== undefined) traits.routeListCommand = cs.routeListCommand
+  if (cs.template !== undefined) traits.contractTemplate = cs.template
+  if (cs.consumer === true) traits.contractConsumer = true
+  const skip = entry.gates.filter((g) => g.skipWhenScaffolded === true).map((g) => g.name)
+  if (skip.length) traits.scaffoldSkipGates = skip
+  const extras = {}
+  const gates = {}
+  for (const g of entry.gates) {
+    const meta = {}
+    if (g.kind !== undefined) meta.kind = g.kind
+    if (g.unless !== undefined) meta.unless = g.unless
+    if (Object.keys(meta).length) gates[g.name] = meta
+  }
+  if (Object.keys(gates).length) extras.gates = gates
+  for (const f of MANIFEST_EXTRA_FIELDS) if (entry[f] !== undefined) extras[f] = entry[f]
+  return { row, traits, extras }
+}
+
+// Specialist agents of the effective registry: name -> { plugin, stacks, source }. An untrusted overlay
+// contributes none (OD-17a).
+function buildAgentInfo(overlay) {
+  const info = {}
+  for (const key of STACK_KEYS) {
+    const name = STACKS[key].agent
+    if (name === 'general-purpose' || (hasOwn(overlay, key) && !overlay[key].trusted)) continue
+    if (!hasOwn(info, name)) {
+      const own = hasOwn(overlay, key) ? overlay[key] : null
+      info[name] = { plugin: hasOwn(AGENT_PLUGIN, name) ? AGENT_PLUGIN[name] : (own && own.plugin) || null, stacks: [], source: own ? own.source : null }
+    }
+    info[name].stacks.push(key)
+  }
+  return info
+}
+
+/**
+ * Makes a mergeOverlay result the effective registry: STACKS, STACK_KEYS, STACK_AGENT, AGENT_INFO and
+ * the trust of each overlay key. Everything stackCatalog, debugScanFor and gate planning read follows.
+ */
+function installOverlay(merged) {
+  const overlay = {}
+  for (const [key, e] of Object.entries(merged.entries)) {
+    const { row, traits, extras } = manifestRows(e.entry)
+    STACKS[key] = row
+    if (Object.keys(traits).length) STACK_TRAITS[key] = traits
+    if (Object.keys(extras).length) STACK_EXTRAS[key] = extras
+    overlay[key] = { source: e.source, plugin: e.entry.agent.plugin || null, trusted: e.trusted, sha256: e.sha256 }
+  }
+  STACK_KEYS = merged.keys
+  // An untrusted overlay's specialist name is never used: its steps run as the default agent (OD-17a).
+  STACK_AGENT = Object.fromEntries(STACK_KEYS.map((k) => [k, hasOwn(overlay, k) && !overlay[k].trusted ? 'general-purpose' : STACKS[k].agent]))
+  AGENT_INFO = buildAgentInfo(overlay)
+  OVERLAY_META = overlay
+  DECLINED_KEYS = merged.declinedKeys || {}
+  DECLINED_UNNAMED = merged.unnamedRejections || []
+  MANIFESTS_DECLINED = !!((merged.rejected || []).length || (merged.ignored || []).length || (merged.untrusted || []).length)
+}
+
+// --- Detect plumbing ---------------------------------------------------------
+
+// Schema fragments every workflow spreads into its Detect result schema.
+const DETECT_EXTRA_SCHEMA = {
+  stackManifests: {
+    type: 'array',
+    items: { type: 'object', required: ['source'], properties: { source: { type: 'string' }, raw: { type: 'string' }, sha256: { type: 'string' } } },
+  },
+  // Absent and unreadable stores are both null (or omitted); unreadable also adds a discovery error.
+  trustStore: { type: ['string', 'null'] },
+  discovery: {
+    type: 'object',
+    properties: {
+      mode: { type: 'string', enum: DISCOVERY_MODES },
+      method: { type: 'string', enum: DISCOVERY_METHODS },
+      errors: { type: 'array', items: { type: 'string' } },
+    },
+  },
+}
+// Per repo: the gates whose `unless` globs matched a file or directory in that repo.
+const REPO_UNLESS_SCHEMA = {
+  type: 'array',
+  items: { type: 'object', required: ['gate', 'glob'], properties: { gate: { type: 'string' }, glob: { type: 'string' } } },
+}
+
+// Prints "<sha256> <file>" for each file: the canonical manifest hash (canonicalManifest + sha256), with node:crypto.
+const MANIFEST_HASH_COMMAND = `node -e 'const c=require("crypto"),f=require("fs");const j=(v)=>Array.isArray(v)?"["+v.map(j).join(",")+"]":v!==null&&typeof v=="object"?"{"+Object.keys(v).sort().map((k)=>JSON.stringify(k)+":"+j(v[k])).join(",")+"}":JSON.stringify(v);const s=(e)=>{if(e===null||typeof e!="object"||Array.isArray(e))return e;const{$schema,...r}=e;return r};for(const p of process.argv.slice(1)){const m=JSON.parse(f.readFileSync(p,"utf8"));console.log(c.createHash("sha256").update(j(Array.isArray(m)?m.map(s):s(m))).digest("hex"),p)}'`
+
+// First-party manifest locations and the hash a copy that matches this core has, for the Detect prompt.
+function firstPartyHashLine() {
+  return Object.keys(FIRST_PARTY_FILES)
+    .filter((dir) => hasOwn(FIRST_PARTY_FILE_HASHES, dir))
+    .map((dir) => `${dir} (.claude/stacks/${dir}.json, ~/.claude/stacks/${dir}.json, plugin sdd-kit-${dir}): ${FIRST_PARTY_FILE_HASHES[dir]}`)
+    .join('; ')
+}
+
+// Appended to every Detect prompt; the discovery recipe itself lives in the code-explorer agent.
+// First-party copies come back as a hash, not their text: their content is inlined here already, and
+// echoing it would cost thousands of output tokens on every run.
+function stackDiscoveryPrompt() {
+  const firstParty = firstPartyHashLine()
+  const hashRule = firstParty
+    ? ` For a first-party location inside the project, hash the file first with \`${MANIFEST_HASH_COMMAND} <file>\`; when the hash equals the one listed for that add-on, return {source, sha256} and no raw. Expected hashes: ${firstParty}. A first-party location outside the project, or one whose hash differs or cannot be computed, returns raw like any other manifest.`
+    : ''
+  return `STACK MANIFESTS — follow your stack discovery recipe and also return: stackManifests (one item per manifest you found: source as project:.claude/stacks/<file>, user:~/.claude/stacks/<file> or plugin:<name>@<marketplace> (plugin:<name>@inline for a --plugin-dir plugin), raw = the file text, unmodified.${hashRule}), trustStore (the verbatim text of <home>/.claude/sdd-kit/trusted-stacks.json, where <home> is the home directory your recipe reads from the OS user database, never $HOME or CLAUDE_CONFIG_DIR; null or omitted when the file is absent; null or omitted plus "trustStore unreadable" in discovery.errors when <home> cannot be resolved or the Read is refused or fails), and discovery {mode, method, errors}. Outside the project use only the Read and Glob tools, on literal absolute paths under the <config> directory and the <home>/.claude/sdd-kit directory your recipe resolves: never cat, ls or find there, and no Bash command with a variable in braces. A refused read goes into discovery.errors ("trustStore unreadable", "user stacks unreadable", "plugin list unreadable") and is never treated as trusted. A repo that matches no catalog stack but matches a manifest's detect text takes that manifest's name as stack. For each repo and each gate of its stack that lists unless globs, add {gate, glob} to unlessMatched for every glob that matches a file or directory in that repo.
+
+${REPO_PATH_RULE}`
+}
+
+// How Detect reports repo paths and dev URLs so that resolveDetect keeps them (isRepoPath, isDevUrl).
+const REPO_PATH_RULE = `REPO PATHS — report each repo's path relative to the current directory ("." for the current directory itself), using only letters, digits, ".", "_", "/" and "-", with no ".." segment and no leading "-". A repo outside the current directory is reported only when the caller hinted its root, and then with that hint verbatim. Any other path drops the repo. devUrl must be an http(s) URL on localhost, 127.0.0.1, [::1], a *.localhost or a *.test host (optional port and plain path); any other devUrl is dropped.`
+
+/**
+ * Runs the Detect agent call, turning a throw into a failure message instead of ending the workflow.
+ * @param {string} prompt the Detect prompt
+ * @param {object} opts options for runAgent
+ * @returns {Promise<{ project: object|null, failure: string|null }>}
+ */
+async function detectStacks(prompt, opts) {
+  try {
+    return { project: await runAgent(prompt, opts), failure: null }
+  } catch (e) {
+    return { project: null, failure: (e && e.message) || String(e) }
+  }
+}
+
+/**
+ * Turns Detect's raw result into the repos a workflow runs on and merges the stack overlay.
+ * Never re-runs Detect: a failure, a null result or zero repos all end in the single fallback repo.
+ * @param {object|null} project Detect's result, null when it failed
+ * @param {{ failure?: string, listKey?: string, fallback?: object }} [opts] failure: message when Detect threw; listKey: the repo list property (default "repos"); fallback: the repo used when none were detected
+ * @returns {{ list: object[], stackOverlay: object, untrusted: object[] }}
+ */
+function resolveDetect(project, opts) {
+  const o = opts || {}
+  const listKey = o.listKey || 'repos'
+  const data = project && typeof project === 'object' ? project : null
+  const failure = o.failure || (data ? null : 'Detect returned no result')
+  const discovery = { mode: 'unknown', method: 'none', errors: [] }
+  const found = data && data.discovery && typeof data.discovery === 'object' ? data.discovery : null
+  if (found) {
+    if (DISCOVERY_MODES.includes(found.mode)) discovery.mode = found.mode
+    if (DISCOVERY_METHODS.includes(found.method)) discovery.method = found.method
+    if (Array.isArray(found.errors)) discovery.errors = safeTexts(found.errors, 'Detect discovery errors')
+  }
+  if (failure) {
+    discovery.mode = 'none'
+    discovery.method = 'none'
+    discovery.errors = [`Detect failed: ${failure}`]
+  }
+  const roots = callerRoots(o.roots)
+  let list = (data && Array.isArray(data[listKey]) ? data[listKey] : []).filter((r) => {
+    if (r && typeof r === 'object' && isRepoPath(r.path, roots)) return true
+    const shown = r && typeof r === 'object' && typeof r.path === 'string' ? JSON.stringify(r.path.slice(0, 80)) : '(none)'
+    log(`Repo dropped: path ${shown} is not a relative path inside the workspace. Fix: run from a directory that contains every repo, or pass the repo roots in args.repos.`)
+    return false
+  })
+  if (!list.length) {
+    if (!failure) discovery.errors.push('Detect returned no repos')
+    list = [o.fallback || { role: 'fullstack', path: '.', stack: 'other', gateCommands: [] }]
+  }
+  const manifests = data && Array.isArray(data.stackManifests) ? data.stackManifests : []
+  // A store Detect calls unreadable approves nothing, whatever text came back with it. The store lives in the OS
+  // home directory, not the config directory, so a config directory inside the project does not affect it.
+  const storeRefused = discovery.errors.includes('trustStore unreadable')
+  const merged = mergeOverlay(manifests, !storeRefused && data && typeof data.trustStore === 'string' ? data.trustStore : null)
+  if (merged.storeUnreadable && !discovery.errors.includes('trustStore unreadable')) discovery.errors.push('trustStore unreadable')
+  installOverlay(merged)
+
+  const stackOverlay = {
+    discovery: { mode: discovery.mode, method: discovery.method, count: manifests.length, errors: discovery.errors },
+    present: merged.present,
+    added: merged.added,
+    ignored: merged.ignored,
+    rejected: merged.rejected,
+  }
+  log(`Stacks: discovery ${discovery.method}, ${manifests.length} manifest(s), ${discovery.errors.length} error(s); added: ${merged.added.map((a) => a.key).join(', ') || 'none'}; ignored: ${merged.ignored.length}; rejected: ${merged.rejected.length}`)
+  merged.logs.forEach((line) => log(line))
+  merged.untrusted.forEach((u) => log(`Stack manifest untrusted: ${u.source} (${u.keys.join(', ')}) — its gates will not run, and its steps run as the default agent with no stack skills (its specialist agent and skills are not used). Fix: run /stack-trust.`))
+  return { list: list.map((r) => resolveRepo(r)), stackOverlay, untrusted: merged.untrusted }
+}
+
+// --- Detect values: everything a prompt or a command quotes passes a strict pattern -----
+// Detect and scaffold agents read repository content, so every value they report is checked before a
+// prompt or command quotes it. An invalid value is dropped and logged, never quoted.
+
+const REPO_ROLES = ['backend', 'frontend', 'fullstack', 'mobile']
+const REPO_PATH_PATTERN = /^[A-Za-z0-9._/-]{1,200}$/
+// Local development hosts only: localhost, the loopback addresses, *.localhost and *.test.
+const DEV_URL_PATTERN = /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\]|(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+(?:localhost|test))(?::\d{1,5})?(?:\/[A-Za-z0-9._~/-]*)?$/
+// Prose Detect reports (conventions, warnings, blockers): words and plain punctuation, no quotes, shell
+// operators, substitutions or redirections.
+const SAFE_TEXT_PATTERN = /^[\p{L}\p{N} .,:()/_+*@#%=–—-]{1,200}$/u
+const MAX_TEXT_ITEMS = 20
+const NOT_RUN_NO_GATE = 'not run (no allowlisted gate'
+
+/**
+ * Whether a repo path Detect reported may be quoted into a prompt or command: relative, inside the
+ * workspace (no ".." segment), [A-Za-z0-9._/-] only and no leading "-"; or exactly a repo root the caller
+ * passed in args.repos, which defines the workspace for a polyrepo run.
+ * @param {unknown} p the reported path
+ * @param {Set<string>} [roots] caller repo roots (callerRoots)
+ * @returns {boolean}
+ * @example isRepoPath('web') // true
+ * @example isRepoPath('web" && touch x') // false
+ * @example isRepoPath('../web', callerRoots({ frontend: '../web' })) // true
+ */
+function isRepoPath(p, roots) {
+  if (typeof p !== 'string' || !REPO_PATH_PATTERN.test(p) || p.startsWith('-')) return false
+  if (roots && roots.has(p)) return true
+  return !p.startsWith('/') && !p.split('/').includes('..')
+}
+
+// The repo roots a caller passed (args.repos as an object or array of paths), limited to the path characters.
+function callerRoots(hints) {
+  const values = Array.isArray(hints) ? hints : hints && typeof hints === 'object' ? Object.values(hints) : []
+  return new Set(values.filter((v) => typeof v === 'string' && REPO_PATH_PATTERN.test(v) && !v.startsWith('-')))
+}
+
+// Whether a dev server URL may be quoted: http(s) on a local development host, with an optional port and plain path.
+function isDevUrl(url) {
+  return typeof url === 'string' && url.length <= 200 && DEV_URL_PATTERN.test(url)
+}
+
+/**
+ * The prose items of a Detect list that pass SAFE_TEXT_PATTERN, at most MAX_TEXT_ITEMS; the rest are logged.
+ * @param {unknown} list reported strings
+ * @param {string} label what the list is, for the log line
+ * @returns {string[]}
+ */
+function safeTexts(list, label) {
+  if (!Array.isArray(list)) return []
+  const kept = list.filter((t) => typeof t === 'string' && SAFE_TEXT_PATTERN.test(t)).slice(0, MAX_TEXT_ITEMS)
+  if (kept.length < list.length) log(`${label}: ${list.length - kept.length} item(s) dropped (quotes, shell syntax or too long).`)
+  return kept
+}
+
+/**
+ * A package manager name a scaffold or Detect reported, kept only when the stack's first-party or trusted
+ * manifest declares it in packageManagers.
+ * @param {string} stack Stack key.
+ * @param {unknown} name the reported name
+ * @param {string} where repo path, for the log line
+ * @returns {string} the name, or '' when it was dropped
+ */
+function declaredPackageManager(stack, name, where) {
+  if (name === undefined || name === null || name === '') return ''
+  if (packageManagersFor(stack).some((p) => p.name === name)) return name
+  log(`Package manager dropped for ${where}: ${JSON.stringify(String(name).slice(0, 40))} is not declared by the ${stack} manifest.`)
+  return ''
+}
+
+// The unless matches whose gate and glob the stack's manifest declares.
+function declaredUnless(stack, matched) {
+  const gates = (hasOwn(STACK_EXTRAS, stack) && STACK_EXTRAS[stack].gates) || {}
+  return (Array.isArray(matched) ? matched : []).filter((m) => m && hasOwn(gates, m.gate) && (gates[m.gate].unless || []).includes(m.glob))
+}
+
+/**
+ * The fields of a Detect repo that workflows use, each validated for the repo's resolved stack. Unknown
+ * fields are dropped, so a prompt that quotes the repo quotes only checked values.
+ * @param {object} r the reported repo
+ * @param {string} stack its resolved stack key
+ * @param {boolean} declined whether the stack comes from a manifest this run does not use
+ * @returns {object}
+ */
+function cleanRepoFields(r, stack, declined) {
+  const where = r.path || '.'
+  const out = { role: REPO_ROLES.includes(r.role) ? r.role : 'fullstack', path: r.path || '.' }
+  if (r.role !== undefined && out.role !== r.role) log(`Repo role dropped for ${where}: ${JSON.stringify(String(r.role).slice(0, 40))} is not ${REPO_ROLES.join(', ')}.`)
+  for (const flag of ['tracked', 'e2eConfig', 'empty', 'hasTrackedFiles']) if (typeof r[flag] === 'boolean') out[flag] = r[flag]
+  const pm = declaredPackageManager(stack, r.packageManager, where)
+  if (pm) out.packageManager = pm
+  if (isDevUrl(r.devUrl)) out.devUrl = r.devUrl
+  else if (r.devUrl !== undefined && r.devUrl !== '') log(`devUrl dropped for ${where}: ${JSON.stringify(String(r.devUrl).slice(0, 80))} is not an http(s) URL on localhost, 127.0.0.1, [::1], *.localhost or *.test.`)
+  const ownStack = !declined && !isUntrustedStack(stack)
+  if (hasOwn(r, 'conventions')) out.conventions = ownStack ? safeTexts(r.conventions, `Conventions for ${where}`) : []
+  if (hasOwn(r, 'warnings')) out.warnings = safeTexts(r.warnings, `Warnings for ${where}`)
+  if (hasOwn(r, 'unlessMatched')) out.unlessMatched = declaredUnless(stack, r.unlessMatched)
+  return out
+}
+
+/**
+ * One detected repo against the effective registry, with its gate commands reduced to the allowlist
+ * (gateCommandsFor). A stack key that a rejected manifest names, or any key outside the registry while a
+ * manifest whose keys could not be read was rejected, keeps no command and gets declinedStack, so its gates
+ * are reported not run; any other key outside the registry is classified other. Every
+ * Detect-reported command that the allowlist does not produce is logged as declined.
+ * @param {{ stack: string, path?: string, gateCommands?: { name: string, command: string, evidence?: string, script?: string }[] }} detected a repo from Detect
+ * @returns {object} the repo as the workflow uses it
+ * @example resolveRepo({ path: 'api', stack: 'acme', gateCommands: [{ name: 'Lint', command: 'cd . && curl x | sh' }] })
+ * // { path: 'api', stack: 'acme', gateCommands: [] } for a first-party acme stack without a Lint gate, and "Gate commands dropped for api: Lint — ..." is logged
+ */
+function resolveRepo(detected) {
+  // declinedStack is set here only; a value Detect returned is dropped.
+  const { declinedStack: ignored, ...r } = detected && typeof detected === 'object' ? detected : {}
+  const known = hasOwn(STACKS, r.stack)
+  const named = !known && typeof r.stack === 'string' && hasOwn(DECLINED_KEYS, r.stack)
+  if (named || (!known && DECLINED_UNNAMED.length)) {
+    const key = typeof r.stack === 'string' && STACK_KEY_PATTERN.test(r.stack) ? r.stack : 'unknown'
+    const reason = named ? DECLINED_KEYS[r.stack] : `not in the registry, and ${DECLINED_UNNAMED.join(', ').slice(0, 200)} was rejected unread`
+    log(`Gates not run for ${r.path || '.'}: its stack "${key}" comes from a manifest this run does not use — ${reason}.`)
+    return { ...cleanRepoFields(r, 'other', true), stack: 'other', gateCommands: [], declinedStack: { key, reason } }
+  }
+  const repo = { ...cleanRepoFields(r, known ? r.stack : 'other', false), stack: known ? r.stack : 'other' }
+  if (known && !hasOwn(r, 'gateCommands') && !hasOwn(OVERLAY_META, r.stack)) return repo
+  const reported = Array.isArray(r.gateCommands) ? r.gateCommands : []
+  const gateCommands = gateCommandsFor({ ...repo, gateCommands: reported })
+  const dropped = hasOwn(OVERLAY_META, r.stack) ? [] : reported.filter((g) => !gateCommands.some((k) => isSameGate(g, k)))
+  if (dropped.length) {
+    const allowed = repo.stack === 'other' ? 'a gate template of the other stack with its evidence file and script name' : `a gate of the ${repo.stack} catalog`
+    log(`Gate commands dropped for ${r.path || '.'}: ${dropped.map(gateLabel).join(', ')} — declined, not ${allowed}.`)
+  }
+  return { ...repo, gateCommands }
+}
+
+// One line for the "Stack overlay" part of a report.
+function stackOverlayLine(overlay, untrusted) {
+  const names = (list) => list.map((x) => x.key).join(', ') || 'none'
+  return `discovery ${overlay.discovery.method} (${overlay.discovery.mode}); added: ${names(overlay.added)}; ignored: ${overlay.ignored.length}; rejected: ${overlay.rejected.length}; untrusted: ${(untrusted || []).map((u) => u.keys.join(', ')).join(', ') || 'none'}`
+}
+
+/**
+ * The untrusted manifests that hold the stack of a repo this run works on. Only these block a verdict;
+ * any other untrusted manifest (an unused user overlay, an add-on for another stack) is reported for information.
+ * @param {{ keys: string[] }[]} untrusted resolveDetect's untrusted list
+ * @param {{ stack: string }[]} repos the detected repos or targets
+ * @returns {object[]} the subset of `untrusted` that blocks
+ */
+function blockingUntrusted(untrusted, repos) {
+  const stacks = new Set((repos || []).map((r) => r.stack))
+  return (untrusted || []).filter((u) => u.keys.some((k) => stacks.has(k)))
+}
+
+// "Next:" line that every untrusted-manifest recommendation ends with; '' when nothing is untrusted.
+const untrustedNext = (workflow, untrusted) => ((untrusted || []).length ? `Next: /stack-trust, then re-run ${workflow}.` : '')
+
+// --- gates: the command allowlist, untrusted manifests and unless globs -----
+// A gate command runs only when the registry produces it: (a) the inlined catalog of a first-party stack,
+// (b) the approved manifest of a trusted overlay, or (c) for `other`, a gate template of the core other
+// manifest rendered with a script name Detect found in the template's evidence file. Detect's text only
+// selects among these; it never becomes a command itself.
+
+// Script or target names a gate template accepts: no whitespace, quotes or shell syntax, no leading dash.
+const GATE_SCRIPT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/
+const CONTRACT_SYNC_COMMAND = 'node scripts/contract-sync.mjs'
+const CONTRACT_SYNC_SCRIPTS = ['contract-sync', 'contract:sync']
+
+const trimmed = (v) => (typeof v === 'string' ? v.trim() : '')
+const gateLabel = (g) => JSON.stringify(trimmed(g && g.name).slice(0, 60) || '?')
+const isSameGate = (reported, kept) => !!reported && (trimmed(reported.command) === kept.command || trimmed(reported.name).toLowerCase() === kept.name.toLowerCase())
+
+// The gate templates of the core other manifest: { evidence, command } with {script} in the command.
+function gateTemplates() {
+  return (hasOwn(STACK_EXTRAS, 'other') && STACK_EXTRAS.other.gateTemplates) || []
+}
+
+const renderGateTemplate = (template, script) => template.command.split('{script}').join(script)
+
+// The gate templates as one prompt fragment: "<evidence> → <command>; ...".
+function gateTemplatesLine() {
+  return gateTemplates().map((t) => `${t.evidence} → ${t.command}`).join('; ') || '(none)'
+}
+
+// How an agent reports a stack's gate commands so that the allowlist keeps them, for a prompt.
+function gateReportRule(stack) {
+  return stack === 'other'
+    ? `each as {name, command, evidence, script} from these templates, any other command is dropped: ${gateTemplatesLine()}`
+    : 'use the gate names and commands listed above verbatim, any other command is dropped'
+}
+
+/**
+ * The gate an other repo runs for one Detect item, or null. The item must name a template's evidence file
+ * and a script name that matches GATE_SCRIPT_PATTERN, and its command must equal that template rendered
+ * with the script. The gate is named after the script and keeps its evidence, so planning it again keeps it.
+ * @param {{ command?: string, evidence?: string, script?: string }} g a gate command Detect reported
+ * @returns {{ name: string, command: string, evidence: string, script: string }|null}
+ * @example templateGateCommand({ name: 'Lint', command: 'make lint', evidence: 'Makefile', script: 'lint' })
+ * // { name: 'lint', command: 'make lint', evidence: 'Makefile', script: 'lint' }
+ */
+function templateGateCommand(g) {
+  if (!g || typeof g.script !== 'string' || !GATE_SCRIPT_PATTERN.test(g.script)) return null
+  const evidence = trimmed(g.evidence).replace(/^\.\//, '')
+  const command = trimmed(g.command)
+  const template = gateTemplates().find((t) => t.evidence === evidence && renderGateTemplate(t, g.script) === command)
+  return template ? { name: g.script, command, evidence, script: g.script } : null
+}
+
+/**
+ * The catalog gates of a first-party stack that Detect found, in catalog order, with <pm>/<pmx> filled from
+ * the package manager Detect recorded (the stack's default when it recorded none it declares). A Detect
+ * item selects a catalog gate by its name or by the catalog command (raw or filled); its own text is not kept.
+ */
+function catalogGateCommands(repo, reported) {
+  const pms = packageManagersFor(repo.stack)
+  const own = packageManagerFor(repo, false)
+  const fill = own || pms[pms.length - 1] || null
+  return STACKS[repo.stack].gates
+    .filter((g) => {
+      const forms = new Set([g.command.trim(), ...(own ? [own] : pms).map((pm) => fillPackageManager(g.command, pm).trim())])
+      return reported.some((r) => r && (forms.has(trimmed(r.command)) || trimmed(r.name).toLowerCase() === g.name.toLowerCase()))
+    })
+    .map((g) => ({ name: g.name, command: fillPackageManager(g.command, fill) }))
+}
+
+/**
+ * The gate commands a repo runs, from the allowlist only.
+ * - A first-party stack: the catalog gates Detect found (catalogGateCommands).
+ * - `other`: the gate templates Detect proved with an evidence file and script name (templateGateCommand).
+ * - An overlay: none when untrusted; the approved manifest's gates when trusted, with <pm>/<pmx> filled from
+ *   the package manager Detect recorded (the manifest's last, default, entry otherwise).
+ * - A declined stack, or a stack outside the effective registry: none.
+ * @param {{ stack: string, packageManager?: string, declinedStack?: object, gateCommands?: object[] }} repo
+ * @returns {{ name: string, command: string, evidence?: string, script?: string }[]} evidence and script only for other
+ */
+function gateCommandsFor(repo) {
+  if (!hasOwn(STACKS, repo.stack) || repo.declinedStack) return []
+  if (hasOwn(OVERLAY_META, repo.stack)) {
+    if (isUntrustedStack(repo.stack)) return []
+    const pm = packageManagerFor(repo)
+    return STACKS[repo.stack].gates.map((g) => ({ name: g.name, command: fillPackageManager(g.command, pm) }))
+  }
+  const reported = (Array.isArray(repo.gateCommands) ? repo.gateCommands : []).filter((g) => g && typeof g === 'object')
+  if (repo.stack !== 'other') return catalogGateCommands(repo, reported)
+  const out = []
+  for (const g of reported) {
+    const gate = templateGateCommand(g)
+    if (gate && !out.some((k) => k.command === gate.command)) out.push(gate)
+  }
+  return out
+}
+
+/**
+ * The command that runs the contract-sync checker: the checker script itself, or a contract-sync script of
+ * the repo's task runner rendered from a gate template. Anything else Detect reported is declined and logged.
+ * @param {string|undefined} reported the command Detect reported
+ * @returns {string} the command, or '' when it was declined
+ */
+function contractSyncCommandFor(reported) {
+  const command = trimmed(reported)
+  if (!command) return CONTRACT_SYNC_COMMAND
+  const allowed = [CONTRACT_SYNC_COMMAND, ...CONTRACT_SYNC_SCRIPTS.flatMap((script) => gateTemplates().map((t) => renderGateTemplate(t, script)))]
+  if (allowed.includes(command)) return command
+  log(`Contract-sync command declined: ${JSON.stringify(command.slice(0, 120))} is not ${CONTRACT_SYNC_COMMAND} or a contract-sync script. Fix: register the checker as a "contract-sync" script of the repo's task runner.`)
+  return ''
+}
+
+// A gate failure the fix loop can act on: untrusted gates were never run, so there is nothing to fix.
+const isFixableGate = (g) => (g.status === 'fail' || g.status === 'unreachable') && g.details !== NOT_RUN_UNTRUSTED && !String(g.details || '').startsWith(NOT_RUN_DECLINED) && !String(g.details || '').startsWith(NOT_RUN_NO_GATE)
+
+/**
+ * Whether a repo with no allowlisted gate may fall back to the lint and test tooling it visibly has (AC-36):
+ * only a first-party or other stack, and only when no manifest was rejected, ignored or untrusted in this run.
+ * @param {{ stack: string, declinedStack?: object }} repo
+ * @returns {boolean}
+ */
+function toolingFallbackAllowed(repo) {
+  return FIRST_PARTY_KEYS.includes(repo.stack) && !hasOwn(OVERLAY_META, repo.stack) && !repo.declinedStack && !MANIFESTS_DECLINED
+}
+
+/**
+ * The gate-prompt line for a repo whose gate list is empty: the tooling fallback when it is allowed, else none.
+ * @param {object} repo the repo the prompt is for
+ * @param {string} [fallback] the fallback wording
+ * @returns {string} one "- (...)" line
+ */
+function noGatesLine(repo, fallback) {
+  return toolingFallbackAllowed(repo) ? `- (${fallback || 'none detected — run any lint/test tooling that exists'})` : '- (no allowlisted gate — run no other lint/test tooling)'
+}
+
+/**
+ * Splits a repo's gates into those to run, those decided without running, and the untrusted ones.
+ * A repo whose stack comes from a declined manifest runs nothing: one unreachable gate names the reason.
+ * @param {{ stack: string, declinedStack?: { key: string, reason: string }, gateCommands?: { name: string, command: string }[], unlessMatched?: { gate: string, glob: string }[] }} repo
+ * @returns {{ untrusted: boolean, declined: boolean, run: object[], fixed: { name: string, status: string, details: string }[] }}
+ */
+function gatePlanFor(repo) {
+  if (repo.declinedStack) {
+    const details = `${NOT_RUN_DECLINED}: stack "${repo.declinedStack.key}" — ${repo.declinedStack.reason})`
+    return { untrusted: false, declined: true, run: [], fixed: [{ name: 'Quality gates', status: 'unreachable', details }] }
+  }
+  if (isUntrustedStack(repo.stack)) {
+    // Gate names of an untrusted manifest are its text too, so they are reported by position only.
+    return { untrusted: true, declined: false, run: [], fixed: STACKS[repo.stack].gates.map((g, i) => ({ name: `gate ${i + 1} (untrusted manifest)`, status: 'unreachable', details: NOT_RUN_UNTRUSTED })) }
+  }
+  const matched = repo.unlessMatched || []
+  const run = []
+  const fixed = []
+  for (const g of gateCommandsFor(repo)) {
+    const hit = matched.find((m) => m && m.gate === g.name)
+    if (hit) fixed.push({ name: g.name, status: 'skip', details: `skipped — ${hit.glob} present` })
+    else run.push(g)
+  }
+  if (!run.length && !fixed.length && !toolingFallbackAllowed(repo)) {
+    const why = hasOwn(OVERLAY_META, repo.stack) ? `the ${repo.stack} manifest declares none` : 'a stack manifest was rejected, ignored or untrusted in this run'
+    return { untrusted: false, declined: true, run: [], fixed: [{ name: 'Quality gates', status: 'unreachable', details: `${NOT_RUN_NO_GATE}; ${why})` }] }
+  }
+  return { untrusted: false, declined: false, run, fixed }
+}
+
+/**
+ * Runs one repo's gates through an agent, resolving skipped and untrusted gates in the script.
+ * @param {object} repo the detected repo (path, stack, gateCommands, unlessMatched)
+ * @param {(repo: object) => string} instructionsFor builds the gate prompt for the gates that remain
+ * @param {object} runOpts options for runAgent
+ * @returns {Promise<{ repo: string, gates: object[], allPassed: boolean }|null>}
+ */
+async function runRepoGates(repo, instructionsFor, runOpts) {
+  const plan = gatePlanFor(repo)
+  if (plan.untrusted || plan.declined) return { repo: repo.path, gates: plan.fixed, allPassed: false }
+  const result = await runAgent(instructionsFor({ ...repo, gateCommands: plan.run }), runOpts)
+  if (!result || !plan.fixed.length) return result
+  return { ...result, gates: [...(result.gates || []), ...plan.fixed] }
 }
 // --- registry: end ---
 
@@ -270,6 +1624,7 @@ const TARGET_SCHEMA = {
   type: 'object',
   required: ['greenfield', 'targets'],
   properties: {
+    ...DETECT_EXTRA_SCHEMA,
     greenfield: { type: 'boolean' },
     targets: {
       type: 'array',
@@ -277,9 +1632,11 @@ const TARGET_SCHEMA = {
         type: 'object',
         required: ['role', 'path', 'stack'],
         properties: {
-          role: { type: 'string', enum: ['backend', 'frontend', 'fullstack'] },
+          role: { type: 'string', enum: ['backend', 'frontend', 'fullstack', 'mobile'] },
           path: { type: 'string' },
-          stack: { type: 'string', enum: STACK_KEYS },
+          stack: { type: 'string' },
+          // Gates of this repo's stack whose `unless` globs matched a file or directory here.
+          unlessMatched: REPO_UNLESS_SCHEMA,
           empty: { type: 'boolean' },
           hasTrackedFiles: { type: 'boolean' },
         },
@@ -340,13 +1697,24 @@ const VERDICT_SCHEMA = {
   properties: { real: { type: 'boolean' }, reason: { type: 'string' } },
 }
 
+// Per registry gate: did the scaffolded tooling actually run? A gate that cannot run fails Scaffold.
+const GATE_CHECK_SCHEMA = {
+  type: 'array',
+  items: {
+    type: 'object',
+    required: ['name', 'ran'],
+    // applicable=false: the gate does not apply to this scaffold (e.g. an e2e gate with no UI journey).
+    properties: { name: { type: 'string' }, ran: { type: 'boolean' }, applicable: { type: 'boolean' }, details: { type: 'string' } },
+  },
+}
+
 const SCAFFOLD_SCHEMA = {
   type: 'object',
   required: ['created', 'committed'],
   properties: {
     created: { type: 'array', items: { type: 'string' } },
     committed: { type: 'boolean' },
-    packageManager: { type: 'string', enum: PACKAGE_MANAGERS.map((p) => p.name) },
+    packageManager: { type: 'string' },
     contractSync: { type: 'boolean' },
     gateCheck: GATE_CHECK_SCHEMA,
     gateCommands: {
@@ -354,7 +1722,7 @@ const SCAFFOLD_SCHEMA = {
       items: {
         type: 'object',
         required: ['name', 'command'],
-        properties: { name: { type: 'string' }, command: { type: 'string' }, repo: { type: 'string' } },
+        properties: { name: { type: 'string' }, command: { type: 'string' }, evidence: { type: 'string' }, script: { type: 'string' }, repo: { type: 'string' } },
       },
     },
     notes: { type: 'string' },
@@ -417,17 +1785,6 @@ const ACCEPTANCE_SCHEMA = {
   },
 }
 
-// Per registry gate: did the scaffolded tooling actually run? A gate that cannot run fails Scaffold.
-const GATE_CHECK_SCHEMA = {
-  type: 'array',
-  items: {
-    type: 'object',
-    required: ['name', 'ran'],
-    // applicable=false: the gate does not apply to this scaffold (e.g. Playwright with no UI journey).
-    properties: { name: { type: 'string' }, ran: { type: 'boolean' }, applicable: { type: 'boolean' }, details: { type: 'string' } },
-  },
-}
-
 const CI_SCHEMA = {
   type: 'object',
   required: ['configured'],
@@ -462,21 +1819,42 @@ const HANDOFF_SCHEMA = {
 
 // --- Detect: confirm the target is genuinely greenfield -----------------
 phase('Detect')
-const target = await runAgent(
+const detection = await detectStacks(
   `Determine the target directories for a NEW project and whether they are safe to scaffold into. Use Bash to probe — do not assume.
 Idea: ${idea}
 ${stackHint ? `Intended stack: ${stackHint}` : 'Stack not specified — infer the most appropriate from the idea.'}
-${repoHints ? `Target repo roots: ${JSON.stringify(repoHints)}` : 'No target roots given — use the current directory (and a sibling for a split frontend if appropriate).'}
+${repoHints ? `Target repo roots: ${JSON.stringify(repoHints)}` : 'No target roots given — use the current directory (and a directory inside it for a split frontend if appropriate).'}
 
 Recognized stacks — pick the matching key for each target and record its gateCommands + conventions:
 ${stackCatalog()}
 
-For each intended target, report: role, path, the intended stack, empty (no source files), and hasTrackedFiles (\`git -C <path> ls-files | head -1\` returns anything). Set greenfield=true only if every target is empty OR has no tracked source files. If any target already contains a real tracked codebase, add a blocker (scaffolding would clobber existing work) and set greenfield=false. Decide single vs split repos from the idea and stack.`,
+For each intended target, report: role, path, the intended stack, empty (no source files), and hasTrackedFiles (\`git -C <path> ls-files | head -1\` returns anything). Set greenfield=true only if every target is empty OR has no tracked source files. If any target already contains a real tracked codebase, add a blocker (scaffolding would clobber existing work) and set greenfield=false. Decide single vs split repos from the idea and stack.
+
+${stackDiscoveryPrompt()}`,
   { phase: 'Detect', schema: TARGET_SCHEMA, agentType: 'code-explorer', ...MODELS.detect }
 )
-const targets = (target && target.targets && target.targets.length ? target.targets : [{ role: 'fullstack', path: '.', stack: stackHint || 'other', empty: true, hasTrackedFiles: false }])
+const target = detection.project
+const { list: targets, stackOverlay, untrusted: untrustedManifests } = resolveDetect(target, {
+  failure: detection.failure,
+  roots: repoHints,
+  listKey: 'targets',
+  fallback: { role: 'fullstack', path: '.', stack: stackHint || 'other', empty: true, hasTrackedFiles: false },
+})
+// Report prompts quote these validated fields of a target, never the Detect object itself.
+function targetSummary(t) {
+  return { role: t.role, stack: t.stack, path: t.path, empty: t.empty === true, hasTrackedFiles: t.hasTrackedFiles === true }
+}
+// A scaffold's gate check as report prompts quote it: names and details that pass the safe-text pattern only.
+function scaffoldGateCheck(s) {
+  return (Array.isArray(s.gateCheck) ? s.gateCheck : []).filter((g) => g && typeof g === 'object').map((g) => ({
+    name: safeTexts([g.name], 'Scaffold gate name')[0] || '?',
+    ran: g.ran === true,
+    applicable: g.applicable !== false,
+    details: g.details ? safeTexts([g.details], 'Scaffold gate details')[0] || '(details dropped)' : '',
+  }))
+}
 const crossRepo = !!(target && target.crossRepo) || targets.length > 1
-const blockers = (target && target.blockers) || []
+const blockers = safeTexts(target && target.blockers, 'Detect blockers')
 const notGreenfield = (target && target.greenfield === false) || targets.some((t) => t.hasTrackedFiles)
 log(`Detect: ${targets.map((t) => `${t.role}:${t.stack}@${t.path}`).join(', ')}${crossRepo ? ' (split)' : ''}; greenfield=${!notGreenfield}`)
 
@@ -486,16 +1864,48 @@ if (notGreenfield && !force) {
   const blocked = await runAgent(
     `Write a short markdown report: greenfield-build was asked to scaffold into a target that already contains a tracked codebase, so it STOPPED to avoid clobbering work. State the idea, the targets and why each is unsafe, and the options (point at an empty dir, or re-run with { force:true } only if intentional, or use ship-feature to add to the existing codebase). Recommendation: BLOCKED.
 Idea: ${idea}
-Targets: ${JSON.stringify(targets)}
+Targets: ${JSON.stringify(targets.map(targetSummary))}
 Blockers: ${JSON.stringify(blockers)}`,
     { phase: 'Report', ...MODELS.report }
   )
   return { idea, greenfield: false, recommendation: 'BLOCKED', blockers, report: blocked }
 }
 
+// A target whose stack manifest is not trusted runs nothing from it: no scaffold, CI, slice or gates.
+const untrustedTargets = targets.filter((t) => isUntrustedStack(t.stack))
+if (untrustedTargets.length) {
+  const blocking = blockingUntrusted(untrustedManifests, targets)
+  const trustNext = untrustedNext('greenfield-build', blocking)
+  const notRun = untrustedTargets.map((t) => ({ repo: t.path, gates: gatePlanFor(t).fixed, allPassed: false }))
+  log(`Untrusted stack manifest for ${untrustedTargets.map((t) => `${t.stack}@${t.path}`).join(', ')}: nothing scaffolded`)
+  phase('Report')
+  const blocked = await runAgent(
+    `Write a short markdown report: greenfield-build STOPPED before scaffolding because the stack manifest for ${untrustedTargets.map((t) => `${t.stack} (${t.path})`).join(', ')} is not trusted, so none of its commands (scaffold, gates, CI, e2e, contract-sync) may run. Nothing was created. State the idea, the targets, the untrusted manifest sources and their sha256, and that /stack-trust shows every command the manifest declares before approving it. Add a "Stack overlay" line: ${stackOverlayLine(stackOverlay, untrustedManifests)}. Recommendation: BLOCKED. End with exactly "${trustNext}".
+Idea: ${idea}
+Targets: ${JSON.stringify(targets.map((t) => ({ role: t.role, stack: t.stack, path: t.path })))}
+Untrusted: ${JSON.stringify(blocking)}
+Gates: ${JSON.stringify(notRun)}`,
+    { phase: 'Report', ...MODELS.report }
+  )
+  return {
+    idea,
+    greenfield: true,
+    stacks: targets.map((t) => ({ role: t.role, stack: t.stack, path: t.path })),
+    scaffolded: false,
+    gatesPassed: false,
+    gates: notRun,
+    recommendation: 'BLOCKED',
+    stackOverlay: { ...stackOverlay, untrusted: untrustedManifests },
+    next: trustNext,
+    report: blocked,
+  }
+}
+
 const frontendTarget = targets.find(isFrontendRepo)
 const primaryTarget = targets.find((t) => t.role === 'backend' || t.role === 'fullstack') || targets[0]
-const devUrl = devUrlHint || 'http://localhost:3000'
+const devUrl = resolveDevUrl(devUrlHint, targets)
+// Skills the manifests list for the chosen stacks, one clause per stack.
+const constitutionSkills = targets.map((t) => `for ${t.stack} — ${skillNamesFor(t.stack).join(', ') || 'infer from the repo'}`).join('; ')
 function agentForStack(stack) {
   return STACK_AGENT[stack] || STACK_AGENT[(primaryTarget && primaryTarget.stack)] || 'general-purpose'
 }
@@ -512,8 +1922,8 @@ Intended stacks: ${JSON.stringify(targets.map((t) => t.stack))}
 
 1. ${briefPath ? `Read the product brief at "${briefPath}" first — it is the constitution's source: its MVP scope, non-goals, numbered business rules (BR-nn, keep the ids), constraints, and the backlog.md next to it.` : 'If a product-brief.md exists in the current folder or its parent, read it first — its MVP scope, non-goals, business rules (BR-nn) and constraints govern everything below.'}
    Then read the project/global CLAUDE.md and any docs/context/*.md (the Golden Triangle) if present.
-2. Consult the relevant framework skills for the chosen stack(s): for Laravel — service-repository, dto-first, api-design, schema-first; for Next.js — nextjs-15, typescript, tailwind-4, accessibility; plus architecture-patterns and error-handling-patterns. Name the ones you used.
-3. Return the principles (concrete, testable architectural constraints — e.g. "controllers stay thin; business logic in services", "DTOs at layer boundaries", "schema documented before migration"), the brief's business rules that the first slice must enforce (with their BR ids), and the conventions the scaffold + slice must follow.`,
+2. Consult the relevant framework skills for the chosen stack(s): ${constitutionSkills}; plus architecture-patterns and error-handling-patterns. Name the ones you used.
+3. Return the principles (concrete, testable architectural constraints — e.g. "request handlers stay thin; business logic lives in its own layer", "typed data objects at layer boundaries", "every schema change is documented before it is applied"), the brief's business rules that the first slice must enforce (with their BR ids), and the conventions the scaffold + slice must follow.`,
   { phase: 'Constitution', schema: CONSTITUTION_SCHEMA, agentType: 'code-explorer', ...MODELS.constitution }
 )
 const principles = (constitution && constitution.principles) || []
@@ -529,7 +1939,7 @@ Principles (must satisfy): ${JSON.stringify(principles)}
 Conventions: ${JSON.stringify((constitution && constitution.conventions) || [])}
 
 You run inside a background workflow and cannot reach the user: do not ask. Where the idea or principles leave something open, choose the simplest option that satisfies the principles and record it in decisions as an assumption (rationale + alternativesConsidered).
-Decide: stacks confirmed, repoLayout (single or split), the layers (e.g. controller → service → repository → db; or app-router → server-component → api), a minimal dataModelSketch, and the FIRST vertical slice — the smallest end-to-end feature that proves the stack works (title, the entryPoint a user hits, the expectedEndState). Record decisions with rationale + alternativesConsidered, and which principles each satisfies (principlesSatisfied).`,
+Decide: stacks confirmed, repoLayout (single or split), the layers (e.g. entry point → service → data access → db; or page → component → API client), a minimal dataModelSketch, and the FIRST vertical slice — the smallest end-to-end feature that proves the stack works (title, the entryPoint a user hits, the expectedEndState). Record decisions with rationale + alternativesConsidered, and which principles each satisfies (principlesSatisfied).`,
   { phase: 'Architecture', schema: ARCHITECTURE_SCHEMA, agentType: ARCHITECT_AGENT, ...MODELS.architecture }
 )
 if (!architecture || !architecture.firstSlice) {
@@ -555,37 +1965,43 @@ const archConcerns = archVotes.filter((v) => !v.real).map((v) => v.reason)
 
 // --- Scaffold: create skeleton + CI; commit the checkpoint --------------
 phase('Scaffold')
-// The scaffold always installs Vitest for Next.js, so the registry's fallback
-// "tests" gate (only when neither Vitest nor Playwright exists) never applies.
+// The scaffold installs the stack's own test tooling, so a fallback gate that applies
+// only when no test tooling exists (scaffoldSkipGates) never applies.
 function registryGatesFor(t) {
   const gates = scaffoldGatesFor(t.stack)
   return gates.length ? gates.map((g) => `- ${g.name}: ${g.command}`).join('\n') : '- (the stack\'s own lint + test tooling)'
 }
 const contractBackend = crossRepo ? targets.find((x) => routeListCommandFor(x.stack)) : undefined
 const splitStacks = !!contractBackend && targets.some((x) => isContractConsumer(x.stack))
+// A scaffolded target as the gates see it: the scaffold's report only selects among the allowlisted commands
+// (gateCommandsFor); without a report, the commands Detect found for the target stand.
+// The package manager is kept only when the stack's manifest declares it (declaredPackageManager).
+const scaffoldedTarget = (t, reported, packageManager) => ({
+  ...t,
+  gateCommands: Array.isArray(reported) && reported.length ? reported : t.gateCommands || [],
+  packageManager: declaredPackageManager(t.stack, packageManager, t.path) || t.packageManager,
+})
 const scaffoldPrompt = (t) =>
   `Scaffold the ${t.role} repo (${t.stack}) at "${t.path}" for this new project. Create the framework skeleton, the project structure per the architecture, and working quality-gate tooling. Mechanical work — follow conventions exactly, write no business logic yet. CI is added in a separate step; do not write CI files.
 Idea: ${idea}
 Architecture: ${JSON.stringify({ layout: architecture.repoLayout, layers: architecture.layers, dataModel: architecture.dataModelSketch })}
 Conventions: ${JSON.stringify((constitution && constitution.conventions) || [])}
 
-1. Initialize the stack skeleton (e.g. \`laravel new\` layout / \`create-next-app\` layout / module skeleton) under "${t.path}". If the dir is non-empty but untracked, integrate without deleting existing files.
+1. Initialize the stack skeleton (${scaffoldFor(t.stack).command ? `the \`${scaffoldFor(t.stack).command}\` layout` : 'the stack\'s standard skeleton'}) under "${t.path}". If the dir is non-empty but untracked, integrate without deleting existing files.
 2. Add the layer directories the architecture calls for and a CLAUDE.md + .mcp.json if absent.
 3. Install and configure the gate tools so every gate below runs on the empty skeleton:
 ${registryGatesFor(t)}
-   - Laravel: Pest (pestphp/pest + the Laravel plugin, tests/Pest.php), Larastan (larastan/larastan) with a phpstan.neon that includes the Larastan extension, sets a level (start at 5 or higher) and paths: [app], and Pint (laravel/pint) with a pint.json using the laravel preset.
-   - Next.js: ESLint (the create-next-app config), TypeScript strict with \`tsc --noEmit\` clean, Vitest + React Testing Library (vitest.config.ts with jsdom, a setup file), a \`next build\` that succeeds, and Playwright (playwright.config.ts with the dev server as webServer, one smoke test) when the first slice has a UI journey: ${architecture.firstSlice.entryPoint}.
-   Use the package manager the repo uses (its lockfile; default npm) for every JS command: <pm> is npm, pnpm, yarn or bun, and <pmx> is npx, pnpm exec, yarn or bunx.${splitStacks && isContractConsumer(t.stack) ? `
-4. Split repos: wire contract-sync. Copy the kit's contract-sync checker (src/templates/contract-sync/contract-sync.mjs in the kit; .claude/templates/contract-sync/ in file-copy installs) to scripts/contract-sync.mjs, point its CONFIG at the backend's \`${routeListCommandFor(contractBackend.stack)}\` (backend repo: ${contractBackend.path}) and at this repo's API endpoint registry, add a "contract-sync" package script, and set contractSync=true.` : ''}
-${splitStacks && isContractConsumer(t.stack) ? '5' : '4'}. Run every applicable gate once. Report each gate listed in step 3 in gateCheck (name, ran, applicable, details): applicable=false only for a gate this scaffold deliberately does not install (Playwright when the first slice has no UI journey), with the reason in details; ran=true only when the tool executed (pass or a real failure in code); ran=false when an applicable tool is missing or cannot start. Never report a gate you did not run.
+${scaffoldFor(t.stack).tooling.map((x) => `   - ${x}`).join('\n')}${scaffoldFor(t.stack).tooling.length ? `\n   First-slice entry point: ${architecture.firstSlice.entryPoint}.` : ''}${packageManagerLine(t.stack) ? `\n   ${packageManagerLine(t.stack)}` : ''}${splitStacks && isContractConsumer(t.stack) ? `
+4. Split repos: wire contract-sync. Copy the backend add-on's contract-sync checker (contract-sync.mjs from ${contractTemplateFor(contractBackend.stack) || 'the backend add-on\'s contract-sync template'}) to scripts/contract-sync.mjs, point its CONFIG at the backend's \`${routeListCommandFor(contractBackend.stack)}\` (backend repo: ${contractBackend.path}) and at this repo's API endpoint registry, register it as a "contract-sync" script in the repo's task runner, and set contractSync=true.` : ''}
+${splitStacks && isContractConsumer(t.stack) ? '5' : '4'}. Run every applicable gate once. Report each gate listed in step 3 in gateCheck (name, ran, applicable, details): applicable=false only for a gate this scaffold deliberately does not install (an e2e gate when the first slice has no UI journey), with the reason in details; ran=true only when the tool executed (pass or a real failure in code); ran=false when an applicable tool is missing or cannot start. Never report a gate you did not run.
 ${splitStacks && isContractConsumer(t.stack) ? '6' : '5'}. \`git init\` if needed, then commit the scaffold as the first checkpoint (plain message, no AI-marker comments).
-Return the created paths, packageManager for a JS repo, the real gateCommands (tagged with repo="${t.path}"), gateCheck, and committed=true.`
+Return the created paths, packageManager${packageManagersFor(t.stack).length ? ' (the one the lockfile names)' : ' (omit it: the stack declares no package managers)'}, the real gateCommands (tagged with repo="${t.path}"; ${gateReportRule(t.stack)}), gateCheck, and committed=true.`
 
 const ciPrompt = (t, s) =>
   `Add the CI pipeline for the ${t.role} repo (${t.stack}) at "${t.path}" — cd there. The skeleton and gate tooling already exist and were committed.
-Gate commands to run in CI, in this order: ${JSON.stringify((s && s.gateCommands || []).map((g) => g.command))}
-Package manager: ${(s && s.packageManager) || 'from the lockfile'}.
-Write .github/workflows/ci.yml following the ci-cd skill: one job per stack, dependency caching keyed on the lockfile, a database service for the Laravel tests when they need one, and every gate above as its own step. ${s && s.contractSync ? 'Add a contract-sync step that reads the backend route list exported as an artifact (see the contract-sync README).' : ''}
+Gate commands to run in CI, in this order: ${JSON.stringify(gatePlanFor(scaffoldedTarget(t, s && s.gateCommands, s && s.packageManager)).run.map((g) => g.command))}
+Package manager: ${(s && declaredPackageManager(t.stack, s.packageManager, t.path)) || 'from the lockfile'}.
+Write .github/workflows/ci.yml following the ci-cd skill: one job per stack, dependency caching keyed on the lockfile, ${ciFor(t.stack).services.length ? `the services the stack declares (${ciFor(t.stack).services.join('; ')}), ` : ''}${ciFor(t.stack).setup.length ? `its setup steps (${ciFor(t.stack).setup.join('; ')}), ` : ''}and every gate above as its own step. ${s && s.contractSync ? 'Add a contract-sync step that reads the backend route list exported as an artifact (see the contract-sync README).' : ''}
 Never weaken a gate to get green (no continue-on-error, no skipped tests). Commit the CI file as a second checkpoint. Return configured, files, the job names, and committed.`
 
 async function scaffoldTarget(t) {
@@ -602,13 +2018,14 @@ const ciResults = (await parallel(scaffolds.map((s) => () =>
 ))).filter(Boolean)
 
 const gateCommandsByRepo = {}
+const packageManagerByRepo = Object.fromEntries(scaffolds.map((s) => [s.target.path, declaredPackageManager(s.target.stack, s.packageManager, s.target.path)]).filter(([, pm]) => pm))
 scaffolds.forEach((s) => (s.gateCommands || []).forEach((g) => {
-  const key = g.repo || primaryTarget.path
-  ;(gateCommandsByRepo[key] = gateCommandsByRepo[key] || []).push({ name: g.name, command: g.command })
+  const key = g && targets.some((t) => t.path === g.repo) ? g.repo : s.target.path
+  ;(gateCommandsByRepo[key] = gateCommandsByRepo[key] || []).push({ name: g.name, command: g.command, evidence: g.evidence, script: g.script })
 }))
 const scaffolded = scaffolds.some((s) => (s.created || []).length)
 const ciConfigured = ciResults.some((c) => c.configured)
-const unrunnableGates = scaffolds.flatMap((s) => (s.gateCheck || []).filter((g) => g.applicable !== false && !g.ran).map((g) => `${g.name}${g.details ? ` (${g.details})` : ''}`))
+const unrunnableGates = scaffolds.flatMap((s) => scaffoldGateCheck(s).filter((g) => g.applicable && !g.ran).map((g) => `${g.name}${g.details ? ` (${g.details})` : ''}`))
 log(`Scaffold: ${scaffolds.reduce((n, s) => n + (s.created || []).length, 0)} path(s) created, CI ${ciConfigured ? 'configured' : 'not configured'}${unrunnableGates.length ? `; gates that cannot run: ${unrunnableGates.join(', ')}` : ''}`)
 
 // A gate that cannot run on the fresh skeleton would make every later "green" meaningless.
@@ -619,7 +2036,7 @@ if (scaffolded && unrunnableGates.length) {
 Idea: ${idea}
 Architecture: ${JSON.stringify({ layout: architecture.repoLayout, layers: architecture.layers, dataModel: architecture.dataModelSketch, decisions: architecture.decisions })}
 First slice: ${JSON.stringify(architecture.firstSlice)}
-Scaffold: ${JSON.stringify(scaffolds.map((s) => ({ created: (s.created || []).length, gateCheck: s.gateCheck })))}`,
+Scaffold: ${JSON.stringify(scaffolds.map((s) => ({ created: (s.created || []).length, gateCheck: scaffoldGateCheck(s) })))}`,
     { phase: 'Report', ...MODELS.report }
   )
   const sliceFeature = `${architecture.firstSlice.title}: entry point ${architecture.firstSlice.entryPoint}; done when ${architecture.firstSlice.expectedEndState}`
@@ -677,25 +2094,26 @@ log(`Slice: ${sliceBuilt.length}/${sliceReposOrdered.length || 1} part(s) built$
 
 // --- Gates --------------------------------------------------------------
 phase('Gates')
+// runRepoGates passes the target with gateCommands set to its gate plan (plan.run).
 function gateInstructionsFor(t) {
-  const cmds = (gateCommandsByRepo[t.path] || []).map((g) => `- ${g.name}: ${g.command}`).join('\n')
+  const cmds = (t.gateCommands || []).map((g) => `- ${g.name}: ${g.command}`).join('\n')
   return `Run the quality gates for the ${t.role} repo (${t.stack}) at "${t.path}". cd there.
 Gates (run each; tool genuinely absent => "skip"; tool present but cannot run => "unreachable", NEVER "pass"):
-${cmds || '- (run the stack lint + test tooling that the scaffold configured)'}
+${cmds || noGatesLine(t, 'run the stack lint + test tooling that the scaffold configured')}
 - Build check: confirm the scaffold itself builds/boots (e.g. the app starts, the test suite collects).
 - Debug scan: grep for stray ${debugScanFor(t.stack)} outside tests -> fail if found.
 Report each gate pass/fail/skip/unreachable with output in details; allPassed=true only if every gate is pass or skip; repo="${t.path}". Do not fix here.`
 }
 async function runGates() {
   const list = sliceReposOrdered.length ? sliceReposOrdered : targets
-  const results = (await parallel(list.map((t) => () => runAgent(gateInstructionsFor(t), { label: `gates:${t.role}`, phase: 'Gates', schema: GATES_SCHEMA, ...MODELS.gatesFix })))).filter(Boolean)
+  const results = (await parallel(list.map((t) => () => runRepoGates(scaffoldedTarget(t, gateCommandsByRepo[t.path], packageManagerByRepo[t.path]), gateInstructionsFor, { label: `gates:${t.role}`, phase: 'Gates', schema: GATES_SCHEMA, ...MODELS.gatesFix })))).filter(Boolean)
   const allGates = results.flatMap((g) => (g.gates || []).map((x) => ({ ...x, repo: g.repo })))
   return { results, allGates, allPassed: results.length > 0 && results.every((g) => g.allPassed) }
 }
 let gates = await runGates()
 let fixRounds = 0
 while (!gates.allPassed && fixRounds < 3) {
-  const failing = gates.allGates.filter((g) => g.status === 'fail' || g.status === 'unreachable')
+  const failing = gates.allGates.filter(isFixableGate)
   if (!failing.length) { log('Gates not all green but nothing actionable — stopping.'); break }
   if (budget.total && budget.remaining() < 60_000) { log(`Budget low — stopping gate fixes.`); break }
   fixRounds++
@@ -762,7 +2180,9 @@ Return the files written and the run commands.`,
 
 // --- Report -------------------------------------------------------------
 phase('Report')
-const shippable = scaffolded && sliceComplete && gates.allPassed && acceptanceResolved && archSound
+const blockingManifests = blockingUntrusted(untrustedManifests, targets)
+const shippable = scaffolded && sliceComplete && gates.allPassed && acceptanceResolved && archSound && !blockingManifests.length
+const trustNext = untrustedNext('greenfield-build', blockingManifests)
 // The next slices go into backlog.md (product-brief's format), not only into prose,
 // so /spec-board shows them and /sdd can start each one.
 const backlogDir = briefPath ? (briefPath.includes('/') ? briefPath.slice(0, briefPath.lastIndexOf('/')) : '.') : (crossRepo ? '.' : primaryTarget.path)
@@ -782,11 +2202,12 @@ Return the path, created, the id marked shipped, and the appended ids.`,
 )
 if (backlog) log(`Backlog: ${backlog.path}${backlog.created ? ' (created)' : ''} — appended ${(backlog.appended || []).join(', ') || 'nothing'}`)
 const report = await runAgent(
-  `Write a concise markdown report for this greenfield build. Sections: Summary, Idea, Stacks & repo layout, Constitution (key principles), Architecture decisions (with rationale + any verify concerns: ${JSON.stringify(archConcerns)}), Scaffold (what was created + CI), First slice (title + status), Quality gates per repo, Acceptance (does the first slice work end-to-end?), Handoff docs written, Recommendation (SHIP-SLICE / FIX-FIRST / BLOCKED — only SHIP-SLICE if scaffold + slice complete, gates pass, acceptance resolved, and the architecture is sound), and Next slices: the ids appended to backlog.md (with its path) and the Run line of the first one, which starts the next slice through /sdd.
+  `Write a concise markdown report for this greenfield build. Sections: Summary, Idea, Stacks & repo layout, Constitution (key principles), Architecture decisions (with rationale + any verify concerns: ${JSON.stringify(archConcerns)}), Scaffold (what was created + CI), First slice (title + status), Quality gates per repo, Acceptance (does the first slice work end-to-end?), Handoff docs written, Recommendation (SHIP-SLICE / FIX-FIRST / BLOCKED — only SHIP-SLICE if scaffold + slice complete, gates pass, acceptance resolved, and the architecture is sound${trustNext ? `; an untrusted stack manifest means its gates did not run, so the recommendation is BLOCKED and the Next line is exactly "${trustNext}"` : ''}), and Next slices: the ids appended to backlog.md (with its path) and the Run line of the first one, which starts the next slice through /sdd.
 Idea: ${idea}
-Targets: ${JSON.stringify(targets)}
+Targets: ${JSON.stringify(targets.map(targetSummary))}
+Stack overlay: ${JSON.stringify({ ...stackOverlay, untrusted: untrustedManifests })}
 Architecture: ${JSON.stringify(architecture)} (sound=${archSound})
-Scaffold: ${JSON.stringify(scaffolds.map((s) => ({ created: (s.created || []).length, committed: s.committed, packageManager: s.packageManager, contractSync: s.contractSync, gateCheck: s.gateCheck })))}
+Scaffold: ${JSON.stringify(scaffolds.map((s) => ({ created: (s.created || []).length, committed: s.committed === true, packageManager: packageManagerByRepo[s.target.path] || null, contractSync: s.contractSync === true, gateCheck: scaffoldGateCheck(s) })))}
 CI: ${JSON.stringify(ciResults)}
 Backlog: ${JSON.stringify(backlog)}
 Slice: ${JSON.stringify(sliceBuilt.map((b) => ({ repo: b.repo, summary: b.summary })))} (complete=${sliceComplete})
@@ -810,6 +2231,8 @@ return {
   handoffDocs: handoff ? handoff.files || [] : [],
   ciConfigured,
   backlog: backlog ? { path: backlog.path, appended: backlog.appended || [] } : null,
-  recommendation: shippable ? 'SHIP-SLICE' : 'FIX-FIRST',
+  recommendation: shippable ? 'SHIP-SLICE' : blockingManifests.length ? 'BLOCKED' : 'FIX-FIRST',
+  stackOverlay: { ...stackOverlay, untrusted: untrustedManifests },
+  next: trustNext || null,
   report,
 }

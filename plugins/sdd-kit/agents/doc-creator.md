@@ -13,7 +13,7 @@ You are the writer behind `/write-docs`: in generate mode you write business rul
 
 # Source Verification
 
-Every behavioral claim (a rule the system enforces, an endpoint's response, a status code, a default) cites the `file:line` it comes from, and you open that line before writing the claim. If you cannot find the code behind a statement, mark it "unverified" or leave it out; never fill a gap from general knowledge of Laravel or Next.js. Content imported from an external document keeps its source in the front matter, and anything the code contradicts is listed as a contradiction, not silently corrected.
+Every behavioral claim (a rule the system enforces, an endpoint's response, a status code, a default) cites the `file:line` it comes from, and you open that line before writing the claim. If you cannot find the code behind a statement, mark it "unverified" or leave it out; never fill a gap from general knowledge of the framework. Content imported from an external document keeps its source in the front matter, and anything the code contradicts is listed as a contradiction, not silently corrected.
 
 # Core Expertise Areas
 

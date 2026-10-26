@@ -6,14 +6,14 @@ allowed-tools: Read, Grep, Glob, Edit, Write, Bash
 
 # CI/CD with GitHub Actions
 
-Patterns for continuous integration and deployment workflows for Laravel + Next.js.
+Patterns for continuous integration and deployment workflows. Stack-specific pipelines (language setup, dependency caches, gate commands) live in the stack add-on's skill references.
 
 ## When to Load References
 
 | Task | Load |
 |------|------|
-| Staging/production deployment | `references/deployment-workflows.md` |
-| Dependabot + secrets setup | `references/dependabot.md` |
+| Staging/production deployment workflows | `references/deployment-workflows.md` |
+| Dependabot and secrets setup | the stack add-on's skill references |
 
 ---
 
@@ -31,166 +31,22 @@ Patterns for continuous integration and deployment workflows for Laravel + Next.
 
 ---
 
-## Laravel CI Pipeline
+## Pipeline Shape
 
-```yaml
-# .github/workflows/ci.yml
-name: CI
+Build the pipeline from the project's gate commands (the `verification-gates` skill reads them from the stack manifest) rather than hardcoding tools.
 
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+| Job | Runs | Depends on |
+|-----|------|------------|
+| lint | the format, lint and types gates | none |
+| test | the test gate, with coverage and any services the stack's `ci.services` declares | lint |
+| audit | the manifest `audit` commands | none |
+| build | the build gate | lint, test |
 
-env:
-  PHP_VERSION: '8.4'
-  NODE_VERSION: '20'
+## Principles
 
-jobs:
-  lint:
-    name: Lint & Analyze
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: mbstring, xml, ctype, json, bcmath, pdo_mysql
-          coverage: none
-      - name: Cache Composer
-        uses: actions/cache@v4
-        with:
-          path: vendor
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-      - run: composer install --no-interaction --prefer-dist
-      - run: ./vendor/bin/pint --test
-      - run: ./vendor/bin/phpstan analyse --memory-limit=512M
-
-  test:
-    name: Test PHP ${{ matrix.php }}
-    runs-on: ubuntu-latest
-    needs: lint
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: testing
-        ports: ['3306:3306']
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-      redis:
-        image: redis:7-alpine
-        ports: ['6379:6379']
-        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
-    strategy:
-      fail-fast: false
-      matrix:
-        php: ['8.3', '8.4']
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: mbstring, xml, ctype, json, bcmath, pdo_mysql, redis
-          coverage: pcov
-      - run: composer install --no-interaction --prefer-dist
-      - run: cp .env.testing .env && php artisan key:generate
-      - run: php artisan migrate --force
-        env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: testing
-          DB_USERNAME: root
-          DB_PASSWORD: password
-      - run: php artisan test --coverage --min=80
-        env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_DATABASE: testing
-          DB_USERNAME: root
-          DB_PASSWORD: password
-          REDIS_HOST: 127.0.0.1
-
-  security:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-      - run: composer install --no-interaction --prefer-dist
-      - run: composer audit
-```
-
----
-
-## Next.js CI Pipeline
-
-```yaml
-# .github/workflows/frontend-ci.yml
-name: Frontend CI
-
-on:
-  push:
-    branches: [main, develop]
-    paths: ['frontend/**']
-  pull_request:
-    branches: [main, develop]
-    paths: ['frontend/**']
-
-defaults:
-  run:
-    working-directory: frontend
-
-jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run type-check
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    needs: lint
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm test -- --coverage
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: [lint, test]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run build
-        env:
-          NEXT_PUBLIC_API_URL: ${{ vars.API_URL }}
-```
-
----
+- Pin action versions and runtime versions; cache dependencies keyed on the lockfile hash.
+- Scope each workflow with `paths:` filters in a polyrepo or monorepo so unrelated changes do not trigger it.
+- Use job `needs:` to fail fast: cheap static gates first, expensive jobs after.
+- Give jobs the least permission they need (`permissions:` block) and keep secrets in environments, never in the workflow file.
+- Deploy only from a protected branch or a tag; require a passing CI run and an approval for production.
+- Make deploys reversible: tag every artifact with the commit SHA and keep the previous one deployable.

@@ -69,6 +69,7 @@ Notes:
 - Keep each entry's `name` identical to the `name` in that plugin's own `.claude-plugin/plugin.json`; the entry name is the install id (`<name>@your-org-claude`) and the key written to `enabledPlugins`.
 - Get the commit for a tag with `git ls-remote https://github.com/stasmarkov/sdd-kit refs/tags/v2.1.0` (use the `^{}` line for annotated tags).
 - If you fork the framework, point `repo` / `url` at your fork. A fork is the right choice when you carry local changes; otherwise reference upstream.
+- Stack add-ons are separate entries (`plugins/sdd-kit-laravel`, `plugins/sdd-kit-nextjs`, `plugins/sdd-kit-devenv`). The preset `sdd-kit-laravel-nextjs` (`plugins/sdd-kit-laravel-nextjs`) only declares dependencies on them and the core; list the add-ons it depends on in your catalog too, pinned like the core.
 - List only the add-ons you approve. `ios` and `drupal` can be added the same way (`path: plugins/sdd-kit-ios`, `plugins/sdd-kit-drupal`).
 - `defaultEnabled: false` makes an add-on opt-in even after install.
 

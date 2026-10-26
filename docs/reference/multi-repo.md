@@ -15,7 +15,9 @@ project/                    no .git here, on purpose
 
 1. Create the parent folder and clone both repos into it (`be/` and `fe/`, or real names).
 2. Install the framework into **each repo** as usual (`./install.sh --project` inside `be/` and `fe/`,
-   or enable the plugin once).
+   or enable the plugin once). In plugin mode install the stack add-ons for both sides
+   (`sdd-kit-laravel` and `sdd-kit-nextjs`, or the preset `sdd-kit-laravel-nextjs`); in file-copy mode the
+   default `--stack=laravel,nextjs` stages both in each repo, and each workflow detects the stack per repo.
 3. Copy `src/templates/multi-repo/CLAUDE.md` to `project/CLAUDE.md` and fill in the placeholders.
 4. Start Claude from `project/`. Run `/memory` and confirm that both `be/CLAUDE.md` and
    `fe/CLAUDE.md` show up as loaded.

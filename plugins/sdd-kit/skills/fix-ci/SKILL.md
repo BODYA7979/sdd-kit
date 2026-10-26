@@ -1,6 +1,6 @@
 ---
 name: fix-ci
-description: Get a red CI run or a broken local build back to green without weakening any gate. Reads the failing job (gh pr checks / gh run view --log-failed, or local output), maps the step to its stack gate (Pint, PHPStan, Pest, ESLint, tsc, next build, Vitest, Playwright, lockfile/ERESOLVE install, contract sync, audit), reproduces it locally with the lockfile's package manager, applies the minimal fix (workflow YAML and Docker go through devops-engineer), then re-runs that gate and the full gate set. Never pushes; suppressions, skips, baselines, lowered thresholds, and removed steps need explicit user confirmation. Use when CI is red, a PR check fails, the build broke, npm ci or composer install fails, or a ship-feature / greenfield-build report lists a gate that stayed red. A test that fails because behavior is wrong goes to /sdd (bug route).
+description: Get a red CI run or a broken local build back to green without weakening any gate. Reads the failing job (gh pr checks / gh run view --log-failed, or local output), maps the step to its stack gate (format, lint, types, tests, build, e2e, install and lockfile, contract sync, audit), reproduces it locally with the lockfile's package manager, applies the minimal fix (workflow YAML and container builds go through devops-engineer), then re-runs that gate and the full gate set. Never pushes; suppressions, skips, baselines, lowered thresholds, and removed steps need explicit user confirmation. Use when CI is red, a PR check fails, the build broke, a dependency install fails, or a ship-feature / greenfield-build report lists a gate that stayed red. Stack-specific causes come from the stack add-on. A test that fails because behavior is wrong goes to /sdd (bug route).
 argument-hint: "<PR number> | --run=<run-id | run URL> | local [\"<failing command>\"]"
 allowed-tools: Agent, Read, Edit, Bash, Grep, Glob, AskUserQuestion
 license: Apache-2.0
@@ -26,7 +26,7 @@ READ FAILURE → CLASSIFY STEP → REPRODUCE LOCALLY → MINIMAL FIX → RE-RUN 
 /fix-ci --run=9876543210                      # one Actions run
 /fix-ci --run=https://github.com/acme/api/actions/runs/9876543210
 /fix-ci local                                 # broken local build: rerun the project's gates
-/fix-ci local "pnpm run build"                # one failing local command
+/fix-ci local "<build command>"               # one failing local command
 /fix-ci                                       # PR for the current branch, else latest failed run on it
 ```
 
@@ -35,7 +35,7 @@ READ FAILURE → CLASSIFY STEP → REPRODUCE LOCALLY → MINIMAL FIX → RE-RUN 
 | Situation | Use |
 |-----------|-----|
 | Lint, static analysis, type-check, build, install, contract-sync, or audit job is red | `/fix-ci` |
-| Test job is red because of environment, setup, or fixtures (missing APP_KEY, browsers not installed, DB driver) | `/fix-ci` |
+| Test job is red because of environment, setup, or fixtures (missing app key, browsers not installed, DB driver) | `/fix-ci` |
 | A test fails because the product does the wrong thing | `/sdd` → bug route (fix-bug) |
 | ship-feature or greenfield-build ended with a gate still red | `/fix-ci local` in that repo |
 | Deliberate dependency upgrade (majors, framework bump) | `/upgrade-deps` |
@@ -68,25 +68,18 @@ Non-GitHub CI: use `glab ci view` for GitLab, otherwise ask the user to paste th
 
 ## Step 2 — Classify the failing step
 
-Map the step to a gate from the `verification-gates` skill (its lists mirror the workflows' stack registry, so no need to open the registry file). Several jobs red? Work upstream first: **install → contract → build/types → lint → tests**. Downstream failures often disappear once the first one is fixed.
+Map the step to a gate of the stack manifest, resolved with the stack-data recipe in the `verification-gates` skill (gate names, commands and kinds; first-party keys come from the generated `stacks.json`). Several jobs red? Work upstream first: **install → contract → build/types → lint → tests**. Downstream failures often disappear once the first one is fixed.
 
 | Step signal | Class | Reproduce with |
 |-------------|-------|----------------|
-| `pint --test` | Pint | `./vendor/bin/pint --test -v` |
-| `phpstan analyse` | PHPStan / Larastan | the workflow's exact phpstan command (keep `--memory-limit`, `--level`, config path) |
-| `php artisan test`, `pest` | Pest | `php artisan test --filter="<failing test>"` |
-| `lint`, `eslint` | ESLint | `<pm> run lint` (keep `--max-warnings=0` if CI passes it) |
-| `tsc --noEmit`, `type-check` | tsc | `<pmx> tsc --noEmit` |
-| `next build`, `build` | Next.js build | `<pmx> next build` (or the `build` script CI runs) with CI's env vars (names only, never values) |
-| `vitest` | Vitest | `<pmx> vitest run <file>` |
-| `playwright` | Playwright | `<pmx> playwright test <spec> --project=<project>` (browsers missing: `<pmx> playwright install --with-deps chromium`) |
-| `npm ci`, `pnpm install --frozen-lockfile`, `yarn install --immutable`, `composer install`, `ERESOLVE` | Install / lockfile | the same install command, same Node/PHP major |
+| A manifest gate's command (or the tool it runs) | that gate's kind: format, lint, types, test, e2e, build | the workflow's exact command, with CI's flags and env var names (never values) |
+| A frozen install, a dependency resolution error | Install / lockfile | the same install command, same runtime major |
 | `git diff --exit-code` after a generate step | Contract sync | the generate script the step runs, then `git diff --stat` |
-| `composer audit`, `npm audit` | Audit | the same audit command |
-| "Invalid workflow file", action errors, `docker build` | CI config / Docker | `actionlint`, `docker build --target <stage> .` via devops-engineer |
-| Coverage below threshold | Coverage | the workflow's coverage command (`--coverage --min=N`) |
+| An audit command | Audit | the same audit command (the manifest's `audit` list) |
+| "Invalid workflow file", action errors, container image build | CI config / containers | `actionlint`, the project's container build command for the failing stage, via devops-engineer |
+| Coverage below threshold | Coverage | the workflow's coverage command |
 
-Per-class root causes and fixes (Next.js 15 async `params`, missing Suspense around `useSearchParams`, React 19 peer conflicts, macOS-vs-Linux path casing, PSR-4 filename casing, APP_KEY in CI, platform PHP in `composer.lock`, Playwright browsers): `references/failure-map.md`.
+Per-class root causes and fixes: `references/failure-map.md` for the cross-stack ones, and the stack add-on's `references/ci-failure-map.md` (in its conventions skill) for the framework-specific ones (async params, peer conflicts, autoload casing, missing app key, browser installs).
 
 **Test failures: bug or build?** Read the failing assertion and the code it covers.
 
@@ -99,16 +92,16 @@ Per-class root causes and fixes (Next.js 15 async `params`, missing Suspense aro
 1. **Find the repo.** The job's `working-directory` or `defaults.run.working-directory` says which repo or subfolder (polyrepo: `api/`, `web/`, or sibling repos).
 2. **Use CI's exact command.** Read the step's `run:` in `.github/workflows/*.yml`. CI flags (`--max-warnings=0`, `--level`, `--parallel`, `--project`) change results.
 3. **Package manager from the lockfile.** `<pm>` and `<pmx>` follow the `verification-gates` package-manager rule. More than one lockfile is itself a finding; ask which is canonical instead of deleting one.
-4. **Match versions.** Compare `php-version` / `node-version` (or `.nvmrc`, `engines`, `composer.json` `config.platform.php`) with `php -v` and `node -v`. Report any major-version gap.
-5. **Match the environment.** Use `.env.testing` / `.env.ci` and the job's `env:` block. In DDEV projects run commands through `ddev exec` (`ddev` skill). Never print secret values.
+4. **Match versions.** Compare the workflow's runtime versions (or the version file and platform settings in the manifests) with the local ones. Report any major-version gap.
+5. **Match the environment.** Use the project's test env file and the job's `env:` block. When the project runs in a container wrapper, run commands through it (the devenv add-on says how). Never print secret values.
 
 Record the before state: the exact error count or failing test names. If the failure does not reproduce, list the likely reasons (version drift, env, cache, OS path casing) and say so. A fix applied without a local reproduction is reported as `UNVERIFIED LOCALLY`.
 
 ## Step 4 — Apply the minimal fix
 
 - Fix the root cause at its `file:line`. Smallest diff that makes the gate pass honestly. No refactors, no drive-by cleanup, no unrelated upgrades.
-- Formatter auto-fix is fine (`./vendor/bin/pint <files>`, `<pmx> eslint --fix <files>`, `<pmx> prettier --write <files>`). Scope it to the files the gate flagged so the diff stays reviewable.
-- Lockfile fixes regenerate with the canonical package manager at CI's Node/PHP major and change only what the manifest change requires (`composer update <vendor/package> --with-dependencies`, not a blanket `composer update`).
+- Formatter auto-fix is fine (the manifest's format gate fix command). Scope it to the files the gate flagged so the diff stays reviewable.
+- Lockfile fixes regenerate with the canonical package manager at CI's runtime major and change only what the manifest change requires (update the named package and its dependencies, not a blanket update).
 - **CI config and containers go through `devops-engineer`.** For `.github/workflows/*.yml`, Dockerfiles, compose files, and CI service containers, delegate with the Agent tool (`subagent_type: devops-engineer`). Give it the failing step, the log excerpt, the reproduce result, and the protected list below. Review its diff against that list before accepting it.
 - Cap: three fix attempts per failure. Still red → stop and report what was tried, the current error, and ranked hypotheses.
 
@@ -118,32 +111,32 @@ None of these, unless the user confirms through `AskUserQuestion` for that speci
 
 | Gate | Protected |
 |------|-----------|
-| PHPStan | new `phpstan-baseline.neon` entries or `--generate-baseline`, `@phpstan-ignore*`, new `ignoreErrors`, lower `level`, new `excludePaths` |
-| TypeScript / ESLint | `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `eslint-disable*`, `as any` / `as unknown as` to silence an error, relaxed `tsconfig` strictness, rules turned off or downgraded, `typescript.ignoreBuildErrors` / `eslint.ignoreDuringBuilds` in next.config |
-| Tests | `->skip()`, `->todo()`, `markTestSkipped`, `test.skip` / `it.skip` / `test.fixme`, `.only` / `->only()`, deleted tests, loosened assertions, more Playwright `retries` |
-| Coverage | lower `--min` or config thresholds, new coverage excludes |
-| Pint | new `exclude` paths, rules disabled in `pint.json` |
-| Install / audit | `--legacy-peer-deps`, `--force`, `overrides` / `resolutions` forcing an unsupported peer, audit ignore lists |
+| Static analysis and types | new baseline entries or a generated baseline, suppression comments, new ignore lists, a lower level, new excluded paths, relaxed strictness, rules turned off or downgraded, build settings that ignore type or lint errors |
+| Tests | skip or todo markers, `only` markers, deleted tests, loosened assertions, more e2e retries |
+| Coverage | lower thresholds, new coverage excludes |
+| Formatter | new excluded paths, rules disabled |
+| Install / audit | force or legacy-peer flags, overrides forcing an unsupported peer, audit ignore lists |
 | CI | removed or commented-out steps or jobs, `continue-on-error: true`, `if: false`, `\|\| true`, narrowed triggers or `paths` filters, `--no-verify` |
 
-Ask with three options: **Fix it properly** (recommended) / **Allow this exception with a recorded reason** / **Stop**. When allowed, prefer the narrowest form (`// @ts-expect-error <reason>` over `@ts-ignore`; `@phpstan-ignore <identifier>` with a reason over a baseline entry) and list it under *Gate exceptions* in the report.
+The stack add-on's `references/ci-failure-map.md` lists the exact spellings for its tools.
+
+Ask with three options: **Fix it properly** (recommended) / **Allow this exception with a recorded reason** / **Stop**. When allowed, prefer the narrowest form (a targeted suppression with a reason over a file-wide ignore or a baseline entry) and list it under *Gate exceptions* in the report.
 
 ## Step 5 — Verify
 
 1. Re-run the failing gate with CI's exact command. It must pass.
-2. Run the full `verification-gates` set for every repo you touched (Pint, PHPStan, Pest; lint, `tsc --noEmit`, `<pmx> next build` since `tsc` does not catch every build error, Vitest, and Playwright when a journey is involved). A gate that could not run is `UNVERIFIED`, never `PASS`.
+2. Run the full `verification-gates` set for every repo you touched (every gate of the manifest, including the build gate, since a type check does not catch every build error, and the e2e gate when a journey is involved). A gate that could not run is `UNVERIFIED`, never `PASS`.
 3. Check your own diff for weakening:
 
    ```bash
    git diff -U0 | grep -E '^\+' | grep -nE \
-     '@ts-ignore|@ts-nocheck|@ts-expect-error|eslint-disable|@phpstan-ignore|as any|as unknown as|->skip\(|->todo\(|->only\(|markTestSkipped|\.(skip|only|fixme)\(|(^|[^[:alnum:]_])x(it|describe|test)\(|continue-on-error|if: false|ignoreBuildErrors|ignoreDuringBuilds|legacy-peer-deps|--force|--no-verify|\|\| true'
-   git diff --stat -- phpstan-baseline.neon 'phpstan.neon*' pint.json 'eslint.config.*' '.eslintrc*' \
-     'tsconfig*.json' 'vitest.config.*' 'playwright.config.*' 'next.config.*' phpunit.xml \
-     package.json .npmrc composer.json .github/workflows/
-   git diff --diff-filter=D --name-only | grep -E '(Test\.php|\.(test|spec)\.tsx?)$'   # deleted tests
+     'ignore|disable|expect-error|nocheck|skip\(|todo\(|only\(|\.(skip|only|fixme)\(|continue-on-error|if: false|legacy-peer-deps|--force|--no-verify|\|\| true'
+   git diff --stat -- '*baseline*' '*lint*' '*stan*' 'tsconfig*.json' '*test*.config.*' '*.config.*' \
+     '*lock*' '*manifest*' .github/workflows/
+   git diff --diff-filter=D --name-only | grep -iE '(test|spec)'   # deleted tests
    ```
 
-   Every row of the Hard-rule table has a detector here: the grep catches inline suppressions, skips and CI shortcuts; the `--stat` list catches config-level changes (baselines, levels, excludes, strictness, coverage thresholds, retries, `overrides` / `resolutions`, audit ignore lists, removed steps and narrowed triggers), which you then read line by line; the last line catches deleted tests. Loosened assertions have no pattern: read every changed `expect(` / `assert` / `->toBe` line in test files. Any hit not approved in Step 4 → revert it and fix properly.
+   Every row of the Hard-rule table has a detector here: the grep catches inline suppressions, skips and CI shortcuts; the `--stat` list catches config-level changes (baselines, levels, excludes, strictness, coverage thresholds, retries, `overrides` / `resolutions`, audit ignore lists, removed steps and narrowed triggers), which you then read line by line; the last line catches deleted tests. Loosened assertions have no pattern: read every changed assertion line in test files. Any hit not approved in Step 4 → revert it and fix properly.
 4. **Do not commit or push.** Show `git diff --stat`, suggest a conventional commit message (`fix(ci): …`, or `fix(<scope>): …` when the cause was in app code), and leave committing to the user. After they push: `gh pr checks 482 --watch`.
 
 ## Output
@@ -151,22 +144,19 @@ Ask with three options: **Fix it properly** (recommended) / **Allow this excepti
 ```
 CI fix: PR #482 (run 9876543210) — GREEN locally, not pushed
 
-Failing step:  web / Type check → pnpm exec tsc --noEmit
-Class:         tsc
-Root cause:    web/app/orders/[id]/page.tsx:12 — params typed as a plain object; Next.js 15 passes Promise<{ id: string }>
-Fix:           await params in the page (1 file, +3 −2)
+Failing step:  web / Type check -> the type-check command
+Class:         types
+Root cause:    web/app/orders/[id]/page.tsx:12 — params typed as a plain object; the framework passes a Promise
+Fix:           await params in the page (1 file, +3 -2)
 Reproduced:    yes (before: 1 error, after: 0)
 
 Verification Gates:
-  [PASS] Pint                 [PASS] ESLint
-  [PASS] PHPStan              [PASS] tsc
-  [PASS] Pest (212/212)       [PASS] next build
-  [PASS] No debug statements  [PASS] Vitest (88/88)
+  [PASS] format   [PASS] lint   [PASS] types   [PASS] tests (212/212)   [PASS] build
 
 Gate exceptions: none
 Handoffs:        none
 Next:            review the diff, commit, push, then gh pr checks 482 --watch
-Learn:           /learn "Next.js 15 page params and searchParams are Promises; await them"
+Learn:           /learn "page params and searchParams are Promises in this framework version; await them"
 ```
 
 Add the `Learn:` line only when the failure class can recur (a framework change, a CI or local environment mismatch, a convention the team keeps missing), not for one-off typos. Only suggest it: `/learn` is user-invoked and writes nothing without approval. Status values: `GREEN locally`, `UNVERIFIED LOCALLY`, `INFRA (rerun suggested)`, `HANDED OFF` (to `/sdd` bug), `STILL RED` (after three attempts).

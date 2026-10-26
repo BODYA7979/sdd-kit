@@ -117,6 +117,12 @@ Non-negotiables:
 
 ## Step 6 — Clarity gate
 
+First run the deterministic lint and fix every blocker (`error` line) before spawning the reviewer; warnings are reported but do not block:
+
+```bash
+node "${CLAUDE_SKILL_DIR}/scripts/spec-lint.mjs" <spec-folder>
+```
+
 Spawn a **fresh-context** reviewer (`Agent`, general-purpose) and give it only the spec folder path — no conversation summary:
 
 > Read only the files in `<spec-folder>`. Do not open any other file. List every hidden assumption, undefined term, ambiguous criterion, and question an implementer would have to guess at. Return a numbered list, or "none".

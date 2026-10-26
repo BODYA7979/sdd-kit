@@ -99,12 +99,12 @@ curl -s https://{{service}}/health | jq
 
 ### Restart Service
 ```bash
-# Laravel/PHP-FPM
-sudo systemctl restart php-fpm
+# Application server
+sudo systemctl restart <application server service>
 sudo systemctl restart nginx
 
-# Docker
-docker-compose restart {{service}}
+# Containers
+<container compose command> restart {{service}}
 
 # Kubernetes
 kubectl rollout restart deployment/{{service}}
@@ -112,14 +112,14 @@ kubectl rollout restart deployment/{{service}}
 
 ### View Logs
 ```bash
-# Laravel logs
-tail -f storage/logs/laravel.log
+# Application logs
+tail -f <application log file>
 
 # System logs
 journalctl -u {{service}} -f
 
-# Docker logs
-docker logs -f {{container}}
+# Container logs
+<container runtime> logs -f {{container}}
 
 # Kubernetes logs
 kubectl logs -f deployment/{{service}}
@@ -127,31 +127,31 @@ kubectl logs -f deployment/{{service}}
 
 ### Clear Cache
 ```bash
-# Laravel caches
-php artisan cache:clear
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
+# Application caches
+<clear application cache command>
+<clear configuration cache command>
+<clear route cache command>
+<clear view cache command>
 
 # Redis
 redis-cli FLUSHDB
 
 # After clearing, rebuild
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+<rebuild configuration cache command>
+<rebuild route cache command>
+<rebuild view cache command>
 ```
 
 ### Database Operations
 ```bash
 # Check connection
-php artisan db:monitor
+<database connection check command>
 
 # Run migrations
-php artisan migrate --force
+<run migrations command>
 
 # Rollback last migration
-php artisan migrate:rollback --step=1
+<roll back last migration command>
 ```
 
 ---
@@ -167,16 +167,16 @@ php artisan migrate:rollback --step=1
 **Diagnosis**:
 ```bash
 # Check database connections
-php artisan db:monitor
+<database connection check command>
 
 # Check slow queries
-tail -f storage/logs/slow-queries.log
+tail -f <slow query log file>
 
 # Check Redis connection
 redis-cli ping
 
 # Check queue depth
-php artisan queue:monitor
+<queue depth check command>
 ```
 
 **Resolution**:
@@ -196,7 +196,7 @@ php artisan queue:monitor
 **Diagnosis**:
 ```bash
 # Check recent errors
-tail -100 storage/logs/laravel.log | grep -i error
+tail -100 <application log file> | grep -i error
 
 # Check PHP-FPM status
 sudo systemctl status php-fpm
@@ -256,7 +256,7 @@ ps aux | grep {{process}}
 mysql -h {{host}} -u {{user}} -p -e "SELECT 1"
 
 # Check connection pool
-php artisan tinker
+<application console command>
 >>> DB::connection()->getPdo()
 
 # Check max connections
@@ -323,47 +323,47 @@ Postmortem: {{LINK}}
 ### Deployment Steps
 ```bash
 # 1. Enable maintenance mode
-php artisan down --refresh=15
+<enable maintenance mode command>
 
 # 2. Pull latest code
 git pull origin main
 
 # 3. Install dependencies
-composer install --no-dev --optimize-autoloader
+<install production dependencies command>
 
 # 4. Run migrations
-php artisan migrate --force
+<run migrations command>
 
 # 5. Clear and rebuild caches
-php artisan optimize
+<optimize application command>
 
 # 6. Restart workers
-php artisan horizon:terminate
+<restart queue workers command>
 
 # 7. Disable maintenance mode
-php artisan up
+<disable maintenance mode command>
 ```
 
 ### Rollback Procedure
 ```bash
 # 1. Enable maintenance mode
-php artisan down
+<enable maintenance mode command>
 
 # 2. Revert to previous release
 git checkout {{previous_tag}}
 
 # 3. Rollback migrations (if applicable)
-php artisan migrate:rollback --step={{N}}
+<roll back {{N}} migrations command>
 
 # 4. Restore dependencies
-composer install --no-dev --optimize-autoloader
+<install production dependencies command>
 
 # 5. Clear caches
-php artisan optimize:clear
-php artisan optimize
+<clear optimized caches command>
+<optimize application command>
 
 # 6. Disable maintenance mode
-php artisan up
+<disable maintenance mode command>
 ```
 
 ---
@@ -415,13 +415,13 @@ curl -s localhost/health
 tail -f storage/logs/*.log
 
 # Database stats
-php artisan db:show
+<database status command>
 
 # Queue status
-php artisan queue:monitor
+<queue depth check command>
 
 # Cache stats
-php artisan cache:table
+<cache table inspection command>
 ```
 
 ### Related Documentation

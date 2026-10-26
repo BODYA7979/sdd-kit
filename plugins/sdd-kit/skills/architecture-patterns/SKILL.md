@@ -7,7 +7,7 @@ allowed-tools: Read, Grep, Glob
 
 # Architecture Patterns
 
-Implement Clean Architecture, Hexagonal Architecture, and Domain-Driven Design patterns to build maintainable, testable, and scalable Laravel + Next.js applications.
+Implement Clean Architecture, Hexagonal Architecture, and Domain-Driven Design patterns to build maintainable, testable, and scalable applications in any stack.
 
 ## When to Use This Skill
 
@@ -22,9 +22,7 @@ Implement Clean Architecture, Hexagonal Architecture, and Domain-Driven Design p
 
 | Task | Load |
 |------|------|
-| Implementing domain entities or value objects | `references/domain-entities-and-value-objects.md` |
-| Building repository interfaces and Eloquent adapters | `references/repository-and-adapters.md` |
-| Creating application service handlers (CQRS) | `references/application-services.md` |
+| Implementing domain entities, value objects, repository adapters, application handlers (CQRS) | the stack add-on's skill references, when a stack add-on is installed |
 | Choosing infrastructure technologies (queues, search, real-time, caching) | `references/technology-selection.md` |
 
 ---
@@ -37,7 +35,7 @@ Dependencies point inward. Inner layers know nothing about outer layers.
 
 ```
 ┌──────────────────────────────────────────────────┐
-│                  Frameworks                       │  <- Laravel, Next.js
+│                  Frameworks                       │  <- Web framework, UI toolkit
 │  ┌────────────────────────────────────────────┐  │
 │  │              Interface Adapters             │  │  <- Controllers, Repositories
 │  │  ┌──────────────────────────────────────┐  │  │
@@ -76,60 +74,36 @@ Organize code around business domains, not technical concerns.
 
 ---
 
-## Module Structure (Laravel)
+## Module Structure
 
 **Use when**: Creating new domain modules
 
 ```
-Modules/Payment/
-├── Application/                    # Application Layer
-│   ├── Commands/                   # Write operations
-│   │   ├── CreatePaymentCommand.php
-│   │   └── CreatePaymentHandler.php
-│   ├── Queries/                    # Read operations
-│   │   ├── GetPaymentQuery.php
-│   │   └── GetPaymentHandler.php
-│   └── Http/                       # HTTP Adapters
-│       ├── Controllers/
-│       │   └── CreatePaymentController.php
-│       ├── Requests/
-│       │   └── CreatePaymentRequest.php
-│       └── Resources/
-│           └── PaymentResource.php
+modules/payment/
+├── application/                    # Application layer
+│   ├── commands/                   # Write operations (one handler per command)
+│   ├── queries/                    # Read operations (one handler per query)
+│   └── http/                       # Delivery adapters: controllers, request validation, response mappers
 │
-├── Domain/                         # Domain Layer (NO DEPENDENCIES)
-│   ├── Entities/
-│   │   └── Payment.php
-│   ├── ValueObjects/
-│   │   ├── Money.php
-│   │   └── PaymentStatus.php
-│   ├── Events/
-│   │   └── PaymentCompleted.php
-│   ├── Exceptions/
-│   │   └── InsufficientFundsException.php
-│   ├── Contracts/                  # Ports (Interfaces)
-│   │   ├── PaymentRepositoryInterface.php
-│   │   └── PaymentGatewayInterface.php
-│   └── Services/
-│       └── PaymentProcessor.php    # Domain Service
+├── domain/                         # Domain layer (NO DEPENDENCIES)
+│   ├── entities/
+│   ├── value-objects/
+│   ├── events/
+│   ├── exceptions/
+│   ├── contracts/                  # Ports (interfaces): repository, gateway
+│   └── services/                   # Domain services
 │
-├── Infrastructure/                 # Infrastructure Layer (Adapters)
-│   ├── Persistence/
-│   │   ├── EloquentPaymentRepository.php
-│   │   └── PaymentModel.php        # Eloquent Model
-│   ├── Gateway/
-│   │   ├── StripePaymentGateway.php
-│   │   └── PayPalPaymentGateway.php
-│   └── Routes/
-│       └── api.php
+├── infrastructure/                 # Infrastructure layer (adapters)
+│   ├── persistence/                # Repository implementations and persistence models
+│   ├── gateway/                    # External provider clients
+│   └── routes/
 │
-└── Tests/
-    ├── Unit/
-    │   └── Domain/
-    │       └── PaymentProcessorTest.php
-    └── Feature/
-        └── CreatePaymentTest.php
+└── tests/
+    ├── unit/                       # Domain logic, no database or framework
+    └── feature/                    # Use cases through the delivery layer
 ```
+
+File naming, directory casing and dependency-injection wiring follow the stack's conventions (see the stack add-on's skill).
 
 ---
 
@@ -142,7 +116,7 @@ Business object with identity that encapsulates behavior and records domain even
 - Private constructor with named static factories (`create`, `reconstitute`)
 - Behavior methods enforce invariants before state change
 - Domain events recorded internally, flushed by infrastructure
-- No framework dependencies - pure PHP
+- No framework dependencies - plain language constructs only
 
 ### Value Object
 
@@ -157,7 +131,7 @@ Immutable, self-validating object compared by value.
 
 Defined in Domain layer. Methods accept and return domain objects only.
 
-- No Eloquent models or query builders in the signature
+- No ORM models or query builders in the signature
 - `nextIdentity()` generates IDs before persistence
 - One interface per aggregate root
 
@@ -177,10 +151,10 @@ Orchestrates domain operations for a single use case.
 ## Best Practices
 
 ### Layer Separation
-1. **Domain layer has NO framework imports**: No Eloquent, no Laravel helpers
+1. **Domain layer has NO framework imports**: no ORM, no framework helpers
 2. **DTOs cross boundaries**: Never pass entities out of application layer
 3. **Interfaces in domain**: Concrete implementations in infrastructure
-4. **Service provider binds ports to adapters**: One provider per module
+4. **Wire ports to adapters in one place per module**: the framework's dependency-injection container
 
 ### Testing
 1. **Unit test domain logic**: No database, no framework
@@ -199,7 +173,7 @@ Orchestrates domain operations for a single use case.
 | Pitfall | Solution |
 |---------|----------|
 | Anemic domain model (only getters/setters) | Put behavior in entities |
-| Framework in domain (Eloquent in domain layer) | Create separate persistence models |
+| Framework in domain (ORM models in the domain layer) | Create separate persistence models |
 | Leaking entities (returning from handlers) | Use DTOs for responses |
 | Fat controllers (business logic in controllers) | Move to application/domain layer |
 | Circular dependencies (modules depend on each other) | Use events for cross-module communication |

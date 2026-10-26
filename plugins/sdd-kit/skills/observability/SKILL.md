@@ -1,46 +1,32 @@
 ---
 name: observability
-description: Observability for Laravel API + Next.js — structured logging, error tracking (Sentry), metrics, and OpenTelemetry tracing. Use when adding logging/monitoring, instrumenting requests, debugging production issues, or wiring alerting.
+description: Observability for web applications - structured logging, error tracking, metrics, and OpenTelemetry tracing. Use when adding logging/monitoring, instrumenting requests, debugging production issues, or wiring alerting. Stack-specific setup comes from the stack add-on's references.
 license: Apache-2.0
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
 # Observability
 
-Three pillars: **logs** (what happened), **metrics** (how much/how often), **traces** (where time went across services). For a Laravel API + Next.js front end, instrument the request path end-to-end with a shared correlation id.
+Three pillars: **logs** (what happened), **metrics** (how much/how often), **traces** (where time went across services). Instrument the request path end-to-end, from the browser through the API to background jobs, with a shared correlation id.
 
-## Structured logging (Laravel)
+## Structured logging
 
-```php
-// config/logging.php — JSON to stdout in production (container-friendly)
-'stderr' => [
-    'driver' => 'monolog',
-    'handler' => StreamHandler::class,
-    'formatter' => Monolog\Formatter\JsonFormatter::class,
-    'with' => ['stream' => 'php://stderr'],
-],
-```
+- Log events, not strings: an event name plus a context map (`order.placed`, `{order_id, total}`).
+- JSON to stdout in production (container-friendly).
+- Never log secrets/PII (tokens, passwords, full card numbers). Redact in a log processor.
+- Attach a request id to every line from request middleware.
 
-- Log events, not strings: `Log::info('order.placed', ['order_id' => $id, 'total' => $total])`.
-- Never log secrets/PII (tokens, passwords, full card numbers). Redact in a Monolog processor.
-- Attach a request id to every line: middleware sets `Log::withContext(['request_id' => $id])`.
+## Error tracking
 
-## Error tracking (Sentry)
-
-```bash
-composer require sentry/sentry-laravel      # API
-npm i @sentry/nextjs                         # frontend
-```
-
-- Set `traces_sample_rate` low in prod (e.g. 0.1–0.2) to control cost.
-- Propagate the `sentry-trace` / `traceparent` header from Next.js → Laravel so a frontend error links to the backend span.
-- Scrub PII: enable `send_default_pii => false`, add `before_send` filters.
+- Use one error tracker (for example Sentry) in each app; set the trace sample rate low in prod (0.1-0.2) to control cost.
+- Propagate the `sentry-trace` / `traceparent` header from the frontend to the backend so a frontend error links to the backend span.
+- Scrub PII: disable default PII sending and add before-send filters.
 
 ## Tracing (OpenTelemetry)
 
-- Backend: `open-telemetry/opentelemetry-php` auto-instruments HTTP, DB, queue. Export OTLP to a collector (Tempo/Jaeger/Honeycomb).
-- Frontend: `@vercel/otel` (Next.js) — register in `instrumentation.ts`.
-- The correlation id (W3C `traceparent`) is what stitches a click in the browser to a query in MySQL. Without it, traces fragment.
+- Auto-instrument HTTP, database and queue on the backend; export OTLP to a collector (Tempo/Jaeger/Honeycomb).
+- Register the frontend instrumentation hook of your framework.
+- The correlation id (W3C `traceparent`) is what stitches a click in the browser to a query in the database. Without it, traces fragment.
 
 ## Metrics & SLOs
 
@@ -55,6 +41,5 @@ Telemetry volume = bill. Sample traces, drop healthy-path debug logs in prod, se
 
 | Task | Load |
 |------|------|
-| Request-id propagation Next.js → Laravel → jobs, Sentry in both apps, health endpoint, failed-job alerts | `references/request-correlation.md` |
+| Backend logging, error tracking and tracing setup; request-id propagation across frontend, backend and jobs | the stack add-on's `references/observability.md` and `references/request-correlation.md` (in its conventions skill) |
 | OTel collector config | vendor docs (Tempo/Jaeger/Honeycomb) |
-| Sentry release/source-map upload | `@sentry/nextjs` + sentry-laravel docs |

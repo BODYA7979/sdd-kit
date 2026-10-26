@@ -14,12 +14,14 @@ Never state counts or versions of moving things as facts. Point to the file that
 
 ## Stack
 
+Fill this table from the project's own manifests, or ask Claude to fill it from the code.
+
 | Item | Value | Source of truth |
 |------|-------|-----------------|
-| Backend | Laravel, PHP <major>, <database> | `composer.json`, `.ddev/config.yaml` |
-| Frontend | Next.js App Router, Node <major>, <npm/pnpm> | `package.json`, `.nvmrc` |
-| Auth | <Passport / Sanctum / NextAuth> | `<config/auth.php>` |
-| Local env | <DDEV / Docker / native> | `<.ddev/ or docker-compose.yml>` |
+| Backend | <framework, language version, database> | `<dependency manifest>`, `<environment config>` |
+| Frontend | <framework, runtime version, package manager> | `<dependency manifest>`, `<version file>` |
+| Auth | <auth mechanism> | `<auth config>` |
+| Local env | <native / container / dev-environment tool> | `<environment config file>` |
 
 ## Commands
 
@@ -27,23 +29,23 @@ Run these exact commands. A change is done only when every gate passes for the c
 
 ```bash
 # Backend
-<php artisan test --env=testing>          # tests (never against the dev DB)
-<./vendor/bin/pest --filter=Name>         # single test
-<./vendor/bin/pint --test>                # style (run without --test to fix)
-<./vendor/bin/phpstan analyse>            # static analysis
-<php artisan migrate --pretend>           # inspect migration SQL before running
+<test command>                            # tests (never against the dev DB)
+<single test command>                     # one test
+<format command>                          # style (run in fix mode to fix)
+<static analysis command>                 # types / static analysis
+<migration dry-run command>               # inspect migration SQL before running
 
 # Frontend
-<pnpm dev>                                # dev server
-<pnpm test>                               # unit tests
-<pnpm lint && pnpm tsc --noEmit>          # lint + types
-<pnpm build>                              # production build
+<dev server command>                      # dev server
+<test command>                            # unit tests
+<lint and types commands>                 # lint + types
+<build command>                           # production build
 ```
 
 ## Red lines
 
-- Never run destructive commands against shared databases (`migrate:fresh`, `db:wipe`, raw `DROP`).
-- Never commit secrets, `.env` files, or real customer data.
+- Never run destructive commands against shared databases (fresh-migrate, wipe, raw `DROP`).
+- Never commit secrets, env files, or real customer data.
 - Never edit a migration that has run in a shared environment. Add a new one.
 - Never push to `<main branch>` directly or force-push a shared branch.
 - Never weaken or delete a test to make it pass.
@@ -52,14 +54,14 @@ Run these exact commands. A change is done only when every gate passes for the c
 ## Architecture
 
 ```
-Request -> Invokable Controller -> Service (DTOs) -> Repository -> Model
+<request flow, e.g. Request -> Handler -> Service -> Repository -> Model>
 ```
 
 - **Schema first:** update `<docs/schemas/>` before writing a migration.
-- **DTO first:** data crosses layers as Spatie Laravel Data DTOs, never raw arrays or models.
-- **Invokable controllers:** one action per controller. Authorize, build the DTO, call the service, respond.
+- **Typed data:** data crosses layers as typed objects, never raw arrays or ORM models.
+- **Thin handlers:** authorize, build the typed input, call the service, respond.
 - **Services** own business rules and transactions. **Repositories** own queries.
-- **Frontend:** Server Components by default. All backend calls go through the typed API client in `<src/lib/api/>`.
+- **Frontend:** <rendering model and where backend calls go, e.g. the typed API client in `<src/lib/api/>`>.
 - The API contract in `<docs/api/api-contracts.md>` is authoritative for request and response shapes.
 
 ## Code standards

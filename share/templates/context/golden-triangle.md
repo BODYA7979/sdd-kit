@@ -6,7 +6,7 @@ Three short documents give Claude the business context the code cannot show. The
 |----------|------|---------|--------------------|
 | Business rules | `docs/context/business-rules.md` | What the system must enforce: prohibitions, money rules, authorization, data integrity | [business-rules.template.md](business-rules.template.md) |
 | Architecture | `docs/context/architecture.md` | How it is built: layers, modules, boundaries, patterns, conventions | [architecture.template.md](architecture.template.md) |
-| API contracts | `docs/api/api-contracts.md` | The request and response shapes, status codes, and error codes the Next.js frontend relies on | the `api-contracts.md` format in the `write-docs` skill |
+| API contracts | `docs/api/api-contracts.md` | The request and response shapes, status codes, and error codes the frontend relies on | the `api-contracts.md` format in the `write-docs` skill |
 
 The development process is not a fourth document. It lives in the kit itself (`/sdd`, specs, verification gates) and in the project's `AGENTS.md` (commands, red lines).
 

@@ -21,7 +21,7 @@
 <header class="site-header">
   <div class="brand">
     <a class="brand-name" href="../index.html">SDD Kit</a>
-    <span class="badge">v2.1.1</span>
+    <span class="badge">v3.0.0</span>
   </div>
   <div class="header-actions">
     <a class="btn" href="../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
@@ -83,7 +83,7 @@
   ]
 }</code></pre>
 <p>Notes:</p>
-<ul><li>Keep each entry&#39;s <code>name</code> identical to the <code>name</code> in that plugin&#39;s own <code>.claude-plugin/plugin.json</code>; the entry name is the install id (<code>&lt;name&gt;@your-org-claude</code>) and the key written to <code>enabledPlugins</code>.</li><li>Get the commit for a tag with <code>git ls-remote https://github.com/stasmarkov/sdd-kit refs/tags/v2.1.0</code> (use the <code>^{}</code> line for annotated tags).</li><li>If you fork the framework, point <code>repo</code> / <code>url</code> at your fork. A fork is the right choice when you carry local changes; otherwise reference upstream.</li><li>List only the add-ons you approve. <code>ios</code> and <code>drupal</code> can be added the same way (<code>path: plugins/sdd-kit-ios</code>, <code>plugins/sdd-kit-drupal</code>).</li><li><code>defaultEnabled: false</code> makes an add-on opt-in even after install.</li></ul>
+<ul><li>Keep each entry&#39;s <code>name</code> identical to the <code>name</code> in that plugin&#39;s own <code>.claude-plugin/plugin.json</code>; the entry name is the install id (<code>&lt;name&gt;@your-org-claude</code>) and the key written to <code>enabledPlugins</code>.</li><li>Get the commit for a tag with <code>git ls-remote https://github.com/stasmarkov/sdd-kit refs/tags/v2.1.0</code> (use the <code>^{}</code> line for annotated tags).</li><li>If you fork the framework, point <code>repo</code> / <code>url</code> at your fork. A fork is the right choice when you carry local changes; otherwise reference upstream.</li><li>Stack add-ons are separate entries (<code>plugins/sdd-kit-laravel</code>, <code>plugins/sdd-kit-nextjs</code>, <code>plugins/sdd-kit-devenv</code>). The preset <code>sdd-kit-laravel-nextjs</code> (<code>plugins/sdd-kit-laravel-nextjs</code>) only declares dependencies on them and the core; list the add-ons it depends on in your catalog too, pinned like the core.</li><li>List only the add-ons you approve. <code>ios</code> and <code>drupal</code> can be added the same way (<code>path: plugins/sdd-kit-ios</code>, <code>plugins/sdd-kit-drupal</code>).</li><li><code>defaultEnabled: false</code> makes an add-on opt-in even after install.</li></ul>
 <p>Validate before pushing:</p>
 <pre><code class="language-bash">claude plugin validate ./claude-marketplace</code></pre>
 <p>Then test the full loop on your machine:</p>
@@ -142,7 +142,7 @@ claude plugin details sdd-kit</code></pre>
 <h3 id="verify-the-rollout">Verify the rollout</h3>
 <ul><li>Interactive: run <code>/plugin</code>; your marketplace and the enabled plugins are listed.</li><li>CI: <code>claude -p &quot;ok&quot; --output-format stream-json --verbose</code> and check the <code>plugins</code> list in the <code>init</code> event.</li><li>Policy problems: <code>/status</code> should list <code>Enterprise managed settings</code> under setting sources; blocked sources show <code>is not in the allowed marketplace list</code> or <code>is blocked by enterprise policy</code>.</li></ul>
   </article>
-  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/docs/reference/team-marketplace.md">View the Markdown source</a></p>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/team-marketplace.md">View the Markdown source</a></p>
 </main>
 <script>
   (function () {

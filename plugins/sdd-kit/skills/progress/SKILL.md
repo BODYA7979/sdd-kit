@@ -96,10 +96,10 @@ Unfinished branches: feature/PROJ-118-csv-import (no spec found)
 A one-screen project snapshot. It runs the owning skills instead of copying their commands, so the commands stay in one place.
 
 1. **Git**: current branch, ahead/behind its upstream, uncommitted files, last commit, unfinished branches.
-2. **Repos**: find the repos the way the workflows' Detect phase does. A Laravel repo has `artisan`; a Next.js repo has `next` in `package.json` (an `app/` or `src/app/` directory). In a polyrepo workspace, check each repo, for example `api/` and `web/`.
+2. **Repos**: find the repos the way the workflows' Detect phase does. Each repo's stack comes from its manifest `detect` rule. In a polyrepo workspace, check each repo, for example `api/` and `web/`.
 3. **Per repo, delegate**:
    - Code quality: `/lint` (check mode, no fixes)
-   - Tests: `/run-tests` (backend), `/run-tests --frontend` (Next.js)
+   - Tests: `/run-tests` (backend), `/run-tests --frontend`
    - Vulnerabilities, outdated and unused packages: `/security-scan --dependencies` (read-only)
 4. **Specs**: the overview counts (in progress, approved, drafts awaiting approval).
 
@@ -109,8 +109,8 @@ Health: hireboard
 Git     main, up to date, 2 uncommitted files, last commit 3h ago
         unfinished: feature/HIRE-14-saved-searches
 
-api (laravel)   lint PASS   tests 214/214 PASS   vulns 0   outdated 3 (0 major)
-web (nextjs)    lint WARN 3 tests 88/90 FAIL     vulns 1 low   outdated 5 (1 major)
+api (backend)   lint PASS   tests 214/214 PASS   vulns 0   outdated 3 (0 major)
+web (frontend)   lint WARN 3 tests 88/90 FAIL     vulns 1 low   outdated 5 (1 major)
 
 Specs   1 in progress, 2 approved, 1 draft awaiting approval
 

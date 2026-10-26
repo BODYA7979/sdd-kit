@@ -115,8 +115,8 @@ find "${INSTALL_DIR}/agents" -name '*.md' | wc -l
 
 - Any `SKILL.md` nested deeper than `skills/<name>/SKILL.md` → FAIL, list them (they will never load).
 - Two skill directories with the same `name:` frontmatter → FAIL.
-- Zero agents, or a core agent missing → FAIL. The core agents are the ones a `--minimal` install also ships, because the main `/sdd` path hands off to each: `code-explorer`, `requirements-analyst`, `laravel-backend-dev`, `nextjs-frontend-dev`, `test-writer`, `code-quality`, `adversarial-reviewer`, `security-auditor`.
-- A core agent's `skills:` entry with no matching `skills/<name>/SKILL.md` → WARN only for the stack skills `--minimal` ships (`laravel-12`, `pest-3`, `dto-first`, `service-repository`, `api-design`, `api-security`, `nextjs-15`, `nextjs-testing`, `nextjs-auth`); other preloads are optional depth that `--full` adds.
+- Zero agents, or a core agent missing → FAIL. The core agents are the ones a `--minimal` install also ships, because the main `/sdd` path hands off to each. Stack specialists belong to the stack add-ons and are checked in Check 12, never as a core FAIL: `code-explorer`, `requirements-analyst`, `test-writer`, `code-quality`, `adversarial-reviewer`, `security-auditor`.
+- A core agent's `skills:` entry with no matching `skills/<name>/SKILL.md` → WARN only when the skill ships in the core plugin; other preloads are optional depth that `--full` or an add-on adds.
 
 #### Check 3: Manifest Integrity
 
@@ -227,6 +227,14 @@ jq '.permissions.allow | length' .claude/settings.local.json
 
 More than 100 allow rules → WARN. Suggest running `/fewer-permission-prompts` to consolidate, and moving rules the whole team needs into the shared `.claude/settings.json`.
 
+**Detect Read rules.** Workflows read the trust store, the user stacks directory, the installed plugin list and the plugin cache (each installed plugin's `stack.json`) outside the project, which needs four Read allow rules in the user settings:
+
+```bash
+node "${CLAUDE_SKILL_DIR}/../stack-trust/scripts/trust-store.mjs" --read-rules
+```
+
+Every rule `present` → PASS. Each `missing` rule → WARN that quotes the exact rule to add, for example `[WARN] Detect Read rule missing: Read(~/.claude/stacks/**) — run /stack-trust to add it`. Until they are present, Detect reports `trustStore unreadable` and runs no overlay manifest's commands. The default rules are `Read(~/.claude/sdd-kit/trusted-stacks.json)`, `Read(~/.claude/stacks/**)`, `Read(~/.claude/plugins/installed_plugins.json)` and `Read(~/.claude/plugins/cache/**)`; with `CLAUDE_CONFIG_DIR` set the script prints the absolute form of the last three. The first always names the trust store in the home directory the OS user database records (absolute when `$HOME` points elsewhere), because `$HOME` and `CLAUDE_CONFIG_DIR` do not move the store.
+
 #### Check 11: Memory Reconcile
 
 List every instruction source that loads into sessions for this project:
@@ -239,7 +247,35 @@ ls .claude/agent-memory/*/*.md .claude/agent-memory-local/*/*.md "$HOME/.claude/
 
 Read them and flag pairs of instructions that contradict each other (e.g. "always use X" vs "never use X", different test commands, conflicting naming rules), or that contradict the framework's current behavior (references to retired components or renamed skills). Report each as WARN with both `file:line` locations, quoted. Never edit or delete memory; a human decides which instruction wins.
 
-#### Check 12: Built-in Diagnostics
+#### Check 12: Add-ons and Shadowing
+
+Classify every installed SDD Kit add-on. All problems here are WARN, never FAIL.
+
+**Selection.**
+- Plugin mode: entries of `claude plugin list --json` whose id starts with `sdd-kit-`, plus any plugin whose `installPath` holds a `stack.json`. Without the `claude` CLI print `plugin add-ons: not checked (claude CLI not found)` (SKIP).
+- Inline add-ons, in every mode: the plugin list never shows plugins loaded with `--plugin-dir`, so also run the inline step `node "${CLAUDE_SKILL_DIR}/../stack-trust/scripts/trust-store.mjs" --plugin-dirs --json`. It reads the `--plugin-dir <path>` and `--plugin-dir=<path>` flags of the Claude Code process and the directories under `.claude/stack-addons/`, and prints `{name, path, source, origin, stackJson}` per add-on. Skip the core (`sdd-kit`) and classify the rest like installed plugins, with `<path>` as the install path, `<name>` as `<plugin>`, and ` [plugin:<name>@inline (mode plugin)]` appended to the line, for example `sdd-kit-<stack> (stack: <key>): specialist <name> present; manifest valid [plugin:sdd-kit-<stack>@inline (mode plugin)]`.
+- File-copy mode: the installed set from `.framework-manifest`, with `.claude/stacks/<key>.json` marking stack add-ons.
+
+**Classification and line formats.**
+- Stack add-on (ships `stack.json`): `<plugin> (stack: <keys>): specialist <name> present|missing; manifest valid|invalid`. A stack with no shipped specialist reads `sdd-kit-<stack> (stack: <key>): specialist general-purpose (none shipped); manifest valid`. A missing specialist or an invalid manifest is a WARN.
+- Preset (`plugin.json` with `dependencies`, no components): `<plugin> (preset): depends on <deps>; each installed|missing`. A missing dependency is a WARN.
+- Tool add-on (no `stack.json`, has components such as devenv, ops, design): `<plugin> (tool add-on): <n> skills, <m> agents present`. Each `skills:` preload that does not resolve is a WARN.
+
+When neither selection finds a stack add-on, print `[PASS] no stack add-ons installed` with the hints: `install.sh --stack=<key>` for file-copy installs, `/plugin install sdd-kit-laravel-nextjs@sdd-kit` (or one `sdd-kit-<stack>` add-on) for plugin installs. A core-only install is valid and is never a FAIL.
+
+**Mixed-mode shadowing.** When a stack add-on is installed as a plugin and a file-copy copy also exists, warn and name the file to delete:
+
+```bash
+for a in laravel-backend-dev nextjs-frontend-dev; do
+  [ -f ".claude/agents/$a.md" ] && echo "SHADOW .claude/agents/$a.md"
+done
+jq -r '[.hooks // {} | .[][] .hooks[] | .command? // empty | select(test("lint-check\\.sh|test-first-check\\.sh|laravel-lint\\.sh|laravel-test-first\\.sh|nextjs-lint\\.sh|nextjs-test-first\\.sh"))] | .[]' .claude/settings.json 2>/dev/null
+```
+
+- `.claude/agents/<agent>.md` next to the plugin add-on that ships `<agent>` → WARN: "`.claude/agents/<agent>.md` shadows the plugin agent `<plugin>:<agent>`. Fix: delete `.claude/agents/<agent>.md`." (use the agent name each add-on ships; the list above is the first-party pair).
+- A lint or test-first hook entry in `.claude/settings.json` (for example `laravel-lint.sh`) while the plugin add-on wires the same hook → WARN: "the hook would run twice. Fix: delete the entry naming `<script>` from `.claude/settings.json`."
+
+#### Check 13: Built-in Diagnostics
 
 Always end with a SKIP-style note recommending the Claude Code built-ins, which check what this skill cannot see from files alone:
 
@@ -261,13 +297,14 @@ Framework Health Check (project, v2.0.0)
 [PASS] MCP config: .mcp.json valid (3 servers)
 [PASS] Script permissions
 [PASS] Path integrity
+[PASS] Add-ons: no stack add-ons installed (--stack=<key> or /plugin install sdd-kit-laravel-nextjs@sdd-kit)
 [WARN] Golden Triangle: docs/context/ not found
 [PASS] Hooks wired and firing (block-dangerous exit=2)
 [WARN] Settings: unknown key "autoReview" in .claude/settings.json (no effect)
 [WARN] Permissions: 143 allow rules in settings.local.json — run /fewer-permission-prompts
 [WARN] Memory: contradictory instructions
-         CLAUDE.md:42 "Run tests with ./vendor/bin/pest"
-         ~/.claude/projects/.../memory/testing.md:3 "Always run tests via ddev"
+         CLAUDE.md:42 "Run tests with <test command>"
+         ~/.claude/projects/.../memory/testing.md:3 "Always run tests via <wrapper command>"
 [SKIP] Also run /skill-doctor and /doctor prompt-audit
 
 Result: 6 passed, 6 warnings, 0 failures

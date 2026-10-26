@@ -8,7 +8,7 @@ From an empty target to one shippable vertical slice. Later features go through 
 |-----|---------|
 | `idea` | What the app/service does and what the first slice must prove. With a brief: the first backlog slice that is not shipped (Outcome, Entry point, BR ids). |
 | `brief` | Path to `product-brief.md` from `/product-brief`. Read as the constitution; `backlog.md` next to it receives the next slices. |
-| `stack` | `laravel`, `nextjs`, `drupal`, … |
+| `stack` | a stack key from an installed stack add-on, or `other` |
 | `repos` | `{ backend, frontend }` for split repos. |
 | `url` | Dev-server URL for acceptance. |
 | `force` | Allow scaffolding into a directory with tracked files (default refuses). |
@@ -17,7 +17,7 @@ From an empty target to one shippable vertical slice. Later features go through 
 No `product-brief.md` yet? Offer `/product-brief` first (SKILL.md Step 4c). Ask before launching: stack, single vs split repos, the first slice, hard constraints (auth, data store, hosting). Have the user approve the architecture direction.
 
 ```
-Workflow({ name: "greenfield-build", args: { idea: "SL-01: …", stack: "laravel", repos: { backend: "./api", frontend: "./web" }, url: "http://localhost:3000", brief: "product-brief.md" } })
+Workflow({ name: "greenfield-build", args: { idea: "SL-01: …", stack: "<stack-key>", repos: { backend: "./api", frontend: "./web" }, url: "http://localhost:3000", brief: "product-brief.md" } })
 ```
 
 ## Phases
@@ -26,8 +26,8 @@ Workflow({ name: "greenfield-build", args: { idea: "SL-01: …", stack: "laravel
 Detect        confirm the target is empty (tracked tree → BLOCKED unless force)
 Constitution  product brief (scope, BR ids) + CLAUDE.md + skills as governing principles
 Architecture  api-architect: stack, layout, data model, first slice; 3-vote verify against the constitution
-Scaffold      framework skeleton with working gate tooling (Pest, Larastan, Pint; ESLint, tsc, Vitest,
-              next build, Playwright when there is a UI journey), contract-sync for split repos;
+Scaffold      framework skeleton with working gate tooling (the manifest's gates: format, lint, types,
+              test, build, and e2e when there is a UI journey), contract-sync for split repos;
               a gate that cannot run stops here (FIX-FIRST); then CI on devops-engineer; committed checkpoints
 Slice         one vertical slice, TDD, backend before frontend
 Gates         scaffold builds, slice passes tooling; auto-fix loop

@@ -111,7 +111,7 @@ To start a slice, run its `/sdd` line. When `/sdd` writes the spec for a slice, 
 
 - **Spec folders**: any child folder with `spec-lite.md` or `tasks.md`. Folders starting with `.` or `_` (for example `_archive`) are skipped. Other folders are listed as ignored in the "issues" panel.
 - **Frontmatter**: read with a small built-in YAML subset (scalars, quoted strings, flow and block lists, block scalars). Values always stay strings, so `0042` and `P2` are kept as written. Status aliases such as `in_progress`, `wip` and `completed` are normalised.
-- **Tasks**: progress counts top-level numbered tasks (`- [x] 3. Title (laravel)`). "Done when" and "Success Criteria" boxes are not counted, and neither is anything inside code fences.
+- **Tasks**: progress counts top-level numbered tasks (`- [x] 3. Title (backend)`). "Done when" and "Success Criteria" boxes are not counted, and neither is anything inside code fences.
 - **Traceability**: comes from the table under `## Traceability`. Acceptance (`AC-n`), must-not-change (`MNC-n`), and quality-attribute (`NFR-n`) ids missing from that table are shown as uncovered.
 - **Session state**: read from `.ai/session/*-state.json` (`current_task`, `completed_tasks`, `resume_hint`).
 

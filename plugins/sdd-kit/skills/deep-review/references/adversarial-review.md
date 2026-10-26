@@ -25,7 +25,7 @@ Detail for `/deep-review` at `--depth=adversarial` (the default). Load when runn
 6. Business logic match (implementation vs business rules)
 7. Bug and bottleneck detection
 8. Better approaches ("how would a senior dev do this?")
-9. Coding standards (PSR-12, project ESLint config)
+9. Coding standards (the project's style guide and linter configuration)
 10. SOLID principles
 11. Design patterns
 12. Test coverage quality
@@ -64,7 +64,7 @@ MAJOR if:
 └── Static analysis at the strictest level fails
 
 MINOR if:
-├── Is purely stylistic (Pint/ESLint)
+├── Is purely stylistic (formatter or linter)
 ├── Has minimal user impact
 ├── Can be fixed in under 5 minutes
 ├── Debug statements left in
@@ -80,9 +80,9 @@ OBSERVATION if:
 
 | Tool | Failure = | Success = |
 |------|-----------|-----------|
-| Static analysis (PHPStan level 9 / tsc strict) | MAJOR | Pass gate |
+| Static analysis (strictest configured level) | MAJOR | Pass gate |
 | Tests | CRITICAL if security-related, else MAJOR | Pass gate |
-| Pint / ESLint | MINOR | Pass gate |
+| Formatter / linter | MINOR | Pass gate |
 | Security pattern grep | CRITICAL (after confirming the hit is real) | Pass gate |
 | Debug-call grep | MINOR | Pass gate |
 
@@ -139,12 +139,12 @@ Depth: {quick | standard | adversarial}
 **Issue:** {what is wrong and why it is critical}
 
 **Current Code:**
-```php
+```
 {problematic code}
 ```
 
 **Recommended Fix:**
-```php
+```
 {corrected code}
 ```
 
@@ -180,9 +180,9 @@ Phase 1: Gathering context
   - Business rules: loaded
 
 Phase 2: Tool verification
-  PASS  PHPStan level 9: 0 errors
+  PASS  Static analysis (strictest level): 0 errors
   PASS  Tests: 100% coverage
-  PASS  Pint: no violations
+  PASS  Formatter: no violations
   WARN  Security scan: 1 pattern found
 
 Phase 3: Adversarial analysis (adversarial-reviewer)
@@ -195,8 +195,8 @@ Phase 4: Classification
 VERDICT: BLOCKED
 
 [CRITICAL] SQL injection in UserExportService
-  File: app/Services/UserExportService.php:47
-  DB::raw() with user-controlled $role variable.
+  File: src/services/user-export-service:47
+  Raw SQL with user-controlled $role variable.
 
 Action required: fix the critical issue and re-run /deep-review
 Report: .ai/reviews/REVIEW-TASK-0043-20250131-143022.md

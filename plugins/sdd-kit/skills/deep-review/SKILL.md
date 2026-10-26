@@ -105,7 +105,7 @@ Run the gates from the `verification-gates` skill on the scoped files. Tool outp
 
 | Depth | Gates |
 |-------|-------|
-| adversarial | Full gate set at the strictest level (PHPStan level 9 / `tsc --strict`), tests with coverage, formatter check, security and debug pattern scans |
+| adversarial | Full gate set at the strictest level (the strictest static-analysis level the project configures), tests with coverage, formatter check, security and debug pattern scans |
 | standard | Project-configured gate set, formatter check, tests for touched modules |
 | quick | Security and debug pattern scans only |
 
@@ -210,7 +210,7 @@ With `--auto-fix`, after the verdict is written:
 
 | Fixed automatically | Never auto-fixed |
 |---------------------|------------------|
-| Formatter violations (Pint, ESLint `--fix`) | Security issues |
+| Formatter violations (the project's formatter or linter autofix) | Security issues |
 | Leftover debug calls | Architecture violations |
 | Inferable missing type hints | Business-logic changes |
 | Import ordering | Performance changes |

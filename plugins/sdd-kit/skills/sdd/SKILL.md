@@ -58,7 +58,9 @@ Background workflows **cannot stop and ask questions**, so gather everything now
 
 ## Step 4 — Launch the route
 
-Before any `Workflow` call, show the exact call and note that it runs many agents in the background. Launch only after the user agrees.
+Before any `Workflow` call, run `node ${CLAUDE_SKILL_DIR}/../stack-trust/scripts/trust-store.mjs --list-untrusted`. If it lists any manifest, tell the user those stacks' gates will be reported as `not run (untrusted manifest)` and offer `/stack-trust` first. Never approve for them.
+
+Then show the exact call and note that it runs many agents in the background. Launch only after the user agrees.
 
 | Route | Required inputs | Launch | Output | Done when |
 |---|---|---|---|---|
@@ -78,16 +80,17 @@ Run `Skill("write-spec", "--ticket=PROJ-123 <request + ticket text>")` (omit `--
 ### 4b — Feature: human approval gate, then build
 
 1. **Open questions first.** If spec-lite.md has unchecked items under *Open questions*, resolve them with the user (answer → fold into the spec; or accept as an assumption) before asking for approval. A spec with open questions cannot be approved.
-2. Show the path to `spec-lite.md` and summarize scope, must-not-change, boundaries, acceptance criteria, and any quality attributes (NFR) in plain language.
-3. Ask with `AskUserQuestion`: **Approve and build** / **Approve only** / **Request changes** / **Stop here (draft)**.
+2. Run `node ${CLAUDE_SKILL_DIR}/../write-spec/scripts/spec-lint.mjs <spec folder>`. While it reports any `error` line, fix the spec (or send it back to `/write-spec`) and keep `status: draft`; do not ask for approval yet.
+3. Show the path to `spec-lite.md` and summarize scope, must-not-change, boundaries, acceptance criteria, and any quality attributes (NFR) in plain language.
+4. Ask with `AskUserQuestion`: **Approve and build** / **Approve only** / **Request changes** / **Stop here (draft)**.
    - *Request changes* → apply them to the spec, re-run the clarity gate on what changed, then ask again.
    - *Stop here* → end; the draft is the deliverable (e.g. for stakeholder review).
-4. On either **Approve** answer, record the approval in the spec-lite.md frontmatter:
+5. On either **Approve** answer, record the approval in the spec-lite.md frontmatter:
    - `status: approved`
    - `approved_by:` the approving user's name (ask if unknown; `git config user.name` is a reasonable default to confirm)
    - `approved_at:` from `date -u +%Y-%m-%dT%H:%M:%SZ`
-5. **Ticket link-back** (only when there is a ticket **and** a tracker tool is available — Jira/Linear MCP or CLI): ask *"Post the spec link to PROJ-123?"* and post a short comment (spec path, approver, acceptance-criteria count) only on yes. Never post silently.
-6. Only on **Approve and build**: `Workflow({ name: "ship-feature", args: { spec: "<spec folder name>", ticket, repos, url } })`. ship-feature refuses `draft` specs and moves `approved` → `in-progress`.
+6. **Ticket link-back** (only when there is a ticket **and** a tracker tool is available — Jira/Linear MCP or CLI): ask *"Post the spec link to PROJ-123?"* and post a short comment (spec path, approver, acceptance-criteria count) only on yes. Never post silently.
+7. Only on **Approve and build**: `Workflow({ name: "ship-feature", args: { spec: "<spec folder name>", ticket, repos, url } })`. ship-feature refuses `draft` specs and moves `approved` → `in-progress`.
 
 Never start `ship-feature` on a spec the user has not approved in this conversation. Approval from an earlier session, a ticket comment, or another agent does not count — ask.
 

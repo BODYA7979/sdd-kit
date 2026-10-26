@@ -65,7 +65,7 @@ or copied into your project's `.claude/` without cloning (from your project root
 npx github:stasmarkov/sdd-kit install --project
 ```
 
-Both modes, add-ons, and a clone-based install are in [INSTALLATION.md](installation.md). This release targets a Laravel API with a Next.js frontend; see [Stacks and roadmap](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/README.md).
+Both modes, add-ons, and a clone-based install are in [INSTALLATION.md](installation.md). The core is stack-agnostic: stack add-ons supply detection, gates and specialists, and a new stack is one manifest (`/new-stack`). Plugin mode: install your stack's add-on, or the 2.x-compatible preset (see INSTALLATION). File-copy mode installs the default stack add-ons, and `--stack` changes the choice. Coming from 2.x: [Upgrading from 2.x](installation.md#upgrading-from-2x); see [Stacks and roadmap](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/README.md).
 
 Start Claude Code in your project root and run the health check:
 
@@ -150,7 +150,7 @@ With no code yet, start with `/product-brief`: it turns the idea into a brief (u
 Route: feature. Adds a new behavior (refund guard on top-up orders); no existing behavior is broken.
 ```
 
-You confirm it or pick another route. The routes are trivial, bug, decision, feature, shipped code, and new app. The full route tree is in the [README](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/README.md). Nothing launches until you confirm.
+You confirm it or pick another route. The routes are trivial, bug, decision, feature, shipped code, and new app. The full route tree is in the [README](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/README.md). Nothing launches until you confirm.
 
 **2. Inputs up front.** Background workflows can't stop to ask questions, so `/sdd` asks two to four now: single repo or backend and frontend paths, the dev URL for browser checks, and anything specific to the route.
 
@@ -239,7 +239,7 @@ For an unattended run, set a goal with the built-in `/goal` and let Claude keep 
 
 | Command | When |
 |---------|------|
-| `/run-tests` | Run the Pest suite; `--frontend` runs Vitest and `--e2e` the Playwright journeys |
+| `/run-tests` | Run the backend test gate; `--frontend` runs the frontend suite and `--e2e` the browser journeys |
 | `/deep-review` | Get a blocking verdict before merge from a reviewer that never saw your prompt |
 | `/progress` | Where was I across all specs, and the next task (`--spec=<ref>` for one spec, `--next` for a recommendation). `/progress --health` adds git, tests, lint, and dependency health |
 | `/spec-board` | Board of every spec by status plus backlog slices, with approval and open-question warnings. `/spec-board --out /tmp/spec-board.html` writes a shareable snapshot |

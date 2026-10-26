@@ -1,0 +1,11 @@
+{
+  "plugins": [
+    {
+      "name": "typescript-lsp",
+      "marketplace": "claude-plugins-official",
+      "version": null,
+      "ref": null,
+      "purpose": "typescript-language-server — automatic post-edit TS diagnostics and precise navigation for the frontend."
+    }
+  ]
+}

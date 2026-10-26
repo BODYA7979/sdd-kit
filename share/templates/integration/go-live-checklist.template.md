@@ -44,10 +44,7 @@ grep "{{SERVICE}}_KEY={{live_prefix}}" .env
 - [ ] **Rate limiting** understood and accommodated
 
 **Configuration Validation:**
-```php
-assert(config('services.{{service}}.url') === 'https://api.{{service}}.com');
-assert(config('services.{{service}}.environment') === 'live');
-```
+<!-- Code example in the project's language; the stack add-on's skill has samples. -->
 
 ---
 

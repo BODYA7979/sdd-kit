@@ -1,11 +1,12 @@
 {
-  "$schema": "../../workflows/lib/stack.schema.json",
+  "$schema": "../sdd-kit/workflows/lib/stack.schema.json",
   "name": "ios",
   "order": 50,
   "role": "mobile",
   "detect": "a Package.swift, an *.xcodeproj / *.xcworkspace, or Sources/**/*.swift",
   "agent": {
-    "name": "general-purpose"
+    "name": "ios-mobile-dev",
+    "plugin": "sdd-kit-ios"
   },
   "conventions": [
     "SwiftUI + @Observable MVVM",
@@ -16,19 +17,23 @@
   "gates": [
     {
       "name": "SwiftFormat",
-      "command": "swiftformat --lint ."
+      "command": "swiftformat --lint .",
+      "kind": "format"
     },
     {
       "name": "SwiftLint",
-      "command": "swiftlint --strict"
+      "command": "swiftlint --strict",
+      "kind": "lint"
     },
     {
       "name": "Build",
-      "command": "set -o pipefail && xcodebuild build -scheme \"$SCHEME\" -destination \"generic/platform=iOS Simulator\" | xcbeautify"
+      "command": "set -o pipefail && xcodebuild build -scheme \"$SCHEME\" -destination \"generic/platform=iOS Simulator\" | xcbeautify",
+      "kind": "build"
     },
     {
       "name": "Test",
-      "command": "set -o pipefail && xcodebuild test -scheme \"$SCHEME\" -destination \"platform=iOS Simulator,name=iPhone 16\" | xcbeautify"
+      "command": "set -o pipefail && xcodebuild test -scheme \"$SCHEME\" -destination \"platform=iOS Simulator,name=iPhone 16\" | xcbeautify",
+      "kind": "test"
     }
   ],
   "debugPatterns": [
@@ -36,7 +41,14 @@
     "debugPrint(",
     "NSLog("
   ],
+  "sourceDirs": [
+    "Sources/"
+  ],
   "visual": "simulator",
   "acceptance": "boot a simulator (xcrun simctl boot), install & launch the app, assert via a UI test or an xcrun simctl screenshot",
+  "markers": [
+    "*.xcodeproj",
+    "Package.swift"
+  ],
   "notes": "The ios-native and swift-testing skills come from the optional ios plugin and auto-load on *.swift."
 }

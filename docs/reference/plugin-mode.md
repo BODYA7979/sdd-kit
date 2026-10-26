@@ -30,12 +30,16 @@ optional add-ons:
 | Plugin | Source | Adds |
 |--------|--------|------|
 | `sdd-kit` | repo root | `/sdd`, workflows, core agents and skills, guardrail hooks, MCP defaults |
+| `sdd-kit-laravel-nextjs` | `src/presets/laravel-nextjs` | preset: depends on the core, laravel, nextjs and devenv |
+| `sdd-kit-laravel` | `src/plugins/laravel` | Laravel agent, skills, rules, lint and test-first hooks, contract-sync template |
+| `sdd-kit-nextjs` | `src/plugins/nextjs` | Next.js agent, skills, rules, lint and test-first hooks |
+| `sdd-kit-devenv` | `src/plugins/devenv` | docker and ddev skills |
 | `sdd-kit-ops` | `src/plugins/ops` | deploy, rollback, feature flags, incidents, ops agents |
 | `sdd-kit-ios` | `src/plugins/ios` | iOS/Swift agent, skills, SwiftUI templates |
 | `sdd-kit-drupal` | `src/plugins/drupal` | Drupal 11 skill |
 | `sdd-kit-design` | `src/plugins/design` | UI/UX agent and design skill |
 
-In file-copy mode the same add-ons install with `./install.sh --with=ops,ios`.
+In file-copy mode the same add-ons install with `./install.sh --stack=laravel,nextjs --with=ops`. Stack add-on skills are namespaced by their own plugin, for example `/sdd-kit-laravel:laravel-12`. Rules and third-party fragments of an add-on are file-copy only.
 
 Every plugin component is namespaced under its plugin name:
 
@@ -97,13 +101,13 @@ All of the kit's hooks are global (`hooks/hooks.json`), so plugin mode keeps the
 | Event | Script | Purpose |
 |-------|--------|---------|
 | PreToolUse (Bash) | `block-dangerous.sh`, `check-commit-msg.sh` | Block destructive commands; enforce commit format |
-| PreToolUse (Write/Edit) | `test-first-check.sh` | Block edits to controllers, models, services, middleware, and components until a matching test exists |
+| PreToolUse (Write/Edit) | `laravel-test-first.sh`, `nextjs-test-first.sh` (stack add-ons) | Block edits to controllers, models, services, middleware, and components until a matching test exists |
 | PreToolUse (Read/Grep/Glob/Bash) | `token-budget.sh` | Block `find /`, and unbounded reads once context usage passes the threshold |
-| PostToolUse (Write/Edit) | `lint-check.sh`, `scan-secrets.sh` | Lint changed files; catch secrets |
+| PostToolUse (Write/Edit) | `laravel-lint.sh`, `nextjs-lint.sh` (stack add-ons), `scan-secrets.sh` | Lint changed files; catch secrets |
 | PostToolUse (Bash/WebFetch/MCP) | `scan-injection.sh` | Flag prompt-injection patterns |
 | SessionStart, UserPromptSubmit, PreCompact, SessionEnd, Stop, SubagentStop, Notification | various | Context load/save, prompt preflight, completion checks |
 
-`hooks/hooks.json` is the source of truth. If this table and that file disagree, trust the file. Every hook, with how to tune or disable it, is in [src/hooks/README.md](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/share/hooks/README.md).
+`hooks/hooks.json` is the source of truth. If this table and that file disagree, trust the file. Every hook, with how to tune or disable it, is in [src/hooks/README.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/share/hooks/README.md).
 
 ## Verifying an install
 

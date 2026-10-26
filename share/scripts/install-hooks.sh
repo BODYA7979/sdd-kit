@@ -3,8 +3,10 @@
 # Merge the framework's lifecycle hooks into a Claude Code settings.json.
 #
 # Usage:
-#   install-hooks.sh <settings.template.json> <settings.json> <project|user>
+#   install-hooks.sh <settings.template.json> <settings.json> <project|user> [<addon hooks.json>...]
 #
+# - Add-on hooks.json files (plugin-mode format, "${CLAUDE_PLUGIN_ROOT}"/scripts/<name>.sh)
+#   are merged after the template, with the script path swapped for the install's prefix.
 # - Missing settings.json: created from the template.
 # - Existing settings.json: backed up, then framework hooks are merged in.
 #   Everything else (permissions, env, model, user-defined hooks) is preserved.
@@ -19,13 +21,15 @@
 set -euo pipefail
 
 # Hook scripts removed from the framework; existing installs still reference them.
-RETIRED_SCRIPTS='["kg-capture.sh"]'
+RETIRED_SCRIPTS='["kg-capture.sh", "lint-check.sh", "test-first-check.sh"]'
 # Earlier wordings of framework prompt hooks, replaced rather than duplicated.
 RETIRED_PROMPTS='["Before ending, verify: (1) All tasks marked as completed have passing tests, (2) No uncommitted changes are left without explanation, (3) Session state is saved if mid-spec. If this is a re-check after a previous stop attempt, allow stopping. Context: $ARGUMENTS"]'
 
 TEMPLATE="${1:?template path required}"
 SETTINGS="${2:?settings.json path required}"
 MODE="${3:?mode required (project|user)}"
+shift 3
+ADDON_HOOKS=("$@")
 
 if ! command -v jq >/dev/null 2>&1; then
     echo "install-hooks: jq is required (the hook scripts depend on it too)." >&2
@@ -44,11 +48,38 @@ case "$MODE" in
     *) echo "install-hooks: mode must be 'project' or 'user', got '$MODE'" >&2; exit 1 ;;
 esac
 
-framework=$(jq --arg prefix "$prefix" '
-    walk(if type == "object" and has("command")
-         then .command |= sub("^\"\\$CLAUDE_PROJECT_DIR\"/\\.claude/scripts/"; $prefix)
-         else . end)
-' "$TEMPLATE")
+for src in "${ADDON_HOOKS[@]+"${ADDON_HOOKS[@]}"}"; do
+    if [[ ! -f "$src" ]]; then
+        echo "install-hooks: add-on hooks not found: $src" >&2
+        exit 1
+    fi
+done
+
+# The template comes first and keeps its non-hook keys; each add-on's hook entries
+# are appended per event, so the add-on order decides the order within an event.
+framework=$(jq -s --arg prefix "$prefix" '
+    def swap:
+        walk(if type == "object" and has("command")
+             then .command |= (sub("^\"\\$CLAUDE_PROJECT_DIR\"/\\.claude/scripts/"; $prefix)
+                               | sub("^\"\\$\\{CLAUDE_PLUGIN_ROOT\\}\"/scripts/"; $prefix))
+             else . end);
+    map(swap) as $all
+    | reduce $all[1:][] as $addon ($all[0];
+        reduce (($addon.hooks // {}) | to_entries[]) as $e (.;
+            .hooks[$e.key] = ((.hooks[$e.key] // []) + $e.value)))
+' "$TEMPLATE" "${ADDON_HOOKS[@]+"${ADDON_HOOKS[@]}"}")
+
+# Hooks of add-ons being removed (--prune): their scripts are retired like the
+# framework's own, so the entries pointing at them are dropped, not re-added.
+DROPPED=()
+for src in ${SDD_KIT_DROPPED_HOOKS:-}; do
+    [[ -f "$src" ]] && DROPPED+=("$src")
+done
+if (( ${#DROPPED[@]} > 0 )); then
+    RETIRED_SCRIPTS=$(jq -s --argjson base "$RETIRED_SCRIPTS" '
+        $base + [ .[].hooks[]?[].hooks[]? | select(.type == "command") | .command
+                  | capture("scripts/(?<n>[A-Za-z0-9_.-]+\\.sh)").n ] | unique' "${DROPPED[@]}")
+fi
 
 mkdir -p "$(dirname "$SETTINGS")"
 

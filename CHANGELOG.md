@@ -5,6 +5,34 @@ All notable changes to SDD Kit (released as the Claude Laravel + Next.js Develop
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-10-22
+
+SDD Kit 3.0 makes the core stack-neutral. Laravel, Next.js and the dev-environment tooling move into add-on plugins that the installer and the preset bring back by default. See [Migrating from 2.x](#migrating-from-2x).
+
+### Changed
+
+- **Stack components moved into add-ons.** The Laravel agent, skills, rules, hooks and the contract-sync template now live in `sdd-kit-laravel`; the Next.js agent, skills (including TypeScript and Tailwind), rules and hooks in `sdd-kit-nextjs`; docker and ddev in the new `sdd-kit-devenv` add-on. The laravel-boost, ddev and vercel optional MCP entries and the php-lsp and typescript-lsp third-party entries moved with them. Skills keep their names, so `/laravel-12` and `/migrate-db` still resolve in file-copy installs.
+- **Lint and test-first hooks** are now add-on scripts (`laravel-lint.sh`, `laravel-test-first.sh` and the Next.js pair) with the same patterns, matchers and messages. The git and CI hook scripts run per-stack fragments from `hooks/<stage>.d/`.
+- **Stack manifests.** Stack data gains gate kinds, `unless` globs, markers, scaffold and CI fields. Teams can declare their own stack in `.claude/stacks/<name>.json`; unreviewed manifests do not run until `/stack-trust` approves them. See `docs/stack-manifest.md`.
+- **Gate commands come from an allowlist.** Workflows run only the catalog gates of a kit stack, the gates of an approved overlay manifest, or, for an unrecognized stack, a gate template of the core `other` manifest proved by an evidence file and a script name. Detection, scaffold and contract-sync output only select among these. A repo whose stack comes from a rejected manifest reports its gates as not run. `/stack-trust` adds a fourth Read rule, `Read(~/.claude/plugins/cache/**)`, for installed plugins' manifests.
+- Every manifest and the marketplace are at 3.0.0.
+
+### Added
+
+- **Preset `sdd-kit-laravel-nextjs`**: one plugin that depends on the core and the Laravel, Next.js and devenv add-ons.
+- `install.sh --stack=LIST` and `--prune`, and install prompts for stacks and add-ons.
+- `/new-stack` scaffolds a stack add-on or a project overlay; `/stack-trust` approves overlay manifests.
+- A SessionStart hint (`scripts/stack-hint.sh`) that suggests the matching stack add-on once per project.
+- `tools/spec-lint.mjs`, run by `/write-spec` and `/sdd` before approval, and a core neutrality check in `verify.sh`.
+
+### Migrating from 2.x
+
+**Plugin mode.** Install the preset to keep the 2.x behaviour: `/plugin install sdd-kit-laravel-nextjs@sdd-kit`. It installs the core plus the Laravel, Next.js and devenv add-ons. Or install only the add-ons you use (`sdd-kit-laravel`, `sdd-kit-nextjs`, `sdd-kit-devenv`). Skill and agent namespaces follow the plugin that ships them: `/sdd-kit-laravel:laravel-12` replaces `/sdd-kit:laravel-12`, and the specialist agents become `sdd-kit-laravel:laravel-backend-dev` and `sdd-kit-nextjs:nextjs-frontend-dev`. Plugin dependencies resolve in the Claude Code CLI; claude.ai and Cowork may not install dependencies automatically, so install each add-on by hand there. When a project matches a stack that has no add-on enabled, a SessionStart hint prints the install command once.
+
+**File-copy mode.** Re-run `install.sh` from the new release; to name the stacks explicitly, run `install.sh --stack=laravel,nextjs`. With no `--stack`, it still installs the Laravel and Next.js add-ons; a fresh install adds devenv even when `--with` names other add-ons, so `--with=ops` installs laravel, nextjs, devenv and ops. The installer moves the stack agents, skills, rules and hooks to their add-on paths, retires the old paths, and backs up every file it overwrites or removes to `.claude/.framework-backups/<timestamp>/`. User-modified files are never deleted. A same-name agent guard drops the staged copy of an agent when a user agent with that name already exists and prints the fix. Old `lint-check.sh` and `test-first-check.sh` hook entries are removed from `settings.json`, so a stale copy cannot fire next to the add-on hooks; `/framework-doctor` reports leftovers that shadow a plugin add-on. On an upgrade, flags and prompt answers only add add-ons; `--prune` makes the installed set exactly the selection (stacks exactly `--stack`, non-stack add-ons exactly `--with`, or the installed ones when `--with` is omitted).
+
+**Not run.** Plugin evals were not run for 3.0.0.
+
 ## [2.1.1] - 2026-10-21
 
 ### Changed

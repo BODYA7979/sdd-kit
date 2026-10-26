@@ -71,55 +71,16 @@ POST   /api/v1/users/{id}/deactivate
 Define typed contracts so both API consumers and implementers have a clear interface.
 
 #### Request DTOs
-```php
-class CreateUserDTO extends Data
-{
-    public function __construct(
-        #[Required, Email]
-        public readonly string $email,
-
-        #[Required, Min(8)]
-        public readonly string $password,
-
-        #[StringType, Max(100)]
-        public readonly ?string $name = null,
-    ) {}
-}
-```
+> Framework implementation: see the stack add-on's skill references.
 
 #### Response Resources
-```php
-class UserResource extends JsonResource
-{
-    public function toArray($request): array
-    {
-        return [
-            'id' => $this->id,
-            'email' => $this->email,
-            'name' => $this->name,
-            'created_at' => $this->created_at->toISOString(),
-        ];
-    }
-}
-```
+> Framework implementation: see the stack add-on's skill references.
 
 ### Step 4: Status Codes and Response Shapes
 Pick the status code and the success, error, and paginated shapes for each endpoint from the `api-design` skill. If the project already has a contract (`docs/api/api-contracts.md`, an existing `JsonResponseTrait` or resource wrapper), match it exactly; consistency with the existing API beats the default.
 
 ### Step 5: Authentication & Authorization
-```php
-// Routes with auth middleware
-Route::middleware(['auth:api'])->group(function () {
-    Route::apiResource('users', UserController::class);
-});
-
-// Policy authorization in controller
-public function show(User $user): JsonResponse
-{
-    $this->authorize('view', $user);
-    return $this->resource(new UserResource($user));
-}
-```
+> Framework implementation: see the stack add-on's skill references.
 
 ## Output: API Design Document
 

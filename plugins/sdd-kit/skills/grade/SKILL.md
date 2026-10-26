@@ -17,17 +17,17 @@ Run rubric-based outcomes grading against a target artifact. Loops the grader ag
 ## Usage
 
 ```bash
-# Grade a Laravel API endpoint implementation
-/grade --domain=api --target=app/Http/Controllers/Api/OrderController.php
+# Grade an API endpoint implementation
+/grade --domain=api --target=src/controllers/order-controller
 
-# Grade a Next.js component
-/grade --domain=ui --target=src/components/checkout/CheckoutForm.tsx
+# Grade a UI component
+/grade --domain=ui --target=src/components/checkout/checkout-form
 
 # Grade a migration
-/grade --domain=migration --target=database/migrations/2026_05_18_*_create_orders_table.php
+/grade --domain=migration --target=database/migrations/2026_05_18_*_create_orders_table
 
 # Grade a test suite
-/grade --domain=test --target=tests/Feature/OrderApiTest.php
+/grade --domain=test --target=tests/order-api-test
 
 # Adjust threshold (default 80%)
 /grade --domain=api --target=... --threshold=90
@@ -100,7 +100,7 @@ Write the final grade report to `.ai/reviews/GRADE-<domain>-<target-slug>-<times
 
 - The target file(s) must exist.
 - The rubric file must exist under `<reviews>` (Step 1).
-- Tooling referenced in the rubric (PHPStan, Pest, ESLint, etc.) should be present; missing tools degrade affected items to `n/a`, not failure.
+- Tooling referenced in the rubric (static analyzer, test runner, linter, etc.) should be present; missing tools degrade affected items to `n/a`, not failure.
 
 ---
 

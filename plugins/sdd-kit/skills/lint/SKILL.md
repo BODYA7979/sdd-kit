@@ -1,234 +1,54 @@
 ---
 name: lint
-description: Run the code quality suite — Laravel Pint, PHPStan, and Rector for PHP; ESLint, TypeScript type-check, and Prettier for JS/TS — in check or auto-fix mode, scoped to PHP or JS if needed. Use when you want to validate style and static analysis before committing or opening a PR, or to auto-fix formatting issues.
-argument-hint: "--fix | --check | --php | --js"
-allowed-tools: Bash, Read, Grep
+description: Run the code quality suite - the format, lint and type-check gates of the detected stack (taken from the stack manifest) - in check or auto-fix mode, scoped to one repo or language if needed. Use when you want to validate style and static analysis before committing or opening a PR, or to auto-fix formatting issues.
+argument-hint: "--fix | --check | --backend | --frontend"
+allowed-tools: Bash, Read, Grep, Glob
 metadata:
-  version: 1.1
+  version: 2.0
 ---
 
 # /lint
 
-Run comprehensive code quality checks including formatting, static analysis, and type checking.
+Run the format, lint and type-check gates of the detected stack. Gates come from the stack manifest, not from this file.
 
 ## Usage
 
 ```bash
-# Run all quality checks
-/lint
-
-# Check only (no fixes)
-/lint --check
-
-# Auto-fix issues
-/lint --fix
-
-# PHP only
-/lint --php
-
-# JavaScript only
-/lint --js
+/lint                # all format, lint and types gates, check mode
+/lint --check        # check only (no fixes)
+/lint --fix          # run the auto-fix form of formatter-class gates, then re-check
+/lint --backend      # backend repo only
+/lint --frontend     # frontend repo only
 ```
 
-## Quality Checks
+## How it works
 
-### PHP Quality
+1. **Find the repos and their stacks.** Single repo: run from its root. Polyrepo: backend and frontend from `repos: { backend, frontend }` paths, sibling folders, or a parent workspace. Label results by repo.
+2. **Resolve the stack data** with the recipe in the `verification-gates` skill: project and user `.claude/stacks`, then the generated `stacks.json` for first-party keys, then plugin add-on manifests, else `other`. With no manifest, say `stack manifest not found`, suggest `/new-stack`, and run only the lint and format tooling the repo visibly has; when a manifest was rejected or untrusted, or the trust check is unavailable, run nothing and report `not run (no allowlisted gate)` instead (verification-gates step 4).
+3. **Pick the gates.** Run kinds `format`, `lint` and `types`. Gates of any other kind (`test`, `e2e`, `build`, `other`, or no kind) are not run here; they run through `/run-tests`, `verification-gates` and the workflow Gates phases.
+4. **Evaluate `unless`.** For each gate with `unless` globs, Glob the repo; a match is reported `skipped — <glob> present` and the gate is not run.
+5. **Check trust.** For gates from a project or user manifest or a third-party plugin manifest, run `node ${CLAUDE_SKILL_DIR}/../stack-trust/scripts/trust-store.mjs check <manifest file>`. If the manifest is not trusted, print `not run (untrusted manifest). Fix: run /stack-trust.` for each gate and do not execute it. First-party entries are always trusted.
+6. **Run the gates** in each repo's directory, with `<pm>` and `<pmx>` from the lockfile rule in `verification-gates`. With `--fix`, use the gate's auto-fix form for formatter-class gates only (the stack add-on's `references/quality-tools.md` names it), never for type errors or lint rules that change behavior.
+7. **Report** per repo and gate. A tool that cannot run (not installed, broken environment) is `NOT RUN` with the reason, never `PASS`.
 
-#### Laravel Pint (Code Style)
-```bash
-# Check style
-./vendor/bin/pint --test
-
-# Fix style issues
-./vendor/bin/pint
-
-# Check specific path
-./vendor/bin/pint app/Services/
-
-# Show diff
-./vendor/bin/pint --test -v
-```
-
-#### PHPStan (Static Analysis)
-```bash
-# Run analysis
-./vendor/bin/phpstan analyse
-
-# With specific level
-./vendor/bin/phpstan analyse --level=8
-
-# Generate baseline
-./vendor/bin/phpstan analyse --generate-baseline
-
-# Analyze specific paths
-./vendor/bin/phpstan analyse app/Services/
-```
-
-#### Rector (Automated Refactoring)
-```bash
-# Check for improvements
-./vendor/bin/rector process --dry-run
-
-# Apply improvements
-./vendor/bin/rector process
-
-# Specific paths
-./vendor/bin/rector process app/Services/
-```
-
-### JavaScript/TypeScript Quality
-
-#### ESLint
-```bash
-# Check
-npx eslint .
-
-# Fix
-npx eslint . --fix
-
-# Specific extensions
-npx eslint . --ext .ts,.tsx
-```
-
-#### TypeScript
-```bash
-# Type checking
-npx tsc --noEmit
-
-# With project config
-npx tsc --project tsconfig.json --noEmit
-```
-
-#### Prettier
-```bash
-# Check formatting
-npx prettier --check .
-
-# Fix formatting
-npx prettier --write .
-```
-
-## Complete Validation Suite
-
-## Full Check
-```bash
-# PHP checks
-echo "🔍 Running PHP quality checks..."
-./vendor/bin/pint --test
-./vendor/bin/phpstan analyse
-
-# JavaScript checks
-echo "🔍 Running JavaScript quality checks..."
-npx eslint .
-npx tsc --noEmit
-npx prettier --check .
-
-# Tests
-echo "🧪 Running tests..."
-php artisan test
-```
-
-### Full Fix
-```bash
-# Fix PHP issues
-echo "🔧 Fixing PHP issues..."
-./vendor/bin/pint
-./vendor/bin/rector process
-
-# Fix JavaScript issues
-echo "🔧 Fixing JavaScript issues..."
-npx eslint . --fix
-npx prettier --write .
-```
-
-## CI/CD Integration
-
-### GitHub Actions Example
-```yaml
-- name: PHP Quality
-  run: |
-    ./vendor/bin/pint --test
-    ./vendor/bin/phpstan analyse
-
-- name: JavaScript Quality
-  run: |
-    npm run lint
-    npm run type-check
-
-- name: Tests
-  run: php artisan test
-```
-
-## Common Issues & Fixes
-
-### PHP Issues
-```
-Issue: Undefined variable
-Fix: Add null check or type declaration
-
-Issue: Method undefined
-Fix: Update return type or add @method annotation
-
-Issue: Type mismatch
-Fix: Cast or validate input types
-```
-
-### JavaScript Issues
-```
-Issue: any type usage
-Fix: Define proper TypeScript interface
-
-Issue: Unused import
-Fix: Remove or use the import
-
-Issue: Missing key prop
-Fix: Add unique key to list items
-```
+Tool options and examples per stack are in the stack add-on's conventions skill, under `references/quality-tools.md`.
 
 ## Output Format
 
 ```
-🔍 Code Quality Report
+Code Quality Report
 
-═══════════════════════════════════════════════════════════
+api (<stack>)
+  [PASS] Format           0 violations
+  [PASS] Types            no errors
+web (<stack>)
+  [WARN] Lint             3 warnings, 0 errors
+  [SKIP] Types            skipped — <glob> present
+  [----] Custom gate      not run (untrusted manifest). Fix: run /stack-trust.
 
-📋 PHP Quality
-
-Laravel Pint:
-  ✅ 245 files checked
-  ✅ 0 style violations
-
-PHPStan (Level 8):
-  ✅ No errors found
-  📊 Analyzed 312 files
-
-Rector:
-  ✅ No improvements needed
-
-═══════════════════════════════════════════════════════════
-
-📋 JavaScript Quality
-
-ESLint:
-  ✅ 89 files checked
-  ⚠️ 3 warnings (no errors)
-
-TypeScript:
-  ✅ No type errors
-
-Prettier:
-  ✅ All files formatted
-
-═══════════════════════════════════════════════════════════
-
-📊 Summary:
-  PHP: ✅ All checks passed
-  JS: ⚠️ 3 warnings
-  Status: ✅ Ready to commit
-
-💡 Recommendations:
-  - Review ESLint warnings in components/
+Summary: api PASS, web 3 warnings
+Status: ready to commit
+Recommendations: review the lint warnings in components/
 ```
 
 **Source Verification**: Follow the `source-verification` skill.
-

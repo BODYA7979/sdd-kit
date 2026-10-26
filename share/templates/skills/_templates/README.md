@@ -17,7 +17,7 @@ This directory contains templates for creating new skills following the [officia
 └── assets/                     # Optional: Output files (NOT loaded into context)
     └── templates/
         ├── component.tsx
-        └── service.php
+        └── service.<ext>
 ```
 
 ## Official Frontmatter Fields
@@ -87,19 +87,19 @@ cp .claude/templates/skills/_templates/SKILL.template.md .claude/skills/{skill-n
 ### Description Writing
 ```yaml
 # Good (specific trigger + action)
-description: Laravel 12 API patterns. Use for services, models, controllers.
+description: Billing API patterns. Use for services, models, controllers.
 
 # Bad (too long, vague)
-description: This skill provides comprehensive Laravel 12.x patterns including
-service-repository architecture, Eloquent best practices, invokable controllers,
-and modern PHP patterns for building Laravel API backends.
+description: This skill provides comprehensive patterns including
+service-repository architecture, ORM best practices, single-action controllers,
+and modern language patterns for building API backends.
 ```
 
 ### Token Efficiency
 > "The context window is a public good. Only add information Claude doesn't already possess."
 
-- Don't explain basic PHP/JavaScript syntax
-- Don't repeat Laravel/Next.js documentation
+- Don't explain basic language syntax
+- Don't repeat framework documentation
 - Focus on YOUR team's specific patterns
 - Keep SKILL.md concise, use references for depth
 

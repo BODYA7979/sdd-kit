@@ -58,8 +58,8 @@ The rest of the lifecycle, in order. Each row points at a component that already
 | Spec | Work needs planning | `/write-spec`; `--type=refactor` for behavior-preserving changes (must-not-change first, characterization tests before any edit) |
 | Design | An API, schema, or architecture question before building | `/design-api`, `/design-schema`, the `api-architect` agent; a technology fork goes to the decision route (`/sdd "X or Y?"` → ADR) |
 | Build | An approved spec, scaffolding, a database change | `/execute-task --spec=<ref>`, `/generate`, `/migrate-db` |
-| Verify | Tests, lint, red CI, split repos drifting apart | `/run-tests` (`--frontend` for Vitest, `--e2e` for Playwright), `/lint`, `/fix-ci`, contract-sync for a backend + frontend in separate repos (`.claude/templates/contract-sync/` in a file-copy install, `src/templates/contract-sync/` in the plugin) |
-| Performance | A slow endpoint or page | Measure a baseline and set a target first; then the `performance-tester` agent (Laravel) or `/nextjs-performance-profiler` (frontend, Core Web Vitals and bundles) |
+| Verify | Tests, lint, red CI, split repos drifting apart | `/run-tests` (`--frontend` for the frontend suite, `--e2e` for browser journeys), `/lint`, `/fix-ci`, contract-sync for a backend + frontend in separate repos (the backend add-on's `contractSync.template`: `.claude/templates/<addon>/contract-sync/` in a file-copy install, `templates/contract-sync/` in the add-on root in plugin mode) |
+| Performance | A slow endpoint or page | Measure a baseline and set a target first; then the `performance-tester` agent (backend) or the stack add-on's profiler skill (frontend, Core Web Vitals and bundles) |
 | Cleanup | Dead code, unused classes or exports | the `code-quality` agent in cleanup mode (reports with evidence), then `/sdd` (trivial) or `/write-spec --type=refactor` for the removal |
 | Security and dependencies | Before a release, after adding packages or auth code | `/security-scan`, `/upgrade-deps` (`--audit-only` to report) |
 | Review and PR | Code is done | `/deep-review`, then `/open-pr --spec=<ref>` |

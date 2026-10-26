@@ -7,6 +7,9 @@
 #   $1 - Environment (staging, production)
 #   $2 - URL to verify (optional)
 #
+# Runs the stack-neutral health check, then every executable post-deploy.d/*.sh
+# fragment installed by a stack add-on, then records the deployment.
+#
 # Exit codes:
 #   0 - Deployment verified successfully
 #   1 - Deployment verification failed
@@ -56,108 +59,38 @@ if [ -n "$VERIFY_URL" ]; then
 fi
 
 # ============================================================================
-# Laravel-Specific Tasks
+# Stack checks (run-parts)
 # ============================================================================
+#
+# Every executable post-deploy.d/*.sh next to this script runs in LC_ALL=C order,
+# in the caller's working directory, with this script's arguments. All fragments
+# run even after a failure; the failed ones are named at the end. Add-ons install
+# their fragments as NN-<addon>.sh (see src/hooks/README.md).
 
-if [ -f "artisan" ]; then
+FRAGMENT_DIR="$(cd "$(dirname "$0")" && pwd)/post-deploy.d"
+FRAGMENTS_RUN=0
+FAILED_FRAGMENTS=()
+
+if [ -d "$FRAGMENT_DIR" ]; then
+    while IFS= read -r FRAGMENT; do
+        [ -f "$FRAGMENT" ] || continue
+        if [ ! -x "$FRAGMENT" ]; then
+            echo "skipped $(basename "$FRAGMENT") (not executable)"
+            continue
+        fi
+        FRAGMENTS_RUN=$((FRAGMENTS_RUN + 1))
+        "$FRAGMENT" "$@" || FAILED_FRAGMENTS+=("$(basename "$FRAGMENT")")
+    done < <(find "$FRAGMENT_DIR" -maxdepth 1 -name '*.sh' | LC_ALL=C sort)
+fi
+
+if [ "$FRAGMENTS_RUN" -eq 0 ]; then
+    echo "no stack checks installed"
+fi
+
+if [ ${#FAILED_FRAGMENTS[@]} -gt 0 ]; then
     echo ""
-    echo "🔧 Running Laravel post-deployment tasks..."
-
-    # Clear and cache configurations
-    echo "  → Clearing caches..."
-    php artisan config:clear --quiet 2>/dev/null || true
-    php artisan route:clear --quiet 2>/dev/null || true
-    php artisan view:clear --quiet 2>/dev/null || true
-
-    if [ "$ENVIRONMENT" = "production" ]; then
-        echo "  → Caching configurations..."
-        php artisan config:cache --quiet 2>/dev/null || true
-        php artisan route:cache --quiet 2>/dev/null || true
-        php artisan view:cache --quiet 2>/dev/null || true
-        echo "  ✅ Configurations cached"
-    fi
-
-    # Run migrations
-    echo "  → Checking migrations..."
-    PENDING=$(php artisan migrate:status 2>/dev/null | grep -c "No" || echo "0")
-    if [ "$PENDING" != "0" ]; then
-        echo "  ⚠️  Running $PENDING pending migrations..."
-        php artisan migrate --force --quiet 2>/dev/null || {
-            echo "  ❌ Migration failed"
-            ERRORS=$((ERRORS + 1))
-        }
-    fi
-    echo "  ✅ Migrations complete"
-
-    # Restart queue workers (if using Horizon)
-    if [ -f "vendor/laravel/horizon" ] || grep -q "laravel/horizon" composer.json 2>/dev/null; then
-        echo "  → Restarting Horizon..."
-        php artisan horizon:terminate --quiet 2>/dev/null || true
-        echo "  ✅ Horizon restart signal sent"
-    fi
-fi
-
-# ============================================================================
-# Next.js-Specific Tasks
-# ============================================================================
-
-if [ -d ".next" ]; then
-    echo ""
-    echo "🔧 Verifying Next.js deployment..."
-
-    # Check build ID
-    if [ -f ".next/BUILD_ID" ]; then
-        BUILD_ID=$(cat .next/BUILD_ID)
-        echo "  📌 Build ID: $BUILD_ID"
-    fi
-
-    # Check for critical files
-    if [ -f ".next/server/pages-manifest.json" ]; then
-        echo "  ✅ Pages manifest present"
-    else
-        echo "  ⚠️  Pages manifest missing"
-        WARNINGS=$((WARNINGS + 1))
-    fi
-fi
-
-# ============================================================================
-# Database Verification
-# ============================================================================
-
-echo ""
-echo "🗄️  Verifying database connection..."
-
-if [ -f "artisan" ]; then
-    php artisan db:monitor --quiet 2>/dev/null && {
-        echo "  ✅ Database connection OK"
-    } || {
-        echo "  ❌ Database connection failed"
-        ERRORS=$((ERRORS + 1))
-    }
-fi
-
-# ============================================================================
-# Cache Verification
-# ============================================================================
-
-echo ""
-echo "💾 Verifying cache connection..."
-
-if [ -f "artisan" ]; then
-    php -r "
-        require 'vendor/autoload.php';
-        \$app = require_once 'bootstrap/app.php';
-        \$kernel = \$app->make(Illuminate\Contracts\Console\Kernel::class);
-        \$kernel->bootstrap();
-        try {
-            Cache::put('deploy_test', 'ok', 10);
-            if (Cache::get('deploy_test') === 'ok') {
-                echo '  ✅ Cache connection OK' . PHP_EOL;
-            }
-        } catch (Exception \$e) {
-            echo '  ⚠️  Cache connection issue: ' . \$e->getMessage() . PHP_EOL;
-        }
-    " 2>/dev/null || echo "  ⚠️  Could not verify cache"
+    echo "failed: ${FAILED_FRAGMENTS[*]}"
+    ERRORS=$((ERRORS + ${#FAILED_FRAGMENTS[@]}))
 fi
 
 # ============================================================================

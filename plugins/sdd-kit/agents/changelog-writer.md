@@ -121,7 +121,7 @@ deprecate: → Deprecated
 - Updated code
 - Fixed bug
 - Made changes to user module
-- Refactored UserService.php
+- Refactored UserService
 
 # Good Examples
 - Add ability to export reports as PDF
@@ -141,19 +141,19 @@ deprecate: → Deprecated
 If you're upgrading from v1.x to v2.0:
 
 1. **API Changes**
-   ```php
+   ```
    // Before
-   $data = $user->getUserData();
+   data = user.getUserData()
 
    // After
-   $data = $user->getUser();
+   data = user.getUser()
    ```
 
 2. **Configuration Changes**
-   - Rename `config/old-setting.php` to `config/new-setting.php`
+   - Rename `config/old-setting` to `config/new-setting`
 
 3. **Database Migrations**
-   - Run `php artisan migrate` to apply schema changes
+   - Run the project's migration command to apply schema changes
 ```
 
 ## Phase 5: Full Changelog Maintenance

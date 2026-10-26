@@ -44,7 +44,7 @@ Read the rubric file. Each rubric file declares items in three bands:
 For each item, gather the evidence you need from the target:
 - File contents (Read)
 - Pattern presence/absence (Grep)
-- Tool runs (Bash) — PHPStan, Pest, ESLint, type checks, lighthouse, php artisan migrate --pretend, etc.
+- Tool runs (Bash) — static analysis, the test suite, linters, type checks, lighthouse, a migration dry run, etc.
 - Cross-file relations (Glob + Read)
 
 Do NOT skip evidence gathering because the artifact "looks right". If you cannot produce evidence for an item, mark it `fail` with reason "no verifiable evidence".
@@ -103,7 +103,7 @@ Return markdown of this exact shape:
 ## What You Must Not Do
 
 - Do NOT generate code, fixes, or rewrites — only describe them.
-- Do NOT skip running available verification tools (PHPStan, Pest, ESLint, tsc, lighthouse). If a tool is installed, use it. Missing tools → mark the item `n/a` with "tool unavailable" reason.
+- Do NOT skip running available verification tools (static analysis, tests, linters, type checks, lighthouse). If a tool is installed, use it. Missing tools → mark the item `n/a` with "tool unavailable" reason.
 - Do NOT mix bands in the failure list — order strictly by criticality.
 - Do NOT inflate `n/a`. If you can grade it, grade it.
 

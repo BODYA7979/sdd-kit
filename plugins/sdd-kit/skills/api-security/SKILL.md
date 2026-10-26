@@ -7,15 +7,13 @@ allowed-tools: Read, Grep, Glob
 
 # API Security Best Practices
 
-Knowledge module for securing Laravel API applications.
+Knowledge module for securing web APIs in any stack. Framework-specific code (middleware, policies, CORS configuration, validation classes) lives in the stack add-on's skill references; this module holds the rules.
 
 ## When to Load References
 
 | Task | Load |
 |------|------|
-| Implementing auth middleware, policies, CSRF | `references/authentication-patterns.md` |
-| Configuring CORS, rate limiting, validation | `references/request-protection.md` |
-| Preventing SQL injection, XSS, adding security headers | `references/attack-prevention.md` |
+| Framework-specific auth middleware, CORS, rate limiting, validation, injection and XSS code | the stack add-on's skill references, when a stack add-on is installed |
 
 ---
 
@@ -23,53 +21,51 @@ Knowledge module for securing Laravel API applications.
 
 ### Authentication & Authorization
 
-- Protect routes with `auth:api` middleware
-- Use scope-based middleware for granular access: `scope:orders`
-- Implement Policy classes for resource-level authorization
-- For stateless APIs, CSRF protection is handled by tokens
-- For SPAs with cookies, use Sanctum CSRF cookie endpoint
+- Protect every route by default; make public routes an explicit exception
+- Use scope-based access for granular permissions
+- Authorize at the resource level (policies or equivalent), not only at the route level
+- For stateless token APIs, CSRF protection comes from the token; for cookie-based SPAs, use the framework's CSRF mechanism
 
 ### CORS Configuration
 
-- Configure `config/cors.php` with explicit allowed origins
-- Use environment variables for origin configuration: `explode(',', env('CORS_ALLOWED_ORIGINS'))`
-- Set `supports_credentials: true` for cookie-based auth
+- Configure explicit allowed origins; never combine a wildcard origin with credentials
+- Read origins from environment configuration
+- Allow credentials only for cookie-based auth
 - Expose rate limit headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`
 
 ### Rate Limiting
 
-- Default API limit: `Limit::perMinute(60)` keyed by user ID or IP
-- Auth endpoints need stricter limits: `perMinute(5)` + `perDay(100)` by IP
-- Apply via route middleware: `throttle:api`, `throttle:auth`
+- Default API limit per minute, keyed by user ID or IP
+- Auth endpoints need stricter limits (a few per minute plus a daily cap per IP)
 - Use per-endpoint limits for expensive operations (exports, reports)
 
 ### Input Validation
 
-- Always use Form Request classes with typed rules
-- Password rules: `Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised()`
-- Validate email with `email:rfc,dns`
-- Sanitize HTML with `Purify::clean()`, strip tags for plain text fields
+- Validate every input with typed rules at the boundary
+- Enforce a password policy: minimum length, mixed character classes, breached-password check
+- Validate email format and domain
+- Sanitize HTML, strip tags for plain text fields
 - Cast inputs to expected types explicitly
 
 ---
 
 ## SQL Injection Prevention
 
-- Always use Eloquent or Query Builder (parameterized by default)
+- Always use the ORM or query builder (parameterized by default)
 - Never interpolate user input into raw SQL strings
-- For raw queries, use bindings: `DB::select('...WHERE email = ?', [$email])`
-- Escape LIKE wildcards: `str_replace(['%', '_'], ['\%', '\_'], $search)`
+- For raw queries, use bound parameters
+- Escape LIKE wildcards in user-supplied search terms
 
 ## XSS Protection
 
-- Blade `{{ }}` auto-escapes output; only use `{!! !!}` for trusted content
-- JSON responses are auto-escaped by Laravel
-- Add Content-Security-Policy header via middleware
-- Set `default-src 'self'` as CSP baseline
+- Use the template engine's auto-escaping; opt out only for trusted content
+- JSON responses must be encoded by the serializer, never concatenated
+- Add a Content-Security-Policy header via middleware
+- Set `default-src 'self'` as the CSP baseline
 
 ## Security Headers
 
-Required middleware headers for all API responses:
+Required headers for all API responses:
 
 | Header | Value |
 |--------|-------|
@@ -82,27 +78,27 @@ Required middleware headers for all API responses:
 
 ## Sensitive Data Protection
 
-- Set `$hidden` on models: `password`, `remember_token`, `api_secret`
-- API Resources must explicitly whitelist returned fields
+- Hide secrets and credentials on serialized models (password hashes, tokens, API secrets)
+- Response serializers must explicitly whitelist returned fields
 - Mask sensitive data in logs (card numbers, passwords, tokens)
-- Never commit secrets to git; use `.env` locally, env vars in production
+- Never commit secrets to git; use a local env file in development and environment variables in production
 
 ---
 
 ## OWASP Top 10 Checklist
 
-| Vulnerability | Laravel Protection |
-|--------------|-------------------|
-| **Injection** | Eloquent ORM, parameterized queries |
-| **Broken Auth** | Passport, rate limiting on auth |
+| Vulnerability | Protection |
+|--------------|------------|
+| **Injection** | ORM or query builder, parameterized queries |
+| **Broken Auth** | Token or session auth, rate limiting on auth endpoints |
 | **Sensitive Data** | HTTPS, encrypted at rest, hidden fields |
 | **XXE** | Disable external entities in XML parsing |
 | **Broken Access Control** | Policies, gates, middleware |
 | **Security Misconfig** | Debug off in production, security headers |
-| **XSS** | Blade auto-escaping, CSP headers |
-| **Insecure Deserialization** | Avoid unserialize() on user input |
-| **Vulnerable Components** | Regular `composer audit` |
-| **Insufficient Logging** | Laravel logging, failed auth tracking |
+| **XSS** | Template auto-escaping, CSP headers |
+| **Insecure Deserialization** | Never deserialize untrusted input with native object serializers |
+| **Vulnerable Components** | Regular dependency audit (the manifest `audit` commands) |
+| **Insufficient Logging** | Structured logging, failed auth tracking |
 
 ---
 
@@ -110,8 +106,8 @@ Required middleware headers for all API responses:
 
 ### Automated Checks
 ```bash
-composer audit                    # Dependency vulnerabilities
-./vendor/bin/phpstan analyse      # Static analysis security rules
+<audit command>                   # Dependency vulnerabilities (the stack manifest `audit` field)
+<static analysis command>         # Static analysis security rules (the stack's types or lint gate)
 git secrets --scan                # Exposed credentials
 ```
 

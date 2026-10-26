@@ -238,7 +238,7 @@
       "marketplaceSource": "jetbrains/phpstorm-claude-marketplace",
       "version": "1.0.0",
       "ref": "16b213985078afa1095fdaf65f7b750ce4965ff6",
-      "purpose": "PHP code review and project guide via the IDE"
+      "purpose": "Code review and project guide via the IDE"
     },
     {
       "name": "caveman",
@@ -248,20 +248,6 @@
       "ref": "84cc3c14fa1e10182adaced856e003406ccd250d",
       "license": "MIT",
       "purpose": "Compressed output style; ships hooks and a status line"
-    },
-    {
-      "name": "php-lsp",
-      "marketplace": "claude-plugins-official",
-      "version": null,
-      "ref": null,
-      "purpose": "Intelephense language server \u2014 Claude sees PHP type errors and missing imports automatically after each edit, no manual compile."
-    },
-    {
-      "name": "typescript-lsp",
-      "marketplace": "claude-plugins-official",
-      "version": null,
-      "ref": null,
-      "purpose": "typescript-language-server \u2014 automatic post-edit TS diagnostics and precise navigation for the Next.js side."
     },
     {
       "name": "security-guidance",

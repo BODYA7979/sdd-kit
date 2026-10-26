@@ -1,0 +1,11 @@
+{
+  "plugins": [
+    {
+      "name": "php-lsp",
+      "marketplace": "claude-plugins-official",
+      "version": null,
+      "ref": null,
+      "purpose": "Intelephense language server — Claude sees PHP type errors and missing imports automatically after each edit, no manual compile."
+    }
+  ]
+}

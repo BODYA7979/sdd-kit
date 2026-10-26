@@ -8,7 +8,7 @@ By the end of [chapter 10](10-qa-and-docs-browse-journey.md), Alex Rivera had sh
 4. Everyone runs the same pinned kit version, and Cursor or Codex users get the same gates.
 5. A short team rhythm, then the next ticket (HIRE-11) as an exercise.
 
-This chapter links to the existing docs instead of repeating them: [multi-repo.md](../../reference/multi-repo.md), evals.md, [team-marketplace.md](../../reference/team-marketplace.md), [USAGE-EXAMPLES.md section 14](../../reference/usage-examples.md#14-recurring-checks-with-routines) and the [contract-sync README](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/share/templates/contract-sync/README.md).
+This chapter links to the existing docs instead of repeating them: [multi-repo.md](../../reference/multi-repo.md), evals.md, [team-marketplace.md](../../reference/team-marketplace.md), [USAGE-EXAMPLES.md section 14](../../reference/usage-examples.md#14-recurring-checks-with-routines) and the [contract-sync README](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/plugins/sdd-kit-laravel/templates/contract-sync/README.md).
 
 > Artifacts for this chapter: `artifacts/api/.github/workflows/export-routes.yml`, `artifacts/web/.github/workflows/contract-sync.yml` and `artifacts/kit-fork/evals/hireboard-routing/` (`case.yaml`, `prompt.md`, `graders/routes-correct.md`).
 
@@ -23,7 +23,7 @@ The kit ships the checker as a template. Copy it into `web/` **unmodified** and 
 ```bash
 cd ~/work/hireboard
 mkdir -p web/scripts
-cp ~/tools/sdd-kit/share/templates/contract-sync/contract-sync.mjs web/scripts/contract-sync.mjs
+cp ~/tools/sdd-kit/plugins/sdd-kit-laravel/templates/contract-sync/contract-sync.mjs web/scripts/contract-sync.mjs
 echo "route-list.json" >> web/.gitignore
 ```
 
@@ -126,7 +126,7 @@ Two choices are deliberate:
 - **No `--strict` yet.** The README advises starting with warnings allowed. Today there are no unused routes. HIRE-11 will add employer posting endpoints, and while its api PR is merged but its web PR is still open, those routes show up as `unused-by-frontend` warnings. That is the expected state between the two merges, and it should not block anyone. Turn on `--strict` (or `CONTRACT_SYNC_STRICT=1`) once the team trusts the check.
 - **The check reads api `main`, not the api PR.** This is what makes "api merged first" enforceable. A web PR that calls an endpoint the api has not merged yet fails with `missing-in-backend` until the api PR lands.
 
-Optional, but the agent benefits: the README's [PostToolUse hook](https://github.com/stasmarkov/sdd-kit/blob/v2.1.1/share/templates/contract-sync/README.md#as-a-claude-code-hook) runs the checker whenever Claude edits `routes/*.php` or `endpoints.ts`, so drift surfaces in the same turn. The same section describes a lighter pre-push variant (`node scripts/contract-sync.mjs || exit 1`). Hireboard adds the pre-push hook in `web/` only. In the workspace, the hook would need a fresh `route-list.json` on every edit, and the README recommends `routesFile` in that case.
+Optional, but the agent benefits: the README's [PostToolUse hook](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/plugins/sdd-kit-laravel/templates/contract-sync/README.md#as-a-claude-code-hook) runs the checker whenever Claude edits `routes/*.php` or `endpoints.ts`, so drift surfaces in the same turn. The same section describes a lighter pre-push variant (`node scripts/contract-sync.mjs || exit 1`). Hireboard adds the pre-push hook in `web/` only. In the workspace, the hook would need a fresh `route-list.json` on every edit, and the README recommends `routesFile` in that case.
 
 ---
 
@@ -260,7 +260,7 @@ Commit the same `.claude/settings.json` to **both** `api/` and `web/` (section 2
 }
 ```
 
-Each developer then runs `claude plugin install sdd-kit@hireboard-claude --scope project` once per repo. The workspace root `~/work/hireboard/` has no git, so nothing there can be committed. Each developer either keeps an untracked copy of that settings file at the root or starts cross-repo sessions from inside a repo with `--add-dir` (F3). Plugin mode namespaces skills, so `/sdd` in this walkthrough is `/sdd-kit:sdd` (F5, [INSTALLATION.md, "Namespacing"](../../reference/installation.md#namespacing)).
+Each developer then runs `claude plugin install sdd-kit@hireboard-claude --scope project` once per repo. Hireboard also needs the stack add-ons, so the catalog lists `sdd-kit-laravel` and `sdd-kit-nextjs` pinned the same way, or the preset `sdd-kit-laravel-nextjs`, which depends on them. The workspace root `~/work/hireboard/` has no git, so nothing there can be committed. Each developer either keeps an untracked copy of that settings file at the root or starts cross-repo sessions from inside a repo with `--add-dir` (F3). Plugin mode namespaces skills, so `/sdd` in this walkthrough is `/sdd-kit:sdd` (F5, [INSTALLATION.md, "Namespacing"](../../reference/installation.md#namespacing)).
 
 Upgrades follow the doc's [pinning policy](../../reference/team-marketplace.md#4-update-and-pinning-policy). Open a PR to the marketplace repo that bumps `ref` and `sha`, rebase the fork onto the new tag, and run the section 3 eval plus the built-in suite. Merge only if the medians hold.
 

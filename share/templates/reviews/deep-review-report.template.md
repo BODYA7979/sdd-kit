@@ -38,9 +38,9 @@
 
 | Tool | Status | Details |
 |------|--------|---------|
-| PHPStan Level 9 | {{PHPSTAN_STATUS}} | {{PHPSTAN_DETAILS}} |
-| Pest Tests | {{PEST_STATUS}} | Coverage: {{TEST_COVERAGE}}% |
-| Code Style (Pint) | {{PINT_STATUS}} | {{PINT_DETAILS}} |
+| Static analysis (strictest level) | {{STATIC_STATUS}} | {{STATIC_DETAILS}} |
+| Tests | {{TEST_STATUS}} | Coverage: {{TEST_COVERAGE}}% |
+| Code Style | {{STYLE_STATUS}} | {{STYLE_DETAILS}} |
 | Security Scan | {{SECURITY_STATUS}} | {{SECURITY_DETAILS}} |
 | Debug Statements | {{DEBUG_STATUS}} | {{DEBUG_DETAILS}} |
 
@@ -236,7 +236,7 @@ Patterns worth replicating elsewhere:
 | Source | {{SOURCE}} |
 | Model Used | opus |
 | Agent | adversarial-reviewer |
-| PHPStan Level | 9 |
+| Static Analysis Level | strictest configured |
 | Coverage Threshold | 80% |
 | Review Duration | {{DURATION}} |
 

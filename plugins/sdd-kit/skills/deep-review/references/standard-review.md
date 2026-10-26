@@ -127,7 +127,7 @@ Summary:
 FINDINGS
 
 [MAJOR] Missing Authorization Check
-  File: app/Http/Controllers/PaymentController.php:42
+  File: src/controllers/payment-controller:42
   Issue: No authorization policy check before processing payment
 
   Current:
@@ -136,23 +136,23 @@ FINDINGS
     }
 
   Suggested:
-    public function __invoke(Request $request) {
-        $this->authorize('create', Payment::class);
-        $dto = CreatePaymentDTO::validateAndCreate($request->all());
-        return $this->service->process($dto);
+    handle(request) {
+        authorize('create', Payment)
+        dto = CreatePaymentDTO.validate(request.body)
+        return service.process(dto)
     }
 
 [MAJOR] Potential N+1 Query
-  File: app/Services/OrderService.php:78
+  File: src/services/order-service:78
   Issue: Loading user relationship inside loop
-  Suggested: Order::with('user')->get()
+  Suggested: eager-load the user relationship before the loop
 
 [MINOR] Raw Array Instead of DTO
-  File: app/Services/PaymentService.php:23
+  File: src/services/payment-service:23
   Suggested: Create ProcessPaymentDTO and use it
 
 [SUGGESTION] Consider Caching
-  File: app/Repositories/ProductRepository.php:34
+  File: src/repositories/product-repository:34
 
 VERDICT: CHANGES_REQUIRED
 
@@ -176,10 +176,10 @@ Required before merge:
     {
       "severity": "major",
       "category": "security",
-      "file": "app/Http/Controllers/PaymentController.php",
+      "file": "src/controllers/payment-controller",
       "line": 42,
       "issue": "Missing authorization check",
-      "suggestion": "Add $this->authorize() call"
+      "suggestion": "Add an authorization call"
     }
   ],
   "blocking": true

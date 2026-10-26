@@ -11,6 +11,14 @@
         ]
       },
       {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/stack-hint.sh"
+          }
+        ]
+      },
+      {
         "matcher": "compact",
         "hooks": [
           {
@@ -42,15 +50,6 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/token-budget.sh"
           }
         ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/test-first-check.sh"
-          }
-        ]
       }
     ],
     "UserPromptSubmit": [
@@ -67,12 +66,6 @@
       {
         "matcher": "Write|Edit",
         "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/lint-check.sh",
-            "async": true,
-            "timeout": 30
-          },
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/scan-secrets.sh"

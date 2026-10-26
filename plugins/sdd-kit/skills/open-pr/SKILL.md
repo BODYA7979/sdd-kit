@@ -69,7 +69,7 @@ git -C "$REPO" log --oneline "origin/$BASE..HEAD"      # empty → no PR for thi
 git -C "$REPO" status --porcelain                      # uncommitted work → Step 2
 ```
 
-A repo with no commits ahead of base and a clean tree gets no PR; say so in the report ("No web PR: no changes"). The frontend role is the Next.js repo (`next` in `package.json`), the backend role the Laravel repo (`artisan` at the root).
+A repo with no commits ahead of base and a clean tree gets no PR; say so in the report ("No web PR: no changes"). Each repo's role (frontend, backend) comes from the stack manifest the workflows' Detect phase reports.
 
 ## Step 2 — Preconditions
 
@@ -88,7 +88,7 @@ Run every check, then show one table. **Block** stops the run with the fix; **Wa
 | Secrets | changed paths (`git diff --name-only origin/$BASE...HEAD` plus staged files) matching `.env`, `.env.*` (not `.env.example`), `*.pem`, `*.key`, `auth.json`, `credentials*` | Block — never pushed |
 | Existing PR | `gh pr list --head <branch> --state open --json number,url` | Not a failure: switch that repo to update mode (`gh pr edit <n> --body-file`) |
 
-**Gate evidence.** Accept, newest first: a report in `.ai/verification/<spec-folder>/` (from `/execute-task`), or a saved workflow report under `.ai/reports/` (`ship-*.md` from ship-feature, `fix-*.md` from fix-bug) whose *Quality gates* section shows every gate passing for this repo, **only if** the file is newer than the repo's last commit (`git log -1 --format=%cI`). A report that exists only in the conversation is not evidence: every claim comes from a file you read. Otherwise run the gate set from the `verification-gates` skill now, per repo, with the tools installed there: for Laravel Pint, PHPStan and Pest; for Next.js lint, `tsc --noEmit`, the production build (`<pmx> next build`), Vitest, and Playwright when the change touches a journey. `<pm>` / `<pmx>` follow that skill's package-manager rule. Conditional gates are skipped only with the reason logged, as that skill describes.
+**Gate evidence.** Accept, newest first: a report in `.ai/verification/<spec-folder>/` (from `/execute-task`), or a saved workflow report under `.ai/reports/` (`ship-*.md` from ship-feature, `fix-*.md` from fix-bug) whose *Quality gates* section shows every gate passing for this repo, **only if** the file is newer than the repo's last commit (`git log -1 --format=%cI`). A report that exists only in the conversation is not evidence: every claim comes from a file you read. Otherwise run the gate set from the `verification-gates` skill now, per repo, with the tools installed there: the manifest's gates for that repo (format, lint, types, test, build) and its e2e gate when the change touches a journey. `<pm>` / `<pmx>` follow that skill's package-manager rule. Conditional gates are skipped only with the reason logged, as that skill describes.
 
 A gate that cannot run (missing binary, no database for tests) is **unreachable, not a pass** — report it and Block.
 
@@ -150,7 +150,7 @@ Stop at the first failing command and report what already happened (e.g. "api PR
 ```
 Spec:        .ai/specs/spec-PROJ-123-refund-guard/ (status: done)
 Review:      deep-review APPROVED (.ai/reviews/REVIEW-spec-PROJ-123-20261019-101500.md)
-Gates:       api pass (pint, phpstan, pest 148/148) · web pass (lint, tsc, next build, vitest 62/62)
+Gates:       api pass (format, types, test 148/148) · web pass (lint, types, build, test 62/62)
 PRs:         api  https://github.com/acme/api/pull/41   feat(refunds): reject top-up refunds in the API (PROJ-123)
              web  https://github.com/acme/web/pull/88   feat(refunds): hide refund action for top-ups (PROJ-123)
 Merge order: api #41 first (additive), then web #88

@@ -92,7 +92,7 @@ stakeholders: []
 approved_by:
 approved_at:
 created: 2026-10-18
-stacks: [laravel, nextjs]
+stacks: [<stack-key>, <stack-key>]
 ```
 
 Sections, in order: **Summary · Context · Scope (in/out) · Must NOT change · Acceptance criteria · Quality attributes (optional, M/L) · Boundaries (Always / Ask first / Never) · Technical context · Decisions (optional) · Open questions · Dependencies**.
@@ -141,9 +141,21 @@ Gate reports go to `.ai/verification/<spec-folder>/`. Beyond the standard gates,
 
 | Task type | Also verify |
 |-----------|-------------|
-| Database | migration runs, rolls back and re-runs; model casts, fillable and relationships match the migration; the factory creates valid rows; `docs/schemas/{table}.md` matches |
+| Database | migration runs, rolls back and re-runs; model attributes and relationships match the migration; the factory creates valid rows; `docs/schemas/{table}.md` matches |
 | API | route registered; policy exists and is enforced; request validation defined; resource shapes the response; feature tests cover success, validation and authorization failures; `docs/api/api-contracts.md` updated |
 | Service | contract bound in a service provider; DTOs in and out with strict types; unit tests pass |
-| Frontend | page or component renders the contract's data; Server Actions re-check the session; Vitest (and Playwright for a journey) pass; `next build` succeeds |
+| Frontend | page or component renders the contract's data; mutations re-check the session; unit tests (and a browser test for a journey) pass; the production build succeeds |
 
 When all tasks are checked, `/open-pr --spec=<spec-folder>` opens the pull request.
+
+## Spec lint
+
+`node tools/spec-lint.mjs [--warn] [--verified] [--root <dir>] <spec-dir>` (installed copy: `skills/write-spec/scripts/spec-lint.mjs`) checks a spec folder with no model or network call. Each finding is `<file>:<line> <error|warning> <problem>. Fix: <fix>`; a clean folder prints `spec-lint: <dir> OK`. Exit 1 when a blocker is found, 0 otherwise, 2 on a usage error. `/write-spec` runs it before the clarity gate, `/sdd` before asking for approval (the spec stays `draft` while blockers remain), and `verify.sh` runs it with `--warn` over `.ai/specs/*/`.
+
+**Blockers**: missing or empty Acceptance criteria; an AC with no `SHALL` and no `THEN`, or using a vague term; missing Must NOT change when `type` is bug, improvement or refactor; missing or empty Out of scope; empty `stakeholders` together with empty `approved_by`; an AC, MNC or NFR id absent from the Traceability table (all ids when tasks.md or the table is missing); an unchecked Open question when `status: approved`.
+
+**Warnings**: a top-level task with no `Covers:` line; a Traceability row whose Verified by cell holds no valid item, or an item matching no form below.
+
+**Verified by grammar**: items separated by `;`, each one of `path` (one token, relative to the repo root), `path::exact test title` (no `;` or `::` in the title), `manual-test.md#step-N` (needs a `### Step N:` heading in manual-test.md), or a named check (an item starting with `verify `, or `gen-indexes --check`, `gen-stacks --check`, `gen-guide-example --check`, `gen-retired-hashes --check`). `--verified` turns a missing path, a title not found in its file by fixed-string search, or a missing step heading into a blocker, and skips named checks. `--warn` prints every finding as a warning and exits 0.
+
+**Vague terms**: the closed `VAGUE_TERMS` list exported by the script, matched case-insensitively on word boundaries, skipping backtick spans and double-quoted spans: fast, quick, quickly, robust, scalable, user-friendly, intuitive, appropriate, appropriately, as needed, as appropriate, reasonable, reasonably, properly, efficient, efficiently, seamless, seamlessly, easy, easily, simple, simply, flexible, adequate, sufficient, optimal, graceful, gracefully.

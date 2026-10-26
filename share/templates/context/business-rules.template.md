@@ -105,15 +105,7 @@
 
 ## Test Data (Development)
 
-```php
-// {{User Type 1}}
-'{{email1}}'  // {{Description}}
-'{{email2}}'  // {{Description}}
-
-// {{User Type 2}}
-'{{email3}}'  // {{Description}}
-'{{email4}}'  // {{Description}}
-```
+<!-- Code example in the project's language; the stack add-on's skill has samples. -->
 
 ---
 

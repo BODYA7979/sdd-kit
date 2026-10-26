@@ -102,8 +102,8 @@
 
 ### Phase 5 Gates
 - [ ] Tests written and passing ({N}/{N})
-- [ ] Code style (Pint) - {pass/fail}
-- [ ] Static analysis (PHPStan Level {N}) - {pass/fail}
+- [ ] Code style (formatter) - {pass/fail}
+- [ ] Static analysis (level {N}) - {pass/fail}
 - [ ] No debug statements - {pass/fail}
 - [ ] Security basics - {pass/fail}
 

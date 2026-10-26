@@ -6,7 +6,9 @@
 #   ./install.sh                               # interactive
 #   ./install.sh --project [--minimal|--full]  # install into ./.claude
 #   ./install.sh --user    [--minimal|--full]  # install into ~/.claude
+#   ./install.sh --project --stack=laravel     # choose stack add-ons (default: laravel,nextjs; none = core only)
 #   ./install.sh --project --with=ops,ios      # add optional add-ons (derived from src/plugins/*/.claude-plugin/plugin.json)
+#   ./install.sh --project --prune             # on an upgrade, remove installed add-ons that are not selected
 #   ./install.sh --project --dry-run           # show what would change, write nothing
 #   ./install.sh --help
 #
@@ -42,8 +44,8 @@ resolve_sources() {
         printf 'Error: framework sources not found next to %s.\n  Expected the workshop layout (src/agents/) or the dist layout (plugins/sdd-kit/.claude-plugin/plugin.json and share/).\n  Run install.sh from a clone of the repository or from the dist tree.\n' "$SCRIPT_DIR" >&2
         exit 1
     fi
-    ADDONS_AVAILABLE=""
-    local dir name
+    ADDONS_AVAILABLE=""; STACK_ADDONS=""; TOOL_ADDONS=""
+    local dir name addon
     for dir in "$ADDON_ROOT/${ADDON_PREFIX}"*/; do
         dir="${dir%/}"
         [[ -d "$dir" ]] || continue
@@ -51,9 +53,29 @@ resolve_sources() {
         if [[ -z "$ADDON_PREFIX" && ! -f "$dir/.claude-plugin/plugin.json" ]]; then
             continue
         fi
-        ADDONS_AVAILABLE+="${ADDONS_AVAILABLE:+ }${name#"$ADDON_PREFIX"}"
+        is_preset "$dir" && continue
+        addon="${name#"$ADDON_PREFIX"}"
+        ADDONS_AVAILABLE+="${ADDONS_AVAILABLE:+ }$addon"
+        # A stack add-on ships a stack manifest; every other add-on is a tool add-on.
+        if [[ -f "$dir/stack.json" ]]; then
+            STACK_ADDONS+="${STACK_ADDONS:+ }$addon"
+        else
+            TOOL_ADDONS+="${TOOL_ADDONS:+ }$addon"
+        fi
     done
 }
+
+# A preset only lists dependencies: no component directories of its own.
+is_preset() {
+    local dir="$1" component
+    [[ -f "$dir/.claude-plugin/plugin.json" ]] && grep -q '"dependencies"' "$dir/.claude-plugin/plugin.json" || return 1
+    for component in agents skills hooks scripts rules templates mcp-configs stack.json; do
+        [[ -e "$dir/$component" ]] && return 1
+    done
+    return 0
+}
+
+addon_dir() { printf '%s/%s%s' "$ADDON_ROOT" "$ADDON_PREFIX" "$1"; }
 resolve_sources
 
 RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[1;33m'; BLUE=$'\033[0;34m'
@@ -62,6 +84,20 @@ BOLD=$'\033[1m'; NC=$'\033[0m'
 INSTALL_MODE=""
 INSTALL_TYPE=""
 ADDONS=""
+STACK_GIVEN=false
+STACK_NONE=false
+STACK_LIST=""
+WITH_GIVEN=false
+WITH_LIST=""
+PRUNE=false
+INTERACTIVE=false
+UPGRADE=false
+INSTALLED_STACKS=""
+INSTALLED_TOOLS=""
+KEEPING_ADDONS=""
+REMOVING_ADDONS=""
+DROPPED_HOOKS=""
+DEFAULT_STACKS="laravel nextjs"
 THIRD_PARTY=false
 DRY_RUN=false
 ASSUME_YES=false
@@ -155,10 +191,14 @@ ${BOLD}OPTIONS${NC}
   --project          Install into ./.claude (this project only)
   --user             Install into ~/.claude (all projects)
   --minimal          Spec-driven core only: /sdd, product-brief, write-spec, execute-task,
-                     simple-task, run-tests, deep-review, open-pr, the six workflows, the
-                     eight agents they hand off to, their Laravel/Next.js skills, hooks
+                     simple-task, run-tests, deep-review, open-pr, stack-trust, the six workflows, the
+                     core agents they hand off to, hooks, plus the selected stack add-ons
   --full             Everything in core (default)
+  --stack=LIST       Stack add-ons to install: ${STACK_ADDONS// /, }, or none (core only).
+                     Default: laravel,nextjs on a fresh install, the installed stacks on an upgrade
   --with=LIST        Add optional add-ons: ${ADDONS_AVAILABLE// /, }
+  --prune            On an upgrade, remove installed add-ons that are not selected
+                     (user-modified files are kept; everything removed is backed up)
   --third-party      Also install pinned third-party skills (docs/third-party.md)
   --dry-run          Show added / updated / removed files; change nothing
   --yes, -y          Don't ask for confirmation
@@ -172,10 +212,34 @@ Prefer plugin mode for teams: see README (claude --plugin-dir / marketplace).
 EOF
 }
 
-prompt_yes_no() {
+# Interactive iff no --yes, stdin is a terminal or SDD_KIT_TTY is set, and that
+# device opens on fd 3. Every prompt reads fd 3 only, so a piped stdin is never
+# consumed; otherwise defaults apply.
+detect_interactive() {
     $ASSUME_YES && return 0
+    if [[ -t 0 || -n "${SDD_KIT_TTY:-}" ]]; then
+        if { exec 3<"${SDD_KIT_TTY:-/dev/tty}"; } 2>/dev/null; then
+            INTERACTIVE=true
+        fi
+    fi
+}
+
+# Reads one answer line from fd 3 into $1; end of input aborts before any write.
+read_answer() {
+    local __var="$1" __line=""
+    if ! read -r -u 3 __line && [[ -z "$__line" ]]; then
+        printf '\n' >&2
+        log_error "No answer on the terminal (end of input); nothing was written. Fix: answer the prompts, or pass --project/--user and --yes."
+        exit 1
+    fi
+    printf -v "$__var" '%s' "$__line"
+}
+
+prompt_yes_no() {
+    $INTERACTIVE || return 0
     local answer
-    read -r -p "$1 [Y/n]: " answer
+    printf '%s [Y/n]: ' "$1"
+    read_answer answer
     [[ "${answer:-y}" =~ ^[Yy] ]]
 }
 
@@ -183,7 +247,8 @@ prompt_choice() {
     local var="$1" question="$2" a="$3" b="$4" choice
     printf "${BOLD}%s${NC}\n  1) %s\n  2) %s\n" "$question" "$a" "$b"
     while true; do
-        read -r -p "Enter choice [1/2]: " choice
+        printf 'Enter choice [1/2]: '
+        read_answer choice
         case "$choice" in
             1) printf -v "$var" '%s' "${a%% *}"; break ;;
             2) printf -v "$var" '%s' "${b%% *}"; break ;;
@@ -192,14 +257,94 @@ prompt_choice() {
     printf "\n"
 }
 
+has_word() { [[ " $2 " == *" $1 "* ]]; }
+
+# Appends the words of $2.. to the space-separated list in variable $1 once each.
+add_words() {
+    local __var="$1" __w; shift
+    for __w in "$@"; do
+        has_word "$__w" "${!__var}" || printf -v "$__var" '%s' "${!__var}${!__var:+ }$__w"
+    done
+}
+
+join_words() {
+    local sep="$1" out="" word; shift
+    for word in "$@"; do out+="${out:+$sep}$word"; done
+    printf '%s' "$out"
+}
+
+# Stack names, default stacks first, then by manifest order: "laravel nextjs drupal ios".
+sorted_stacks() {
+    local addon rank
+    for addon in $STACK_ADDONS; do
+        rank=1
+        has_word "$addon" "$DEFAULT_STACKS" && rank=0
+        printf '%s %s %s\n' "$rank" "$(jq -r '(if type == "array" then .[0].order else .order end) // 99' "$(addon_dir "$addon")/stack.json")" "$addon"
+    done | sort -n -k1,1 -k2,2 | awk '{print $3}' | tr '\n' ' ' | sed 's/ $//'
+}
+
+valid_stacks_line() {
+    local names
+    names=$(sorted_stacks)
+    printf 'Valid stacks: %s, none.' "$(join_words ',' $names | sed 's/,/, /g')"
+}
+
+# The add-on whose manifest declares stack key $1 (nextjs declares nuxt as well).
+stack_provider() {
+    local addon
+    for addon in $STACK_ADDONS; do
+        if jq -e --arg k "$1" '(if type == "array" then . else [.] end) | any(.[]; .name == $k)' \
+                "$(addon_dir "$addon")/stack.json" >/dev/null; then
+            printf '%s' "$addon"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Validates a comma or space separated stack list. Sets STACK_LIST (add-on names) and
+# STACK_NONE; returns 1 with the message in STACK_ERROR on a bad value.
+parse_stack_list() {
+    local raw="${1//,/ }" s provider
+    STACK_LIST=""; STACK_NONE=false; STACK_ERROR=""
+    if [[ -z "${raw// /}" ]]; then
+        STACK_ERROR="Missing stack list. Fix: use --stack=<list> or --stack=none. $(valid_stacks_line)"
+        return 1
+    fi
+    for s in $raw; do
+        if [[ "$s" == none ]]; then
+            STACK_NONE=true
+        elif has_word "$s" "$STACK_ADDONS"; then
+            add_words STACK_LIST "$s"
+        elif has_word "$s" "$TOOL_ADDONS"; then
+            STACK_ERROR="'$s' is an add-on, not a stack. Fix: use --with=$s. $(valid_stacks_line)"
+            return 1
+        elif provider=$(stack_provider "$s"); then
+            STACK_ERROR="'$s' is provided by the '$provider' add-on. Fix: use --stack=$provider. $(valid_stacks_line)"
+            return 1
+        else
+            STACK_ERROR="Unknown stack '$s'. $(valid_stacks_line)"
+            return 1
+        fi
+    done
+    if $STACK_NONE && [[ -n "$STACK_LIST" ]]; then
+        STACK_ERROR="'none' cannot be combined with other stacks. Fix: use --stack=none or --stack=<list>. $(valid_stacks_line)"
+        return 1
+    fi
+    return 0
+}
+
 parse_args() {
+    local stack_raw=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --project) INSTALL_MODE=project ;;
             --user) INSTALL_MODE=user ;;
             --minimal) INSTALL_TYPE=minimal ;;
             --full) INSTALL_TYPE=full ;;
-            --with=*) ADDONS="${1#*=}"; ADDONS="${ADDONS//,/ }" ;;
+            --stack=*) STACK_GIVEN=true; stack_raw="${1#*=}" ;;
+            --with=*) WITH_GIVEN=true; WITH_LIST="${1#*=}"; WITH_LIST="${WITH_LIST//,/ }" ;;
+            --prune) PRUNE=true ;;
             --third-party) THIRD_PARTY=true ;;
             --dry-run) DRY_RUN=true ;;
             --yes|-y) ASSUME_YES=true ;;
@@ -208,13 +353,28 @@ parse_args() {
         esac
         shift
     done
+    check_requirements
     local addon
-    for addon in $ADDONS; do
-        if [[ " $ADDONS_AVAILABLE " != *" $addon "* ]]; then
+    for addon in $WITH_LIST; do
+        if ! has_word "$addon" "$ADDONS_AVAILABLE"; then
             log_error "Unknown add-on '$addon'. Available: $ADDONS_AVAILABLE"
             exit 1
         fi
     done
+    if $STACK_GIVEN; then
+        if ! parse_stack_list "$stack_raw"; then
+            log_error "$STACK_ERROR"
+            exit 1
+        fi
+        if $STACK_NONE; then
+            for addon in $WITH_LIST; do
+                if has_word "$addon" "$STACK_ADDONS"; then
+                    log_error "--stack=none conflicts with stack add-on '$addon' in --with. Fix: drop --stack=none or move '$addon' to --stack."
+                    exit 1
+                fi
+            done
+        fi
+    fi
 }
 
 check_requirements() {
@@ -222,6 +382,148 @@ check_requirements() {
         log_error "jq is required (installer and hook scripts use it). Install it: brew install jq / apt-get install jq"
         exit 1
     fi
+}
+
+# -------------------------------------------------------------- selection ---
+
+# Paths an add-on stages that identify it in a .framework-manifest: its agents
+# (under agents/<addon>/ and, from 2.x, flat), its skills and its stack manifest.
+addon_marker_paths() {
+    local root f
+    root=$(addon_dir "$1")
+    for f in "$root/agents/"*.md; do
+        [[ -f "$f" ]] || continue
+        printf 'agents/%s/%s\nagents/%s\n' "$1" "$(basename "$f")" "$(basename "$f")"
+    done
+    for f in "$root/skills/"*/SKILL.md; do
+        [[ -f "$f" ]] || continue
+        printf 'skills/%s/SKILL.md\n' "$(basename "$(dirname "$f")")"
+    done
+    [[ -f "$root/stack.json" ]] && printf 'stacks/%s.json\n' "$1"
+    return 0
+}
+
+addon_installed() {
+    grep -qxFf <(addon_marker_paths "$1") <(awk '{print $2}' "$TARGET_DIR/.framework-manifest")
+}
+
+# An install is an upgrade iff a manifest exists; an add-on counts as installed when
+# the manifest lists any path it stages. Sets UPGRADE, INSTALLED_STACKS, INSTALLED_TOOLS.
+detect_installed() {
+    local addon
+    [[ -f "$TARGET_DIR/.framework-manifest" ]] || return 0
+    UPGRADE=true
+    for addon in $STACK_ADDONS; do
+        ! addon_installed "$addon" || add_words INSTALLED_STACKS "$addon"
+    done
+    for addon in $TOOL_ADDONS; do
+        ! addon_installed "$addon" || add_words INSTALLED_TOOLS "$addon"
+    done
+}
+
+# Default stacks of a fresh install, limited to the add-ons this tree ships.
+default_stacks() {
+    local addon out=""
+    for addon in $DEFAULT_STACKS; do
+        ! has_word "$addon" "$STACK_ADDONS" || add_words out "$addon"
+    done
+    printf '%s' "$out"
+}
+
+# The dev-environment add-on joins installs that make no stack choice, unless --minimal.
+default_tools() {
+    if [[ "$INSTALL_TYPE" != minimal ]] && has_word devenv "$TOOL_ADDONS"; then
+        printf 'devenv'
+    fi
+}
+
+# Asks which stacks to install; sets PROMPT_STACKS (add-on names, possibly empty).
+prompt_stacks() {
+    local default extras shown answer
+    if $UPGRADE; then
+        default="$INSTALLED_STACKS"; extras="$INSTALLED_TOOLS"
+    else
+        default=$(default_stacks); extras=$(default_tools)
+    fi
+    shown="$(join_words , $default)"
+    printf 'Stacks [%s]%s: ' "${shown:-none}" "${extras:+ (+ $(join_words ', ' $extras))}"
+    while true; do
+        read_answer answer
+        if [[ -z "${answer// /}" ]]; then
+            PROMPT_STACKS="$default"
+            return 0
+        fi
+        if parse_stack_list "$answer"; then
+            PROMPT_STACKS="$STACK_LIST"
+            return 0
+        fi
+        printf '%s\nStacks: ' "$STACK_ERROR"
+    done
+}
+
+# Two axes (stacks, tool add-ons). Fresh install: stacks from --stack, the prompt or
+# the default; tool add-ons exactly --with when any flag is given, else the default,
+# with the dev-environment add-on joining whenever no --stack is given. Upgrade:
+# selections only add to the installed set; --prune makes the installed set exactly
+# the selection. Sets ADDONS, KEEPING_ADDONS and REMOVING_ADDONS.
+select_addons() {
+    local addon sel_stacks="" sel_tools="" with_stacks="" with_tools="" stacks_chosen=false
+    PROMPT_STACKS=""
+    for addon in $WITH_LIST; do
+        if has_word "$addon" "$STACK_ADDONS"; then add_words with_stacks "$addon"; else add_words with_tools "$addon"; fi
+    done
+
+    if $STACK_GIVEN; then
+        sel_stacks="$STACK_LIST"; stacks_chosen=true
+    elif $INTERACTIVE; then
+        prompt_stacks
+        sel_stacks="$PROMPT_STACKS"; stacks_chosen=true
+    elif $UPGRADE; then
+        sel_stacks="$INSTALLED_STACKS"
+    else
+        sel_stacks=$(default_stacks)
+    fi
+    add_words sel_stacks $with_stacks
+
+    if $UPGRADE; then
+        if $PRUNE && ! $WITH_GIVEN; then sel_tools="$INSTALLED_TOOLS"; else sel_tools="$with_tools"; fi
+    else
+        sel_tools="$with_tools"
+        $STACK_GIVEN || add_words sel_tools $(default_tools)
+    fi
+
+    local final_stacks="$sel_stacks" final_tools="$sel_tools"
+    if $UPGRADE && ! $PRUNE; then
+        final_stacks=""; final_tools=""
+        add_words final_stacks $INSTALLED_STACKS $sel_stacks
+        add_words final_tools $INSTALLED_TOOLS $sel_tools
+    fi
+
+    KEEPING_ADDONS=""; REMOVING_ADDONS=""
+    if $UPGRADE; then
+        for addon in $INSTALLED_STACKS; do
+            has_word "$addon" "$final_stacks" && has_word "$addon" "$sel_stacks" && continue
+            if $PRUNE; then add_words REMOVING_ADDONS "$addon"
+            elif $stacks_chosen; then add_words KEEPING_ADDONS "$addon"; fi
+        done
+        for addon in $INSTALLED_TOOLS; do
+            has_word "$addon" "$final_tools" && has_word "$addon" "$sel_tools" && continue
+            if $PRUNE; then add_words REMOVING_ADDONS "$addon"
+            elif $WITH_GIVEN; then add_words KEEPING_ADDONS "$addon"; fi
+        done
+    fi
+
+    ADDONS=""
+    add_words ADDONS $final_stacks $final_tools
+    DROPPED_HOOKS=""
+    for addon in $REMOVING_ADDONS; do
+        [[ -f "$(addon_dir "$addon")/hooks/hooks.json" ]] && DROPPED_HOOKS+="${DROPPED_HOOKS:+ }$(addon_dir "$addon")/hooks/hooks.json"
+    done
+    if ! $UPGRADE && ! $STACK_GIVEN && ! $INTERACTIVE; then
+        printf 'Installed default stacks %s%s. Choose others with --stack=<list> or --stack=none.\n' \
+            "$(join_words , $sel_stacks)" "${final_tools:+ (+ $(join_words ', ' $final_tools))}"
+    fi
+    return 0
 }
 
 # ---------------------------------------------------------------- staging ---
@@ -256,19 +558,18 @@ stage_core() {
     mkdir -p "$STAGE"
     if [[ "$INSTALL_TYPE" == minimal ]]; then
         # Everything the /sdd main path hands off to: product-brief and write-spec spawn
-        # requirements-analyst, execute-task delegates to both stack developers, test-writer
-        # and code-quality, and ends with deep-review (adversarial-reviewer, security-auditor)
-        # and open-pr. The stack skills are the ones these agents preload.
+        # requirements-analyst, execute-task delegates to test-writer and code-quality
+        # (and to the stack developers the selected add-ons bring), and ends with
+        # deep-review (adversarial-reviewer, security-auditor) and open-pr.
         mkdir -p "$STAGE/agents" "$STAGE/templates"
         local agent
-        for agent in code-explorer laravel-backend-dev nextjs-frontend-dev test-writer code-quality \
+        for agent in code-explorer test-writer code-quality \
             requirements-analyst adversarial-reviewer security-auditor; do
             cp "$CORE_DIR/agents/$agent.md" "$STAGE/agents/"
         done
         stage_skill_dirs "$CORE_DIR/skills" sdd product-brief write-spec execute-task simple-task \
             run-tests deep-review open-pr verification-gates source-verification framework-doctor \
-            laravel-12 pest-3 dto-first service-repository api-design api-security \
-            nextjs-15 nextjs-testing nextjs-auth
+            api-design api-security stack-trust
         cp -R "$SHARE_DIR/templates/context" "$SHARE_DIR/templates/specs" "$STAGE/templates/"
     else
         cp -R "$CORE_DIR/agents" "$STAGE/agents"
@@ -288,7 +589,14 @@ stage_core() {
 stage_addons() {
     local addon root
     for addon in $ADDONS; do
-        root="$ADDON_ROOT/${ADDON_PREFIX}$addon"
+        root=$(addon_dir "$addon")
+        if [[ -f "$root/stack.json" ]]; then
+            mkdir -p "$STAGE/stacks"
+            # The staged copy sits next to the installed workflows, so the editor-only
+            # $schema pointer is rewritten to resolve there.
+            jq 'def fix: if type == "object" and has("$schema") then .["$schema"] = "../workflows/lib/stack.schema.json" else . end;
+                if type == "array" then map(fix) else fix end' "$root/stack.json" > "$STAGE/stacks/$addon.json"
+        fi
         if [[ -d "$root/agents" ]]; then
             mkdir -p "$STAGE/agents/$addon"
             cp "$root/agents/"*.md "$STAGE/agents/$addon/"
@@ -296,7 +604,45 @@ stage_addons() {
         if [[ -d "$root/skills" ]]; then
             stage_skill_dirs "$root/skills"
         fi
+        if compgen -G "$root/scripts/*.sh" >/dev/null; then
+            mkdir -p "$STAGE/scripts"
+            cp "$root/scripts/"*.sh "$STAGE/scripts/"
+        fi
+        if [[ "$INSTALL_TYPE" != minimal && -d "$root/hooks" ]]; then
+            local fragments
+            for fragments in "$root/hooks/"*.d; do
+                [[ -d "$fragments" ]] || continue
+                mkdir -p "$STAGE/hooks/$(basename "$fragments")"
+                cp "$fragments/"*.sh "$STAGE/hooks/$(basename "$fragments")/"
+            done
+        fi
+        if [[ -d "$root/templates" ]]; then
+            mkdir -p "$STAGE/templates/$addon"
+            cp -R "$root/templates/." "$STAGE/templates/$addon/"
+        fi
+        if [[ -d "$root/mcp-configs" ]]; then
+            mkdir -p "$STAGE/mcp-configs/$addon"
+            cp "$root/mcp-configs/"*.json "$STAGE/mcp-configs/$addon/"
+        fi
     done
+}
+
+# Merges the core third-party manifest with the optional third-party.json
+# fragment of every selected add-on (plugin entries such as language servers).
+merge_third_party_manifest() {
+    local addon fragment
+    local fragments=()
+    THIRD_PARTY_MANIFEST="$STAGE/third-party.json"
+    for addon in $ADDONS; do
+        fragment="$ADDON_ROOT/${ADDON_PREFIX}$addon/third-party.json"
+        [[ -f "$fragment" ]] && fragments+=("$fragment")
+    done
+    if (( ${#fragments[@]} == 0 )); then
+        THIRD_PARTY_MANIFEST="$SHARE_DIR/settings/third-party.json"
+        return 0
+    fi
+    jq -s '.[0] as $core | reduce .[1:][] as $f ($core; .plugins += ($f.plugins // []) | .skills += ($f.skills // []))' \
+        "$SHARE_DIR/settings/third-party.json" "${fragments[@]}" > "$THIRD_PARTY_MANIFEST"
 }
 
 rewrite_paths_for_user_install() {
@@ -358,10 +704,32 @@ plan_changes() {
     done
 }
 
+# Never leave two agents with one name: Claude Code loads one of them by read order.
+# A staged agents/<addon>/<name>.md is dropped when agents/<name>.md stays in place
+# (a user-edited kit file, or an agent the user wrote under that name).
+guard_same_name_agents() {
+    local rel name addon dropped=false
+    while IFS= read -r rel; do
+        name=$(basename "$rel"); addon=$(basename "$(dirname "$rel")")
+        [[ -f "$TARGET_DIR/agents/$name" ]] || continue
+        [[ " ${REMOVED[*]-} " == *" agents/$name "* ]] && continue
+        rm -f "$STAGE/$rel"
+        dropped=true
+        log_warning "Kept your .claude/agents/$name; the 3.0 copy was not installed at .claude/agents/$addon/$name because two agents with one name load unpredictably. Fix: merge your edits into the add-on copy ($(addon_dir "$addon")/agents/$name), delete .claude/agents/$name, then re-run install.sh."
+    done < <(cd "$STAGE" && find agents -mindepth 2 -maxdepth 2 -name '*.md' 2>/dev/null | sort)
+    if $dropped; then plan_changes; fi
+}
+
 print_plan() {
     printf "\n${BOLD}Changes in %s${NC}\n" "$TARGET_DIR"
     printf "  added: %d   updated: %d   removed: %d\n" "${#ADDED[@]}" "${#UPDATED[@]}" "${#REMOVED[@]}"
-    local rel
+    local rel addon
+    for addon in $KEEPING_ADDONS; do
+        printf "  Keeping installed add-on '%s' (not selected). Fix: pass --prune to remove it.\n" "$addon"
+    done
+    for addon in $REMOVING_ADDONS; do
+        printf "  Removing add-on '%s' (--prune). Fix: drop --prune or add --with=%s to keep it.\n" "$addon" "$addon"
+    done
     for rel in "${UPDATED[@]-}"; do [[ -n "$rel" ]] && printf "  ${YELLOW}~${NC} %s\n" "$rel"; done
     for rel in "${REMOVED[@]-}"; do [[ -n "$rel" ]] && printf "  ${RED}-${NC} %s\n" "$rel"; done
     if [[ ${#KEPT[@]} -gt 0 ]]; then
@@ -375,7 +743,7 @@ print_plan() {
 }
 
 apply_changes() {
-    local backup="$TARGET_DIR/.framework-backups/$STAMP" rel
+    local backup="$TARGET_DIR/.framework-backups/$STAMP" rel dir
     if [[ ${#UPDATED[@]} -gt 0 || ${#REMOVED[@]} -gt 0 ]]; then
         for rel in "${UPDATED[@]-}" "${REMOVED[@]-}"; do
             [[ -n "$rel" ]] || continue
@@ -385,14 +753,20 @@ apply_changes() {
         find "$TARGET_DIR/.framework-backups" -mindepth 1 -maxdepth 1 -type d ! -name "$STAMP" -exec rm -rf {} +
         log_info "Backed up overwritten/removed files to $backup (older framework backups pruned)"
     fi
-    for rel in "${REMOVED[@]-}"; do [[ -n "$rel" ]] && rm -f "$TARGET_DIR/$rel"; done
+    for rel in "${REMOVED[@]-}"; do
+        [[ -n "$rel" ]] || continue
+        rm -f "$TARGET_DIR/$rel"
+        # Drop directories the removal left empty, e.g. agents/<addon>/.
+        dir=$(dirname "$rel")
+        while [[ "$dir" != . ]] && rmdir "$TARGET_DIR/$dir" 2>/dev/null; do dir=$(dirname "$dir"); done
+    done
     mkdir -p "$TARGET_DIR"
     (cd "$STAGE" && find . -type f | sed 's|^\./||') | while IFS= read -r rel; do
         mkdir -p "$TARGET_DIR/$(dirname "$rel")"
         cp "$STAGE/$rel" "$TARGET_DIR/$rel"
     done
     chmod +x "$TARGET_DIR/scripts/"*.sh 2>/dev/null || true
-    chmod +x "$TARGET_DIR/scripts/review/"*.sh "$TARGET_DIR/hooks/"*.sh 2>/dev/null || true
+    chmod +x "$TARGET_DIR/scripts/review/"*.sh "$TARGET_DIR/hooks/"*.sh "$TARGET_DIR/hooks/"*.d/*.sh 2>/dev/null || true
     find "$TARGET_DIR/skills" -name '*.py' -exec chmod +x {} + 2>/dev/null || true
     (cd "$STAGE" && find . -type f | sed 's|^\./||' | sort | while IFS= read -r rel; do
         printf '%s  %s\n' "$(file_hash "$rel")" "$rel"
@@ -408,9 +782,13 @@ apply_changes() {
 }
 
 install_hooks() {
-    local result
-    if result=$("$SHARE_DIR/scripts/install-hooks.sh" "$SHARE_DIR/settings/settings.template.json" \
-            "$TARGET_DIR/settings.json" "$INSTALL_MODE"); then
+    local result addon addon_hooks=()
+    for addon in $ADDONS; do
+        [[ -f "$(addon_dir "$addon")/hooks/hooks.json" ]] \
+            && addon_hooks+=("$(addon_dir "$addon")/hooks/hooks.json")
+    done
+    if result=$(SDD_KIT_DROPPED_HOOKS="$DROPPED_HOOKS" "$SHARE_DIR/scripts/install-hooks.sh" "$SHARE_DIR/settings/settings.template.json" \
+            "$TARGET_DIR/settings.json" "$INSTALL_MODE" "${addon_hooks[@]+"${addon_hooks[@]}"}"); then
         log_success "Hooks installed into $TARGET_DIR/settings.json ($result)"
     else
         log_error "Hooks were NOT installed. Fix the issue above, then re-run the installer."
@@ -455,7 +833,7 @@ create_mcp_config() {
     else
         log_warning "$MCP_TARGET is not valid JSON; left untouched."
     fi
-    log_info "Optional servers (PhpStorm, Serena, laravel-boost, GitHub, DDEV): $TARGET_DIR/mcp-configs/development.json"
+    log_info "Optional servers (PhpStorm, Serena, GitHub): $TARGET_DIR/mcp-configs/development.json; add-ons list theirs under $TARGET_DIR/mcp-configs/<add-on>/"
 }
 
 copy_claude_template() {
@@ -476,6 +854,23 @@ copy_claude_template() {
         cp "$SHARE_DIR/templates/rules/"*.md "$(pwd)/.claude/rules/"
         log_success "Created .claude/rules/ (path-scoped conventions) from templates"
     fi
+    copy_addon_rules
+}
+
+# Add-on rules are project-owned: copied per file, only when absent.
+copy_addon_rules() {
+    local addon rule dest
+    for addon in $ADDONS; do
+        for rule in "$ADDON_ROOT/${ADDON_PREFIX}$addon/rules/"*.md; do
+            [[ -f "$rule" ]] || continue
+            dest="$(pwd)/.claude/rules/$(basename "$rule")"
+            if [[ ! -e "$dest" ]]; then
+                mkdir -p "$(dirname "$dest")"
+                cp "$rule" "$dest"
+                log_success "Added rule .claude/rules/$(basename "$rule") from the $addon add-on"
+            fi
+        done
+    done
 }
 
 print_success() {
@@ -493,10 +888,14 @@ EOF
 
 main() {
     parse_args "$@"
-    check_requirements
     printf "${BOLD}SDD Kit v%s${NC}\n\n" "$VERSION"
+    detect_interactive
 
     if [[ -z "$INSTALL_MODE" ]]; then
+        if ! $INTERACTIVE; then
+            log_error "No install location. Fix: pass --project or --user."
+            exit 1
+        fi
         prompt_choice INSTALL_MODE "Install where?" \
             "project — ./.claude, this project only" "user — ~/.claude, all projects"
     fi
@@ -507,6 +906,8 @@ main() {
     else
         TARGET_DIR="$(pwd)/.claude"; MCP_TARGET="$(pwd)/.mcp.json"
     fi
+    detect_installed
+    select_addons
 
     STAGE=$(mktemp -d)
     trap 'rm -rf "$STAGE"' EXIT
@@ -514,6 +915,7 @@ main() {
     stage_addons
     rewrite_paths_for_user_install
     plan_changes
+    guard_same_name_agents
     print_plan
 
     if $DRY_RUN; then
@@ -528,7 +930,8 @@ main() {
     create_mcp_config
     copy_claude_template
     if $THIRD_PARTY; then
-        "$SHARE_DIR/scripts/install-third-party.sh" "$SHARE_DIR/settings/third-party.json" "$TARGET_DIR/skills" \
+        merge_third_party_manifest
+        "$SHARE_DIR/scripts/install-third-party.sh" "$THIRD_PARTY_MANIFEST" "$TARGET_DIR/skills" \
             || log_error "Third-party skill install failed; the framework install is unaffected."
     fi
     print_success
