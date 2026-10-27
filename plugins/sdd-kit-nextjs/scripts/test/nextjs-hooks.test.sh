@@ -24,8 +24,8 @@ echo "nextjs-test-first.sh"
 touch "$P/src/components/ui/Button.tsx"
 out=$(payload "$P/src/components/ui/Button.tsx" | CLAUDE_PROJECT_DIR="$P" "$SCRIPTS/nextjs-test-first.sh"); code=$?
 [[ $code -eq 2 ]] && ok "component without test exits 2" || fail "component without test exits 2 (got $code)"
-[[ "$out" == *"has no corresponding test at 'src/components/ui/Button.test.tsx'"* ]] \
-    && ok "block message unchanged" || fail "block message unchanged: $out"
+[[ "$out" == *"has no corresponding test at 'src/components/ui/Button.test.tsx'"* && "$out" == *'"permissionDecision":"deny"'* ]] \
+    && ok "blocks with permissionDecision deny" || fail "blocks with permissionDecision deny: $out"
 
 touch "$P/src/components/ui/Button.test.tsx"
 payload "$P/src/components/ui/Button.tsx" | CLAUDE_PROJECT_DIR="$P" "$SCRIPTS/nextjs-test-first.sh" >/dev/null; code=$?

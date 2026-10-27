@@ -32,8 +32,9 @@ abridged and marked *simulated*, because your run will word things differently.
   cd ~/work/hireboard/web && npm run dev            # second terminal
   ```
 
-- The Claude in Chrome extension is connected if you want the Visual phase to run. Without it, Visual
-  logs "could not run" and the rest of the pipeline continues.
+- The Visual phase drives the browser through the Playwright MCP server first, with the Claude in Chrome
+  extension as the fallback. When neither is available, Visual logs "not run" and the rest of the
+  pipeline continues.
 
 ## Step 1 — Branch both repos before anything else
 
@@ -382,7 +383,7 @@ where the session started. [Chapter 03](03-decision-spa-auth-adr.md) started ins
 `"."` and `"../web"`.
 
 The arguments are documented in
-[references/ship-feature.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/plugins/sdd-kit/skills/sdd/references/ship-feature.md). The
+[references/ship-feature.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/plugins/sdd-kit/skills/sdd/references/ship-feature.md). The
 `ticket` arg only names the folder in free-text `feature` mode. In spec mode it is ignored, which is
 harmless. The key still shows up in the report because it is part of the spec id
 `spec-HIRE-3-accounts-and-roles`.
@@ -449,7 +450,7 @@ kind of gap. It runs at most 2 rounds, and anything still missing after that is 
 for a human and blocks `SHIP`.
 
 **Visual.** The phase runs only when UI files (`.tsx`, `.css`, ...) changed, which they did in `web/`.
-The Chrome extension opens `/login` and `/register` at about 375, 768 and 1440 px and checks layout and
+Playwright opens `/login` and `/register` at about 375, 768 and 1440 px and checks layout and
 contrast. *Simulated:*
 
 ```

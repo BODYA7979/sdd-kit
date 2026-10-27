@@ -68,7 +68,9 @@ which pulls in the Laravel, Next.js and devenv add-ons:
 /plugin install sdd-kit-laravel-nextjs@sdd-kit
 ```
 
-In file-copy mode the installer adds those add-ons by default (`--stack=laravel,nextjs`).
+In file-copy mode you pick the stacks yourself with `--stack=laravel,nextjs` (Step 3).
+The plugin starts the `context7` and `playwright` MCP servers from its own `.mcp.json`, so
+nothing is added to the repos.
 
 If you work from a local checkout of the kit (to test a branch, or because you will fork it
 for the team eval in chapter 11), skip the marketplace and load the directory for each session:
@@ -76,7 +78,8 @@ for the team eval in chapter 11), skip the marketplace and load the directory fo
 ```bash
 git clone https://github.com/stasmarkov/sdd-kit.git ~/tools/sdd-kit
 cd ~/work/hireboard
-claude --plugin-dir ~/tools/sdd-kit/plugins/sdd-kit
+claude --plugin-dir ~/tools/sdd-kit/plugins/sdd-kit \
+       --plugin-dir ~/tools/sdd-kit/plugins/sdd-kit-laravel-nextjs
 ```
 
 The rest of the walkthrough assumes the checkout lives at `~/tools/sdd-kit`,
@@ -108,13 +111,13 @@ single-repo template when none exists, and it never overwrites an existing one.
 ```bash
 cd ~/work/hireboard
 cp ~/tools/sdd-kit/share/templates/multi-repo/CLAUDE.md CLAUDE.md   # Step 4 first
-~/tools/sdd-kit/install.sh --project --dry-run
+~/tools/sdd-kit/install.sh --project --stack=laravel,nextjs --dry-run
 ```
 
 Simulated output (abridged):
 
 ```
-SDD Kit v2.0.0
+SDD Kit v3.1.0
 Target: /Users/alex/work/hireboard/.claude (project, full)
   added:   ...  (skills, agents, workflows, scripts, templates, settings.json)
   updated: 0
@@ -125,11 +128,11 @@ Dry run: nothing written.
 Then install for real (`--full` is the default; `--minimal` is the spec-driven core only):
 
 ```bash
-~/tools/sdd-kit/install.sh --project
+~/tools/sdd-kit/install.sh --project --stack=laravel,nextjs
 ```
 
 Besides `.claude/`, a project install merges hooks into `.claude/settings.json`, adds
-`context7` to `.mcp.json`, and creates `AGENTS.md` and `.claude/rules/` when they are missing.
+`context7` and `playwright` to `.mcp.json`, and creates `AGENTS.md` and `.claude/rules/` when they are missing.
 At the workspace root those last two don't help: the rules' `paths:` globs (`app/Http/Controllers/**`,
 `tests/**`, ...) are relative to a repo root, and the gates live in each repo's `AGENTS.md`.
 Delete the root copies and keep the real ones in `api/` and `web/`:
@@ -141,9 +144,9 @@ rm AGENTS.md && rm -r .claude/rules
 Re-running the installer at the root (the update path) creates them again, so repeat this
 cleanup after each update.
 
-After chapter 02, run the same installer once inside each repo (`cd api && .../install.sh --project`,
-then the same in `web/`). That is the point where per-repo `AGENTS.md` and `.claude/rules/` are created. Never run it
-inside `api/` or `web/` before chapter 02 (F1). The flags (`--with=`, `--user`, `--yes`) are
+After chapter 02, run the same installer once inside each repo, each with its own stack (`cd api && .../install.sh --project --stack=laravel`,
+then `cd ../web && .../install.sh --project --stack=nextjs`). That is the point where per-repo `AGENTS.md` and `.claude/rules/` are created. Never run it
+inside `api/` or `web/` before chapter 02 (F1). The flags (`--stack=`, `--with=`, `--user`, `--yes`) are
 documented in [INSTALLATION.md, file-copy mode](../../reference/installation.md#file-copy-mode).
 
 ---
@@ -315,7 +318,7 @@ for you. Type it:
 Simulated output, plugin mode (abridged):
 
 ```
-Framework Health Check (plugin, v2.0.0)
+Framework Health Check (plugin, v3.1.0)
 =======================================
 [WARN] Golden Triangle: docs/context/ not found
 [SKIP] Manifest integrity: plugin mode

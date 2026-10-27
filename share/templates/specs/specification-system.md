@@ -108,7 +108,9 @@ Sections, in order: **Summary · Context · Scope (in/out) · Must NOT change ·
 - Task lines `- [ ] N. Title (stack)` with a `Covers: AC-1, MNC-2` line and a final `**Verify**:` subitem. Tools find the next task by the first unchecked `- [ ] N.`.
 - A **Traceability** table: one row per AC and MNC → `Verified by` (test `file::name` or `manual-test.md#step-N`), kind, task.
 - **Verification gates** — only the tooling detected in the project.
-- Gap tasks appended by ship-feature's Converge phase continue the numbering under `## Phase: Gaps (converge round N)`.
+- Gap tasks added by ship-feature's Converge phase continue the numbering under `## Phase: Gaps (converge round N)`. They go at the end of tasks.md, or directly above the first unchecked gate when there is one; a gap that lands below that gate stops the round unbuilt.
+
+- A **gate** is a task whose title text after `N. ` starts with `Gate:` (case-sensitive). Only the owner checks it, and no task at or after the first unchecked gate runs. `spec-lint --gates <spec>` prints `build: <N>. <title>` for each unchecked task before that gate, then `awaiting owner: <title>` and exits 3; with no unchecked gate it ends with `gates: clear` and exits 0. execute-task builds only the `build:` tasks, ship-feature applies the same rule to the tasks.md text, and both stop with `awaiting owner: <title>` when nothing before the gate is open, and stop without building when the check cannot run.
 
 ## Lifecycle
 
@@ -150,11 +152,11 @@ When all tasks are checked, `/open-pr --spec=<spec-folder>` opens the pull reque
 
 ## Spec lint
 
-`node tools/spec-lint.mjs [--warn] [--verified] [--root <dir>] <spec-dir>` (installed copy: `skills/write-spec/scripts/spec-lint.mjs`) checks a spec folder with no model or network call. Each finding is `<file>:<line> <error|warning> <problem>. Fix: <fix>`; a clean folder prints `spec-lint: <dir> OK`. Exit 1 when a blocker is found, 0 otherwise, 2 on a usage error. `/write-spec` runs it before the clarity gate, `/sdd` before asking for approval (the spec stays `draft` while blockers remain), and `verify.sh` runs it with `--warn` over `.ai/specs/*/`.
+`node tools/spec-lint.mjs [--warn] [--verified] [--root <dir>] <spec-dir>` (installed copy: `skills/write-spec/scripts/spec-lint.mjs`) checks a spec folder with no model or network call. Each finding is `<file>:<line> <error|warning> <problem>. Fix: <fix>`; a clean folder prints `spec-lint: <dir> OK`. Exit 1 when a blocker is found, 0 otherwise, 2 on a usage error, 3 from `--gates` when tasks.md has an unchecked gate task. `/write-spec` runs it before the clarity gate, `/sdd` before asking for approval (the spec stays `draft` while blockers remain), and `verify.sh` runs it with `--warn` over `.ai/specs/*/`.
 
 **Blockers**: missing or empty Acceptance criteria; an AC with no `SHALL` and no `THEN`, or using a vague term; missing Must NOT change when `type` is bug, improvement or refactor; missing or empty Out of scope; empty `stakeholders` together with empty `approved_by`; an AC, MNC or NFR id absent from the Traceability table (all ids when tasks.md or the table is missing); an unchecked Open question when `status: approved`.
 
-**Warnings**: a top-level task with no `Covers:` line; a Traceability row whose Verified by cell holds no valid item, or an item matching no form below.
+**Warnings**: an unchecked gate task; a top-level task with no `Covers:` line; a Traceability row whose Verified by cell holds no valid item, or an item matching no form below.
 
 **Verified by grammar**: items separated by `;`, each one of `path` (one token, relative to the repo root), `path::exact test title` (no `;` or `::` in the title), `manual-test.md#step-N` (needs a `### Step N:` heading in manual-test.md), or a named check (an item starting with `verify `, or `gen-indexes --check`, `gen-stacks --check`, `gen-guide-example --check`, `gen-retired-hashes --check`). `--verified` turns a missing path, a title not found in its file by fixed-string search, or a missing step heading into a blocker, and skips named checks. `--warn` prints every finding as a warning and exits 0.
 

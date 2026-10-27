@@ -21,7 +21,7 @@
 <header class="site-header">
   <div class="brand">
     <a class="brand-name" href="../index.html">SDD Kit</a>
-    <span class="badge">v3.0.0</span>
+    <span class="badge">v3.1.0</span>
   </div>
   <div class="header-actions">
     <a class="btn" href="../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
@@ -36,6 +36,8 @@
 each with its own CI and its own <code>CLAUDE.md</code>. You get one Claude session that sees both
 repos and the contract between them.</p>
 <h3 id="layout">Layout</h3>
+<p>The examples use one backend and one frontend. For several frontends, add one folder per frontend
+(see <a href="#several-frontends" data-anchor="several-frontends">Several frontends</a>).</p>
 <pre><code>project/                    no .git here, on purpose
 ├── CLAUDE.md               imports both repos + cross-repo rules
 ├── be/                     Laravel API: own .git, CLAUDE.md, AGENTS.md, .claude/, .ai/specs/
@@ -49,12 +51,39 @@ default <code>--stack=laravel,nextjs</code> stages both in each repo, and each w
 plus the root file. Keep the root file small. It holds only what neither repo knows alone:</p>
 <ul><li><strong>Contract:</strong> where it lives and which side is authoritative (normally the backend).</li><li><strong>Cross-repo routing table:</strong> &quot;changing a DTO → read the backend Resource, then update the frontend type mirror&quot;.</li><li><strong>Rule of thumb:</strong> if a backend change could be visible to the browser, assume the frontend has to change too.
 Grep the frontend before you call the backend task done.</li><li><strong>Process:</strong> commit in each repo separately, use matching branch names, never commit from the root.</li></ul>
+<h3 id="several-frontends">Several frontends</h3>
+<p>One API often serves more than one frontend, for example a customer site and an admin app:</p>
+<pre><code>project/
+├── CLAUDE.md
+├── be/        Laravel API
+├── fe/        Next.js customer site (dev URL http://localhost:3000)
+└── admin/     Next.js admin app (dev URL http://localhost:3001)</code></pre>
+<ul><li><strong>Per-repo stack.</strong> Install each repo with its own stack: <code>./install.sh --project --stack=laravel</code>
+in <code>be/</code>, and <code>--stack=nextjs</code> in <code>fe/</code> and <code>admin/</code>. Each workflow detects the stack per repo.</li><li><strong>Root file.</strong> Copy <code>src/templates/multi-repo/CLAUDE.md</code>, keep one <code>@&lt;repo&gt;/CLAUDE.md</code> import and one
+layout row per frontend, and fill <code>&lt;stack&gt;</code>, <code>&lt;repo&gt;</code> and <code>&lt;dev-url&gt;</code>.</li><li><strong>Contract-sync.</strong> The template lives in <code>src/plugins/laravel/templates/contract-sync</code> and
+<code>install.sh</code> stages it at <code>.claude/templates/laravel/contract-sync/</code> for every selected add-on,
+minimal or full. Install the laravel add-on in the API repo and wire the check in CI against each frontend.</li><li><strong>Runs.</strong> One run covers all repos when <code>repos</code> is an array with a distinct <code>url</code> per frontend:<pre><code class="language-js">Workflow({
+  name: &quot;ship-feature&quot;,
+  args: {
+    spec: &quot;&lt;spec id&gt;&quot;,
+    repos: [
+      { path: &quot;be&quot;, role: &quot;backend&quot; },
+      { path: &quot;fe&quot;, role: &quot;frontend&quot;, url: &quot;http://localhost:3000&quot; },
+      { path: &quot;admin&quot;, role: &quot;frontend&quot;, url: &quot;http://localhost:3001&quot; }
+    ]
+  }
+})</code></pre>
+<p>Or do one run per frontend: <code>{ repos: { backend: &quot;be&quot;, frontend: &quot;fe&quot; }, url: &quot;http://localhost:3000&quot; }</code>,
+then the same for <code>admin</code>. A run takes zero or one backend. Each frontend gets its own dev URL and its own browser pass, reported by repo. The passes run one after another because they share one browser; Visual skips a frontend with no changed UI files, and Acceptance checks a frontend with no changed files on a lighter model. Two frontends that resolve to the same URL are refused with a message asking for distinct <code>url</code> values.</p></li></ul>
 <h3 id="configuration-traps">Configuration traps</h3>
 <p>Each of these produces the same symptom: <em>&quot;why does it ignore the frontend conventions?&quot;</em>
 <code>/memory</code> shows what is actually loaded.</p>
 <div class="table-wrap"><table><thead><tr><th>Mechanism</th><th>What it really does</th></tr></thead><tbody><tr><td><code>permissions.additionalDirectories</code> in settings</td><td>Grants <strong>file access only</strong>. It doesn&#39;t load the sibling&#39;s <code>CLAUDE.md</code>, rules, or skills.</td></tr><tr><td><code>claude --add-dir ../fe</code></td><td>Loads the sibling&#39;s skills. Its <code>CLAUDE.md</code> loads only when <code>CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1</code> is set.</td></tr><tr><td><code>@../fe/CLAUDE.md</code> import from inside a repo</td><td>Imports from outside the working directory need a one-time approval. If you decline, they are <strong>silently disabled</strong>.</td></tr></tbody></table></div>
 <p>The parent-folder layout avoids all three: both repos sit under the working directory, so the
 root <code>@be/CLAUDE.md</code> and <code>@fe/CLAUDE.md</code> imports are local.</p>
+<p>What <code>--add-dir</code> does and does not apply from an added directory:</p>
+<ul><li>From its settings only <code>enabledPlugins</code> and <code>extraKnownMarketplaces</code> apply. Its hooks and permissions do not.</li><li>Its <code>CLAUDE.md</code> and <code>.claude/rules</code> load only with <code>CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1</code>.</li><li><code>permissions.additionalDirectories</code> grants file access only.</li><li>Claude Code reads <code>AGENTS.md</code> only when no <code>CLAUDE.md</code>, <code>.claude/CLAUDE.md</code> or <code>CLAUDE.local.md</code>
+exists in the working directory or above (v2.1.277+), so keep <code>@AGENTS.md</code> in each <code>CLAUDE.md</code>.</li><li>Relative imports resolve against the importing file, up to four hops.</li></ul>
 <p>If you have to start inside one repo, use <code>--add-dir</code> together with the env var:</p>
 <pre><code class="language-bash">cd be &amp;&amp; CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ../fe</code></pre>
 <h3 id="workflows-and-specs">Workflows and specs</h3>
@@ -76,7 +105,7 @@ that fails:</p>
 <p>Hand-maintained type mirrors cause the most cross-repo bugs. A typical example: frontend enum
 literals that type-check but don&#39;t match the backend values.</p>
   </article>
-  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/multi-repo.md">View the Markdown source</a></p>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/multi-repo.md">View the Markdown source</a></p>
 </main>
 <script>
   (function () {

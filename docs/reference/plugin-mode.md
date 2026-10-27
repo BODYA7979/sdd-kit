@@ -12,7 +12,7 @@ covers what changes and which guardrails need extra care.
 | Updates | `/plugin update`, same version for the whole team | Re-run the installer; `--dry-run` shows the diff |
 | Hooks | `hooks/hooks.json` with `${CLAUDE_PLUGIN_ROOT}` | `.claude/settings.json` with `$CLAUDE_PROJECT_DIR` |
 | Permissions and env | Not applied from the plugin (see below) | `.claude/settings.json` |
-| MCP servers | The plugin's root `.mcp.json` starts `context7` and Playwright MCP | Project `.mcp.json` with the same two, merged, never overwritten |
+| MCP servers | The plugin's root `.mcp.json` starts `context7` and Playwright MCP; the workflows' browser steps use it with no project entry, see [Playwright in plugin mode](installation.md#playwright-in-plugin-mode) | Project `.mcp.json` with the same two, merged, never overwritten |
 | Names | Namespaced: `/sdd-kit:sdd` | Bare: `/sdd` |
 | Project context | `CLAUDE.md`, `AGENTS.md`, and `.claude/rules/` are **not** installed | Installer creates them from templates when absent |
 | Best for | Teams that want one pinned version | Projects that customize agents, or need agent-level guardrails |
@@ -101,13 +101,13 @@ All of the kit's hooks are global (`hooks/hooks.json`), so plugin mode keeps the
 | Event | Script | Purpose |
 |-------|--------|---------|
 | PreToolUse (Bash) | `block-dangerous.sh`, `check-commit-msg.sh` | Block destructive commands; enforce commit format |
-| PreToolUse (Write/Edit) | `laravel-test-first.sh`, `nextjs-test-first.sh` (stack add-ons) | Block edits to controllers, models, services, middleware, and components until a matching test exists |
+| PreToolUse (Write/Edit) | `laravel-test-first.sh`, `nextjs-test-first.sh` (stack add-ons) | Block edits to Laravel controllers, models and services, and Next.js components, until a matching test exists |
 | PreToolUse (Read/Grep/Glob/Bash) | `token-budget.sh` | Block `find /`, and unbounded reads once context usage passes the threshold |
 | PostToolUse (Write/Edit) | `laravel-lint.sh`, `nextjs-lint.sh` (stack add-ons), `scan-secrets.sh` | Lint changed files; catch secrets |
 | PostToolUse (Bash/WebFetch/MCP) | `scan-injection.sh` | Flag prompt-injection patterns |
 | SessionStart, UserPromptSubmit, PreCompact, SessionEnd, Stop, SubagentStop, Notification | various | Context load/save, prompt preflight, completion checks |
 
-`hooks/hooks.json` is the source of truth. If this table and that file disagree, trust the file. Every hook, with how to tune or disable it, is in [src/hooks/README.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/share/hooks/README.md).
+`hooks/hooks.json` is the source of truth. If this table and that file disagree, trust the file. Every hook, with how to tune or disable it, is in [src/hooks/README.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/share/hooks/README.md).
 
 ## Verifying an install
 

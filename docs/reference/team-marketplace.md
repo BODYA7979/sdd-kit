@@ -27,14 +27,58 @@ The catalog points at the kit's public distribution repository, `stasmarkov/sdd-
   "owner": { "name": "Platform Team", "email": "platform@your-org.example" },
   "plugins": [
     {
+      "name": "sdd-kit-laravel-nextjs",
+      "description": "Preset: the core plus the Laravel, Next.js and devenv add-ons.",
+      "source": {
+        "source": "git-subdir",
+        "url": "stasmarkov/sdd-kit",
+        "path": "plugins/sdd-kit-laravel-nextjs",
+        "ref": "v3.1.0",
+        "sha": "<40-char commit sha of v3.1.0>"
+      }
+    },
+    {
       "name": "sdd-kit",
-      "description": "Spec-driven Laravel API + Next.js framework: /sdd, workflows, agents, skills, hooks.",
+      "description": "Spec-driven core: /sdd, workflows, agents, skills, hooks.",
       "source": {
         "source": "git-subdir",
         "url": "stasmarkov/sdd-kit",
         "path": "plugins/sdd-kit",
-        "ref": "v2.1.0",
-        "sha": "<40-char commit sha of v2.1.0>"
+        "ref": "v3.1.0",
+        "sha": "<40-char commit sha of v3.1.0>"
+      }
+    },
+    {
+      "name": "sdd-kit-laravel",
+      "description": "Laravel agent, skills, rules and hooks.",
+      "source": {
+        "source": "git-subdir",
+        "url": "stasmarkov/sdd-kit",
+        "path": "plugins/sdd-kit-laravel",
+        "ref": "v3.1.0",
+        "sha": "<40-char commit sha of v3.1.0>"
+      }
+    },
+    {
+      "name": "sdd-kit-nextjs",
+      "description": "Next.js agent, skills, rules and hooks.",
+      "source": {
+        "source": "git-subdir",
+        "url": "stasmarkov/sdd-kit",
+        "path": "plugins/sdd-kit-nextjs",
+        "ref": "v3.1.0",
+        "sha": "<40-char commit sha of v3.1.0>"
+      }
+    },
+    {
+      "name": "sdd-kit-devenv",
+      "description": "docker and ddev skills.",
+      "source": {
+        "source": "git-subdir",
+        "url": "stasmarkov/sdd-kit",
+        "path": "plugins/sdd-kit-devenv",
+        "ref": "v3.1.0",
+        "sha": "<40-char commit sha of v3.1.0>"
       }
     },
     {
@@ -44,8 +88,8 @@ The catalog points at the kit's public distribution repository, `stasmarkov/sdd-
         "source": "git-subdir",
         "url": "stasmarkov/sdd-kit",
         "path": "plugins/sdd-kit-ops",
-        "ref": "v2.1.0",
-        "sha": "<40-char commit sha of v2.1.0>"
+        "ref": "v3.1.0",
+        "sha": "<40-char commit sha of v3.1.0>"
       }
     },
     {
@@ -56,8 +100,8 @@ The catalog points at the kit's public distribution repository, `stasmarkov/sdd-
         "source": "git-subdir",
         "url": "stasmarkov/sdd-kit",
         "path": "plugins/sdd-kit-design",
-        "ref": "v2.1.0",
-        "sha": "<40-char commit sha of v2.1.0>"
+        "ref": "v3.1.0",
+        "sha": "<40-char commit sha of v3.1.0>"
       }
     }
   ]
@@ -67,9 +111,9 @@ The catalog points at the kit's public distribution repository, `stasmarkov/sdd-
 Notes:
 
 - Keep each entry's `name` identical to the `name` in that plugin's own `.claude-plugin/plugin.json`; the entry name is the install id (`<name>@your-org-claude`) and the key written to `enabledPlugins`.
-- Get the commit for a tag with `git ls-remote https://github.com/stasmarkov/sdd-kit refs/tags/v2.1.0` (use the `^{}` line for annotated tags).
+- Get the commit for a tag with `git ls-remote https://github.com/stasmarkov/sdd-kit refs/tags/v3.1.0` (use the `^{}` line for annotated tags).
 - If you fork the framework, point `repo` / `url` at your fork. A fork is the right choice when you carry local changes; otherwise reference upstream.
-- Stack add-ons are separate entries (`plugins/sdd-kit-laravel`, `plugins/sdd-kit-nextjs`, `plugins/sdd-kit-devenv`). The preset `sdd-kit-laravel-nextjs` (`plugins/sdd-kit-laravel-nextjs`) only declares dependencies on them and the core; list the add-ons it depends on in your catalog too, pinned like the core.
+- Stack add-ons are separate entries (`plugins/sdd-kit-laravel`, `plugins/sdd-kit-nextjs`, `plugins/sdd-kit-devenv`) that the preset resolves from your catalog. The preset `sdd-kit-laravel-nextjs` (`plugins/sdd-kit-laravel-nextjs`) is the first entry above: it only declares dependencies on the core and those three add-ons, so list all of them in your catalog too, pinned like the preset.
 - List only the add-ons you approve. `ios` and `drupal` can be added the same way (`path: plugins/sdd-kit-ios`, `plugins/sdd-kit-drupal`).
 - `defaultEnabled: false` makes an add-on opt-in even after install.
 
@@ -83,8 +127,8 @@ Then test the full loop on your machine:
 
 ```bash
 claude plugin marketplace add ./claude-marketplace
-claude plugin install sdd-kit@your-org-claude
-claude plugin details sdd-kit
+claude plugin install sdd-kit-laravel-nextjs@your-org-claude
+claude plugin details sdd-kit-laravel-nextjs
 ```
 
 Push the repo. Teammates register it with `claude plugin marketplace add your-org/claude-marketplace`. For a private repo, each user needs read access through their git credentials; CI needs a token (on GitHub Actions: export `GH_TOKEN` and run `gh auth setup-git`).
@@ -101,7 +145,7 @@ Commit this to each application repo's `.claude/settings.json`. Contributors get
     }
   },
   "enabledPlugins": {
-    "sdd-kit@your-org-claude": true,
+    "sdd-kit-laravel-nextjs@your-org-claude": true,
     "sdd-kit-ops@your-org-claude": true
   }
 }
@@ -110,7 +154,7 @@ Commit this to each application repo's `.claude/settings.json`. Contributors get
 Because the plugin entries point at an external source (this framework's repo), each contributor installs once per project:
 
 ```bash
-claude plugin install sdd-kit@your-org-claude --scope project
+claude plugin install sdd-kit-laravel-nextjs@your-org-claude --scope project
 ```
 
 Until then Claude Code reports `Plugin "<name>" is enabled in project settings but isn't installed`.

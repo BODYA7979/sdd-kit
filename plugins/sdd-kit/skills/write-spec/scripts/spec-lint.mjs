@@ -6,14 +6,22 @@
  * structural problems. It uses only node: built-ins and makes no network or model call.
  *
  * Usage: node spec-lint.mjs [--warn] [--verified] [--root <dir>] <spec-dir> [<spec-dir> ...]
+ *        node spec-lint.mjs --gates <spec-dir> [<spec-dir> ...]
  *
  * Output, one line per finding: `<file>:<line> <error|warning> <problem>. Fix: <fix>`.
  * With no findings for a folder: `spec-lint: <dir> OK`.
- * Exit codes: 1 when a blocker is found, 0 otherwise (always 0 with --warn), 2 on a usage error.
+ * Exit codes: 1 when a blocker is found, 0 otherwise (always 0 with --warn), 2 on a usage error,
+ * 3 from --gates when tasks.md has an unchecked gate task.
  *
  * --verified  also checks every Traceability "Verified by" item against the repo root.
  * --warn      reports every finding as a warning and exits 0.
  * --root      repo root for --verified (default: nearest ancestor holding .git, else cwd).
+ * --gates     gate check instead of lint. A gate is a task whose title text after `N. ` starts
+ *             with `Gate:` (case-sensitive); only the owner checks it, and the first unchecked gate
+ *             blocks every task after it. Prints `build: <id>. <title>` for each unchecked non-gate
+ *             task before that gate (every unchecked task when there is none), then
+ *             `awaiting owner: <title>` for the gate and exits 3; with no unchecked gate it ends
+ *             with `gates: clear` and exits 0. An unchecked gate is also a lint warning.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -138,6 +146,28 @@ export function classifyItem(item) {
 function splitRow(line) {
   const t = line.trim().replace(/^\|/, '').replace(/\|$/, '');
   return t.split('|').map((c) => c.trim());
+}
+
+const TASK_LINE = /^- \[([ xX])\]\s+(\d+)\.\s+(.*)$/;
+
+/**
+ * Splits the unchecked tasks of a tasks.md at the first unchecked gate task.
+ * @param {string} tasksText contents of tasks.md
+ * @returns {{build: {line: number, id: number, title: string}[], gate: ({line: number, id: number, title: string}|null)}}
+ *   build = unchecked non-gate tasks before the gate, in file order; gate = the first unchecked gate, or null
+ * @example gatePlan('- [ ] 1. A\n- [ ] 2. Gate: owner signs off\n- [ ] 3. B') // build [1], gate 2
+ */
+export function gatePlan(tasksText) {
+  const build = [];
+  const lines = stripComments(tasksText).split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const m = TASK_LINE.exec(lines[i].replace(/\r$/, ''));
+    if (!m || m[1] !== ' ') continue;
+    const task = { line: i + 1, id: Number(m[2]), title: m[3].trim() };
+    if (task.title.startsWith('Gate:')) return { build, gate: task };
+    build.push(task);
+  }
+  return { build, gate: null };
 }
 
 /** Parses the Traceability table of tasks.md into rows: {line, id, verified}. Returns null when absent. */
@@ -286,6 +316,14 @@ export function lintSpec(dir, opts = {}) {
       }
     });
 
+    tasks.forEach((start) => {
+      const m = TASK_LINE.exec(tLines[start]);
+      if (m && m[1] === ' ' && m[3].startsWith('Gate:')) {
+        add(tasksFile, start + 1, 'warning', `unchecked gate task "${m[3].trim()}"`,
+          'the owner checks a gate task; no task after it runs until then');
+      }
+    });
+
     // Verified by grammar
     for (const r of rows || []) {
       const items = r.verified.split(';').map((s) => s.trim()).filter((s) => s !== '');
@@ -342,7 +380,7 @@ export function lintSpec(dir, opts = {}) {
 }
 
 function usage(msg) {
-  process.stderr.write(`${msg ? `${msg}\n` : ''}Usage: spec-lint [--warn] [--verified] [--root <dir>] <spec-dir> [<spec-dir> ...]\n`);
+  process.stderr.write(`${msg ? `${msg}\n` : ''}Usage: spec-lint [--warn] [--verified] [--gates] [--root <dir>] <spec-dir> [<spec-dir> ...]\n`);
   return 2;
 }
 
@@ -354,12 +392,14 @@ function usage(msg) {
 export function main(argv) {
   let warn = false;
   let verified = false;
+  let gates = false;
   let root;
   const dirs = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--warn') warn = true;
     else if (a === '--verified') verified = true;
+    else if (a === '--gates') gates = true;
     else if (a === '--root') {
       root = argv[++i];
       if (!root) return usage('--root needs a directory');
@@ -369,6 +409,21 @@ export function main(argv) {
   if (dirs.length === 0) return usage('missing <spec-dir>');
   for (const d of dirs) {
     if (!fs.existsSync(d) || !fs.statSync(d).isDirectory()) return usage(`not a directory: ${d}`);
+  }
+  if (gates) {
+    let blocked = false;
+    for (const d of dirs) {
+      const tasksFile = path.join(d, 'tasks.md');
+      if (!fs.existsSync(tasksFile)) return usage(`no tasks.md in ${d}; pass the spec folder that holds it`);
+      const plan = gatePlan(fs.readFileSync(tasksFile, 'utf8'));
+      for (const t of plan.build) process.stdout.write(`build: ${t.id}. ${t.title}\n`);
+      if (plan.gate) {
+        blocked = true;
+        process.stdout.write(`awaiting owner: ${plan.gate.title}\n`);
+      }
+    }
+    if (!blocked) process.stdout.write('gates: clear\n');
+    return blocked ? 3 : 0;
   }
   let blockers = 0;
   for (const d of dirs) {

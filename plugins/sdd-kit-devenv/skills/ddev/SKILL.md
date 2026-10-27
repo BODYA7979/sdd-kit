@@ -214,3 +214,7 @@ After `ddev start`:
 **Sources:**
 - [DDEV Documentation](https://docs.ddev.com)
 - [DDEV MCP Server](https://github.com/AkibaAT/ddev-mcp)
+
+## Quality gates in a DDEV project
+
+When a repo has `.ddev/config.yaml`, the Laravel stack manifest declares an `execWrapper`, so the workflow gates (Pint, PHPStan, tests) run as `ddev exec <gate command>` and the gate details name the wrapper. If `ddev describe` fails, each wrapped gate is reported as `not run (ddev not running)` instead of failing; start the project with `ddev start` and re-run. Repos without the marker keep their plain gate commands.

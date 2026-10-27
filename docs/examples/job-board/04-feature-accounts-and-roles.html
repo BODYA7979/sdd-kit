@@ -21,7 +21,7 @@
 <header class="site-header">
   <div class="brand">
     <a class="brand-name" href="../../index.html">SDD Kit</a>
-    <span class="badge">v3.0.0</span>
+    <span class="badge">v3.1.0</span>
   </div>
   <div class="header-actions">
     <a class="btn" href="../../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
@@ -48,8 +48,9 @@ abridged and marked <em>simulated</em>, because your run will word things differ
 <h3 id="before-you-start">Before you start</h3>
 <ul><li>ADR-0001 is <code>Accepted</code> in <code>api/docs/adr/0001-spa-auth.md</code>, and INV-05 and BR-04 are in context
 (<a href="03-decision-spa-auth-adr.html">chapter 03</a>).</li><li>Both dev servers are running, because the Visual phase drives a real browser:<pre><code class="language-bash">cd ~/work/hireboard/api &amp;&amp; php artisan migrate:fresh --seed &amp;&amp; php artisan serve --port=8000
-cd ~/work/hireboard/web &amp;&amp; npm run dev            # second terminal</code></pre></li><li>The Claude in Chrome extension is connected if you want the Visual phase to run. Without it, Visual
-logs &quot;could not run&quot; and the rest of the pipeline continues.</li></ul>
+cd ~/work/hireboard/web &amp;&amp; npm run dev            # second terminal</code></pre></li><li>The Visual phase drives the browser through the Playwright MCP server first, with the Claude in Chrome
+extension as the fallback. When neither is available, Visual logs &quot;not run&quot; and the rest of the
+pipeline continues.</li></ul>
 <h3 id="step-1--branch-both-repos-before-anything-else">Step 1 — Branch both repos before anything else</h3>
 <p>ship-feature&#39;s Detect phase checks each repo with <code>git -C &lt;path&gt; rev-parse --is-inside-work-tree</code> and
 <code>git -C &lt;path&gt; ls-files</code>. A repo without committed files is flagged as untracked WIP, and a run that
@@ -274,7 +275,7 @@ pass the repo-relative path. <code>repos</code> uses <code>api</code> and <code>
 where the session started. <a href="03-decision-spa-auth-adr.html">Chapter 03</a> started inside <code>api/</code> and used
 <code>&quot;.&quot;</code> and <code>&quot;../web&quot;</code>.</p>
 <p>The arguments are documented in
-<a href="https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/plugins/sdd-kit/skills/sdd/references/ship-feature.md" target="_blank" rel="noopener noreferrer">references/ship-feature.md</a>. The
+<a href="https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/plugins/sdd-kit/skills/sdd/references/ship-feature.md" target="_blank" rel="noopener noreferrer">references/ship-feature.md</a>. The
 <code>ticket</code> arg only names the folder in free-text <code>feature</code> mode. In spec mode it is ignored, which is
 harmless. The key still shows up in the report because it is part of the spec id
 <code>spec-HIRE-3-accounts-and-roles</code>.</p>
@@ -325,7 +326,7 @@ not for coverage, so the missing <code>Covers:</code> line got past it. Converge
 kind of gap. It runs at most 2 rounds, and anything still missing after that is left in <code>tasks.md</code>
 for a human and blocks <code>SHIP</code>.</p>
 <p><strong>Visual.</strong> The phase runs only when UI files (<code>.tsx</code>, <code>.css</code>, ...) changed, which they did in <code>web/</code>.
-The Chrome extension opens <code>/login</code> and <code>/register</code> at about 375, 768 and 1440 px and checks layout and
+Playwright opens <code>/login</code> and <code>/register</code> at about 375, 768 and 1440 px and checks layout and
 contrast. <em>Simulated:</em></p>
 <pre><code>- minor: /register at 375px — the two role radios wrap onto separate lines with no gap; readable.
 - minor: /login — the focus outline on the inputs is the browser default and faint on the white card.</code></pre>
@@ -508,7 +509,7 @@ and a middleware matcher that already covers their routes.</li><li>A spec in <co
 manual step, plus two merged PRs (api first).</li></ul>
 <p>Next: <a href="05-feature-company-reviews-full-spec.html">05 — Anatomy of an M spec: company reviews with moderation (HIRE-4)</a></p>
   </article>
-  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/examples/job-board/04-feature-accounts-and-roles.md">View the Markdown source</a></p>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/examples/job-board/04-feature-accounts-and-roles.md">View the Markdown source</a></p>
 </main>
 <script>
   (function () {

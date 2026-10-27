@@ -34,6 +34,7 @@ Apply these patterns when building Next.js frontends with App Router.
 | Typed API client | `references/api-client.md` |
 | Error boundaries and error handling | `references/error-handling.md` |
 | Next.js CI pipeline | `references/ci-pipeline.md` |
+| Next.js 16 (proxy.ts, ESLint CLI, Turbopack) | `references/nextjs-16.md` |
 
 ## Code Templates
 

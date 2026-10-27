@@ -80,6 +80,8 @@ Run every check, then show one table. **Block** stops the run with the fix; **Wa
 | `gh` installed and authenticated | `gh auth status` | Block — `gh auth login` |
 | Spec status | `status:` in spec-lite.md frontmatter is `in-progress` or `done` | Block on `draft` (→ `/sdd <spec>` for approval) or `approved` (→ `/execute-task` or ship-feature; nothing is built yet). Legacy spec without frontmatter → Warn |
 | Spec complete | every `- [ ] N.` in tasks.md checked, every Traceability "Verified by" cell filled | Warn — offer `--draft` |
+| Spec lint | `node ${CLAUDE_SKILL_DIR}/../write-spec/scripts/spec-lint.mjs --verified <spec-folder>`; report each finding | Warn — list the findings in the output |
+| Spec approval | `approved_by` and `approved_at` in spec-lite.md frontmatter are both non-empty | Warn — the spec was never approved; say so in the output and in the PR body's Spec line |
 | Gates green | see *Gate evidence* below | Block |
 | Deep-review | newest `.ai/reviews/REVIEW-*` whose name or Source line matches the spec id, ticket, or branch | `BLOCKED` / `CHANGES_REQUIRED` → Block (fix, re-run `/deep-review`). When no deep-review report exists, the Recommendation of a saved workflow report under `.ai/reports/` counts as the review: ship-feature `SHIP` or fix-bug `FIXED` passes, anything else Blocks. No report of either kind → Warn, suggest `/deep-review --spec=<id>` |
 | Branch | current branch is not the base, and the same branch name is used in every repo of the change | Block on base — offer `git switch -c <feature\|fix>/<ticket>-<slug>` |

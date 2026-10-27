@@ -479,7 +479,7 @@
     if (E) stats.push(['chapters', E.chapters.length, '#example'], ['example specs', E.specs.length, '#board']);
     fill($('stats'), stats.map(function (s) { return h('li', plain(s[2], [h('b', s[1]), h('span', s[0])], 'stat')); }));
     if (G.stacks) {
-      fill($('stack-note'), ['Built for ' + G.stacks.now + '; ' + G.stacks.roadmap + ' are ', plain(G.stacks.href, 'on the roadmap', 'inline'), '.']);
+      fill($('stack-note'), ['Supported stacks: ' + G.stacks.now + '. ', 'Next on the ', plain(G.stacks.href, 'roadmap', 'inline'), ': ' + G.stacks.roadmap + '.']);
     }
     done('start');
   }
@@ -747,6 +747,7 @@
       h('h3', p.title),
       h('div', { class: 'chips' }, chip(p.who, p.accent ? 'you' : whoKind(p.who)), p.accent ? chip('human checkpoint', 'you') : null),
       para(p.text),
+      p.href ? h('p', { class: 'note' }, 'How manifests are checked and approved: ', plain(p.href, 'stack manifest', 'inline'), '.') : null,
       p.id === 'acceptance' && G.browser ? para(G.browser, 'note') : null,
       p.id === 'docs' && A ? h('p', { class: 'note' }, 'Next: ', plain('#after', 'after /sdd', 'inline'), ', ' + A.intro) : null),
       h('div', { class: 'hint' }, (i + 1) + ' / ' + P.length)];
@@ -967,7 +968,12 @@
       G.everydayIntro ? para(G.everydayIntro, 'note') : null,
       h('div', { class: 'list-cmd' }, G.everyday.map(function (e) { return h('div', { class: 'row' }, h('span', e.task), codeBlock(e.code, e.task)); }))
     ]);
-    fill($('addons'), G.addons.map(function (a) {
+    var trust = G.stackTrust;
+    var notes = [
+      G.addonsNote ? para(G.addonsNote, 'note') : null,
+      trust ? h('p', { class: 'note' }, trust.text + ' ', plain(trust.href, trust.label, 'inline')) : null
+    ];
+    fill($('addons'), notes.concat(G.addons.map(function (a) {
       var count = C.skills.concat(C.agents).filter(function (x) { return x.ships === addonShips(a.name); }).length;
       return h('div', { class: 'addon-card' }, h('h4', a.name), para(a.what),
         h('div', { class: 'linkrow' }, a.skills.map(function (s) { return itemByName(C.skills, s) ? openLink(s, 'skill/' + s) : chip(s); })),
@@ -984,7 +990,7 @@
             scrollToId('catalog');
           }
         }, 'View ' + count + ' in catalog') : null);
-    }));
+    })));
     done('everyday');
   }
 

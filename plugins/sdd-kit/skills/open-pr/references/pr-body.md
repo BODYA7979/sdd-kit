@@ -8,7 +8,7 @@ Load this in Step 3 of `/open-pr`. Each section of the body has exactly one sour
 |---------|--------|----------------------------|
 | Title line under the heading | spec-lite.md `title` + `ticket` | Bug mode: first line of the fix-bug report Summary |
 | Summary | spec-lite.md *Summary* (one paragraph, trimmed to this repo's part in a polyrepo change) | Bug mode: report Summary + Root cause (mechanism, `file:line`) |
-| Spec | path to the spec folder, plus `approved_by` / `approved_at` | Bug mode: "No spec — fix-bug pipeline; report attached below" |
+| Spec | path to the spec folder, plus `approved_by` / `approved_at`; when either is empty write "not approved (approval empty)" in their place | Bug mode: "No spec — fix-bug pipeline; report attached below" |
 | Changes | `git diff --stat origin/$BASE...HEAD` grouped by area (see *Stack notes*) | — |
 | Acceptance criteria | spec-lite.md *Acceptance criteria* joined with the tasks.md *Traceability* rows | Bug mode: the regression test(s) from the report |
 | Must NOT change | spec-lite.md *Must NOT change* joined with Traceability `MNC-*` rows | Bug mode: report *Must NOT change* (behavior + guard test) |

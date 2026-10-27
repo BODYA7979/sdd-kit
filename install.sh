@@ -15,7 +15,7 @@
 # Installs merge into the target: files the framework does not own are never
 # touched. A manifest (.framework-manifest) records what was installed, so a
 # later run updates changed files, removes files the framework no longer ships,
-# and backs up anything it overwrites or removes (latest backup only).
+# and backs up anything it overwrites or removes (the five newest backups are kept).
 
 set -euo pipefail
 
@@ -110,6 +110,10 @@ STAMP=$(date +%Y%m%d_%H%M%S)
 # when the file still matches a version the kit shipped: RETIRED_HASHES lists
 # them (regenerate with tools/gen-retired-hashes.sh after editing this list).
 RETIRED_HASHES="$SHARE_DIR/scripts/retired-1x.sha256"
+# Every file a 1.x installer placed, by content and path. 1.x wrote no manifest,
+# so this is how a stale 1.x kit file at a path the kit still ships is told
+# apart from a file the user wrote there (same generator).
+KIT_1X_HASHES="$SHARE_DIR/scripts/kit-1x.sha256"
 RETIRED_PATHS=(
     agents/execution/api-dev.md agents/execution/integration-dev.md agents/execution/database-dev.md
     agents/quality/code-reviewer.md agents/operations/knowledge-graph-manager.md
@@ -654,10 +658,12 @@ rewrite_paths_for_user_install() {
 
 file_hash() { shasum -a 256 "$1" | awk '{print $1}'; }
 
-# A previously installed path is ours to remove only when its content is still
-# what the kit shipped: the manifest hash for files a 2.x install recorded, or a
-# known 1.x hash for RETIRED_PATHS. Edited files and third-party skills placed
-# at a retired path (upstream Stripe or skill-creator copies) are kept.
+# A previously installed path is ours to remove or replace only when its content
+# is still what the kit shipped: the manifest hash for files a 2.x or later
+# install recorded, a known 1.x hash for RETIRED_PATHS, or, when there is no
+# manifest (a 1.x install), any version a 1.x installer placed at that path.
+# Edited files and third-party skills placed at a kit path (upstream Stripe or
+# skill-creator copies) are kept.
 is_kit_copy() {
     local rel="$1" current recorded skill_dir
     if [[ "$rel" == skills/*/* ]]; then
@@ -674,11 +680,14 @@ is_kit_copy() {
             return
         fi
     fi
-    [[ -f "$RETIRED_HASHES" ]] && grep -qxF "$current  $rel" "$RETIRED_HASHES"
+    [[ -f "$RETIRED_HASHES" ]] && grep -qxF "$current  $rel" "$RETIRED_HASHES" && return 0
+    [[ ! -f "$TARGET_DIR/.framework-manifest" && -f "$KIT_1X_HASHES" ]] \
+        && grep -qxF "$current  $rel" "$KIT_1X_HASHES"
 }
 
 plan_changes() {
-    ADDED=(); UPDATED=(); REMOVED=(); KEPT=()
+    ADDED=(); UPDATED=(); REMOVED=(); KEPT=("${UNOWNED[@]-}")
+    [[ -n "${KEPT[0]}" ]] || KEPT=()
     local rel
     while IFS= read -r rel; do
         if [[ ! -e "$TARGET_DIR/$rel" ]]; then
@@ -702,6 +711,26 @@ plan_changes() {
             fi
         fi
     done
+}
+
+# A file at a staged path that the manifest does not list and that is not a
+# known kit copy belongs to the user: it is kept and the kit copy is not staged.
+guard_unowned_files() {
+    local rel recorded
+    UNOWNED=()
+    for rel in "${UPDATED[@]-}"; do
+        [[ -n "$rel" ]] || continue
+        recorded=""
+        if [[ -f "$TARGET_DIR/.framework-manifest" ]]; then
+            recorded=$(awk -v p="$rel" '$2 == p { print $1; exit }' "$TARGET_DIR/.framework-manifest")
+        fi
+        [[ -n "$recorded" ]] && continue
+        is_kit_copy "$rel" && continue
+        UNOWNED+=("$rel")
+        rm -f "$STAGE/$rel"
+        log_warning "Kept your .claude/$rel; the kit copy was not installed because the file is not one the kit installed. Fix: move your file aside and re-run install.sh to get the kit copy, or keep yours."
+    done
+    if [[ ${#UNOWNED[@]} -gt 0 ]]; then plan_changes; fi
 }
 
 # Never leave two agents with one name: Claude Code loads one of them by read order.
@@ -742,16 +771,47 @@ print_plan() {
     printf "\n"
 }
 
+# Keeps the <keep> newest <stamp> entries of a backups directory and deletes the
+# rest. Only entries named like a stamp (YYYYMMDD_HHMMSS) directly inside the
+# directory are candidates; a symlink is removed as a link and never followed,
+# and nothing is deleted when the directory itself is a symlink or an entry
+# resolves outside it.
+prune_backups() {
+    local root="$1" keep="$2" real_root entry real_parent
+    [[ -d "$root" ]] || return 0
+    if [[ -L "$root" ]]; then
+        log_warning "Did not prune $root: it is a symlink. Fix: replace it with a real directory, or prune old backups by hand."
+        return 0
+    fi
+    real_root=$(cd -P "$root" && pwd -P) || return 0
+    find "$root" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) \
+            -name '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9]' 2>/dev/null \
+        | sort -r | tail -n +"$((keep + 1))" | while IFS= read -r entry; do
+            if [[ -L "$entry" ]]; then
+                rm -f -- "$entry"
+                continue
+            fi
+            real_parent=$(cd -P "$(dirname "$entry")" && pwd -P) || continue
+            [[ "$real_parent" == "$real_root" && -d "$entry" ]] || continue
+            rm -rf -- "$entry"
+        done
+}
+
 apply_changes() {
     local backup="$TARGET_DIR/.framework-backups/$STAMP" rel dir
     if [[ ${#UPDATED[@]} -gt 0 || ${#REMOVED[@]} -gt 0 ]]; then
+        # A symlinked backups folder would put the copies of overwritten files outside the install target.
+        if [[ -L "$TARGET_DIR/.framework-backups" || -L "$backup" ]]; then
+            log_error "Did not install: $TARGET_DIR/.framework-backups is a symlink, so the backup of replaced files would land outside $TARGET_DIR. Nothing was changed. Fix: move the link aside (mv \"$TARGET_DIR/.framework-backups\" \"$TARGET_DIR/.framework-backups.link\") and re-run."
+            exit 1
+        fi
         for rel in "${UPDATED[@]-}" "${REMOVED[@]-}"; do
             [[ -n "$rel" ]] || continue
             mkdir -p "$backup/$(dirname "$rel")"
             cp -p "$TARGET_DIR/$rel" "$backup/$rel"
         done
-        find "$TARGET_DIR/.framework-backups" -mindepth 1 -maxdepth 1 -type d ! -name "$STAMP" -exec rm -rf {} +
-        log_info "Backed up overwritten/removed files to $backup (older framework backups pruned)"
+        prune_backups "$TARGET_DIR/.framework-backups" 5
+        log_info "Backed up overwritten/removed files to $backup (the five newest backups are kept)"
     fi
     for rel in "${REMOVED[@]-}"; do
         [[ -n "$rel" ]] || continue
@@ -914,7 +974,9 @@ main() {
     stage_core
     stage_addons
     rewrite_paths_for_user_install
+    UNOWNED=()
     plan_changes
+    guard_unowned_files
     guard_same_name_agents
     print_plan
 

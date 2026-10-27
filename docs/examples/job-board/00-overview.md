@@ -1,7 +1,7 @@
 # 00 — Hireboard from scratch: overview and prerequisites
 
 This walkthrough builds a small job board called **Hireboard** from an empty folder to a
-team-ready product. It uses SDD Kit v2.0.0 for every step. Each chapter is
+team-ready product. It uses SDD Kit v3.1.0 (the 3.x line) for every step. Each chapter is
 one real ticket, taken through the `/sdd` route the kit picks for it. Read the chapters in order
 to follow the story, or jump to the one that matches the route you are about to use.
 
@@ -59,7 +59,7 @@ chapter 03 as ADR-0001):
 
 ## Route map
 
-`/sdd` is the single front door ([src/skills/sdd/SKILL.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/plugins/sdd-kit/skills/sdd/SKILL.md)).
+`/sdd` is the single front door ([src/skills/sdd/SKILL.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/plugins/sdd-kit/skills/sdd/SKILL.md)).
 It sorts each request into one of six routes, confirms the route with you, collects the inputs,
 and launches exactly one fixed pipeline:
 
@@ -128,7 +128,8 @@ empty target folder, and greenfield-build's Detect phase stops when it finds tra
 Chapter 01 shows both safe options:
 
 - **Plugin mode** (recommended here). Install once with `/plugin marketplace add stasmarkov/sdd-kit` and
-  `/plugin install sdd-kit@sdd-kit` (chapter 01, step 2), and nothing is written into the repos. Plugins do not create `CLAUDE.md`, `AGENTS.md` or
+  `/plugin install sdd-kit@sdd-kit`, then the Laravel and Next.js preset with
+  `/plugin install sdd-kit-laravel-nextjs@sdd-kit` (chapter 01, step 2), and nothing is written into the repos. Plugins do not create `CLAUDE.md`, `AGENTS.md` or
   `.claude/rules/`, so chapter 02 copies them by hand
   ([INSTALLATION.md#project-context-is-not-installed](../../reference/installation.md#project-context-is-not-installed)).
 - **File-copy mode.** Run `./install.sh --project` inside each repo *after* greenfield-build has

@@ -24,7 +24,7 @@ is_over_budget() {
 
 emit_block() {
     local reason="$1"
-    jq -nc --arg r "$reason" '{decision: "block", reason: $r}'
+    jq -nc --arg r "$reason" '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
     exit 2
 }
 

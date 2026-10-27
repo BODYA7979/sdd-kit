@@ -34,7 +34,7 @@ emit_block() {
     local source="$1"
     local expected_test="$2"
     jq -nc --arg r "Test-first guard: '$source' has no corresponding test at '$expected_test'. Create or scaffold the test first, then retry the edit. Set CLAUDE_SKIP_TEST_FIRST=1 to bypass." \
-        '{decision: "block", reason: $r}'
+        '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
     exit 2
 }
 

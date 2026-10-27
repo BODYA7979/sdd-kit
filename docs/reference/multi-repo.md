@@ -6,6 +6,9 @@ repos and the contract between them.
 
 ## Layout
 
+The examples use one backend and one frontend. For several frontends, add one folder per frontend
+(see [Several frontends](#several-frontends)).
+
 ```
 project/                    no .git here, on purpose
 ├── CLAUDE.md               imports both repos + cross-repo rules
@@ -31,6 +34,44 @@ plus the root file. Keep the root file small. It holds only what neither repo kn
   Grep the frontend before you call the backend task done.
 - **Process:** commit in each repo separately, use matching branch names, never commit from the root.
 
+## Several frontends
+
+One API often serves more than one frontend, for example a customer site and an admin app:
+
+```
+project/
+├── CLAUDE.md
+├── be/        Laravel API
+├── fe/        Next.js customer site (dev URL http://localhost:3000)
+└── admin/     Next.js admin app (dev URL http://localhost:3001)
+```
+
+- **Per-repo stack.** Install each repo with its own stack: `./install.sh --project --stack=laravel`
+  in `be/`, and `--stack=nextjs` in `fe/` and `admin/`. Each workflow detects the stack per repo.
+- **Root file.** Copy `src/templates/multi-repo/CLAUDE.md`, keep one `@<repo>/CLAUDE.md` import and one
+  layout row per frontend, and fill `<stack>`, `<repo>` and `<dev-url>`.
+- **Contract-sync.** The template lives in `src/plugins/laravel/templates/contract-sync` and
+  `install.sh` stages it at `.claude/templates/laravel/contract-sync/` for every selected add-on,
+  minimal or full. Install the laravel add-on in the API repo and wire the check in CI against each frontend.
+- **Runs.** One run covers all repos when `repos` is an array with a distinct `url` per frontend:
+
+  ```js
+  Workflow({
+    name: "ship-feature",
+    args: {
+      spec: "<spec id>",
+      repos: [
+        { path: "be", role: "backend" },
+        { path: "fe", role: "frontend", url: "http://localhost:3000" },
+        { path: "admin", role: "frontend", url: "http://localhost:3001" }
+      ]
+    }
+  })
+  ```
+
+  Or do one run per frontend: `{ repos: { backend: "be", frontend: "fe" }, url: "http://localhost:3000" }`,
+  then the same for `admin`. A run takes zero or one backend. Each frontend gets its own dev URL and its own browser pass, reported by repo. The passes run one after another because they share one browser; Visual skips a frontend with no changed UI files, and Acceptance checks a frontend with no changed files on a lighter model. Two frontends that resolve to the same URL are refused with a message asking for distinct `url` values.
+
 ## Configuration traps
 
 Each of these produces the same symptom: *"why does it ignore the frontend conventions?"*
@@ -44,6 +85,15 @@ Each of these produces the same symptom: *"why does it ignore the frontend conve
 
 The parent-folder layout avoids all three: both repos sit under the working directory, so the
 root `@be/CLAUDE.md` and `@fe/CLAUDE.md` imports are local.
+
+What `--add-dir` does and does not apply from an added directory:
+
+- From its settings only `enabledPlugins` and `extraKnownMarketplaces` apply. Its hooks and permissions do not.
+- Its `CLAUDE.md` and `.claude/rules` load only with `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`.
+- `permissions.additionalDirectories` grants file access only.
+- Claude Code reads `AGENTS.md` only when no `CLAUDE.md`, `.claude/CLAUDE.md` or `CLAUDE.local.md`
+  exists in the working directory or above (v2.1.277+), so keep `@AGENTS.md` in each `CLAUDE.md`.
+- Relative imports resolve against the importing file, up to four hops.
 
 If you have to start inside one repo, use `--add-dir` together with the env var:
 

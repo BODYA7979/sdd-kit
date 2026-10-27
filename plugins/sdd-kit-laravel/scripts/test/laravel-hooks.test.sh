@@ -28,8 +28,8 @@ P=$(project blocked)
 touch "$P/app/Http/Controllers/FooController.php"
 out=$(payload "$P/app/Http/Controllers/FooController.php" | CLAUDE_PROJECT_DIR="$P" "$SCRIPTS/laravel-test-first.sh"); code=$?
 [[ $code -eq 2 ]] && ok "controller without test exits 2" || fail "controller without test exits 2 (got $code)"
-[[ "$out" == *"has no corresponding test at 'tests/Feature/FooControllerTest.php'"* && "$out" == *'"decision":"block"'* && "$out" == *"CLAUDE_SKIP_TEST_FIRST=1 to bypass"* ]] \
-    && ok "block message unchanged" || fail "block message unchanged: $out"
+[[ "$out" == *"has no corresponding test at 'tests/Feature/FooControllerTest.php'"* && "$out" == *'"permissionDecision":"deny"'* && "$out" == *"CLAUDE_SKIP_TEST_FIRST=1 to bypass"* ]] \
+    && ok "blocks with permissionDecision deny" || fail "blocks with permissionDecision deny: $out"
 
 touch "$P/tests/Feature/FooControllerTest.php"
 payload "$P/app/Http/Controllers/FooController.php" | CLAUDE_PROJECT_DIR="$P" "$SCRIPTS/laravel-test-first.sh" >/dev/null; code=$?

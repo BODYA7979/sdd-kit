@@ -18,7 +18,8 @@
     {
       "name": "Pint",
       "command": "./vendor/bin/pint --test",
-      "kind": "format"
+      "kind": "format",
+      "requires": "vendor/bin/pint"
     },
     {
       "name": "PHPStan",
@@ -42,6 +43,11 @@
     "database/"
   ],
   "acceptance": "exercise the API routes over HTTP (curl / php artisan test)",
+  "execWrapper": {
+    "when": ".ddev/config.yaml",
+    "command": "ddev exec",
+    "requiresRunning": "ddev describe"
+  },
   "contractSync": {
     "routeListCommand": "php artisan route:list --json",
     "template": "templates/contract-sync"

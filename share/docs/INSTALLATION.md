@@ -33,7 +33,7 @@ New to Claude Code? Install it first: [GETTING-STARTED, section 0](GETTING-START
 
 - **Plugin mode**: install from the marketplace; one pinned version per team, updated with `/plugin`.
 - **File-copy mode**: `./install.sh` merges the kit into `.claude/`; you can edit agents and skills in place.
-- Both ship the same agents, skills, workflows, and hooks. The full comparison (hooks, permissions, namespacing, limitations) is in [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/plugin-mode.md).
+- Both ship the same agents, skills, workflows, and hooks. The full comparison (hooks, permissions, namespacing, limitations) is in [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/plugin-mode.md).
 
 ## Plugin mode
 
@@ -67,6 +67,38 @@ claude --plugin-dir /path/to/sdd-kit/plugins/sdd-kit \
        --plugin-dir /path/to/sdd-kit/plugins/sdd-kit-ops
 ```
 
+### Playwright in plugin mode
+
+The plugin's root `.mcp.json` starts `context7` and Playwright MCP. Claude Code names the tools of a
+plugin's own servers `mcp__plugin_sdd-kit_playwright__*`, and the workflows' browser steps accept
+both that prefix and `mcp__playwright__*`, so plugin mode needs no `.mcp.json` entry in your project.
+Visual and Acceptance drive the browser with the plugin's server as is.
+
+If neither Playwright server is available, those phases fall back to Claude in Chrome or report
+"not run". A file-copy `--project` install writes a `playwright` entry to the project `.mcp.json`
+for you, because no plugin supplies the server there.
+
+To pick a different browser in file-copy mode, add `--browser chromium` (or `msedge`, `firefox`,
+`webkit`) to that entry's `args`. In plugin mode the plugin's server and its `args` cannot be edited,
+so a different browser needs a whole `playwright` entry of your own in the project `.mcp.json`, with
+the kit's pin:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@0.0.83", "--headless", "--isolated", "--browser", "chromium"]
+    }
+  }
+}
+```
+
+That entry starts a second Playwright server next to the plugin's. Its tools are named
+`mcp__playwright__*`, which the browser steps also accept, so a step may use either server; turn
+the plugin's server off in `/mcp` when every step must use your browser. Keep the version in step
+with the kit's pin when you upgrade.
+
 ### Namespacing
 
 This guide uses bare skill names (`/sdd`, `/write-spec`), which is what file-copy mode gives
@@ -95,10 +127,38 @@ How to fill them in is covered in [GETTING-STARTED](GETTING-STARTED.md).
 /plugin marketplace remove sdd-kit
 ```
 
+### Mixing plugin and file-copy installs
+
+A global plugin plus a project file-copy install double-loads the kit: skills, agents and hooks
+appear from both, and the duplicate hooks run twice per tool call. Pick one mode per project.
+
+To keep the file-copy install in a project, switch the plugins off there with `enabledPlugins` false
+entries in `.claude/settings.json` (shared with the team) or `.claude/settings.local.json` (personal):
+
+```json
+{
+  "enabledPlugins": {
+    "sdd-kit-laravel-nextjs@sdd-kit": false,
+    "sdd-kit@sdd-kit": false,
+    "sdd-kit-laravel@sdd-kit": false,
+    "sdd-kit-nextjs@sdd-kit": false,
+    "sdd-kit-devenv@sdd-kit": false
+  }
+}
+```
+
+The preset and each of its four dependencies need their own entry. With the CLI, run
+`claude plugin disable` for the preset before its dependencies, because disable refuses a plugin
+another enabled plugin needs. The alternative is a file-copy-only machine: uninstall the plugins
+(see above) and keep the project install.
+
+To update a plugin install, run `claude plugin update` (or `/plugin update`), then `/reload-plugins`
+in the session.
+
 ### Team rollout
 
 To pin a reviewed version for a whole team, publish your own marketplace that points at a
-release tag and commit. See [team-marketplace.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/team-marketplace.md).
+release tag and commit. See [team-marketplace.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/team-marketplace.md).
 
 ## File-copy mode
 
@@ -117,11 +177,11 @@ shows the change list, and asks before writing anything.
 
 From your project root, `npx github:stasmarkov/sdd-kit install --project --dry-run`
 previews and `npx github:stasmarkov/sdd-kit install --project` installs; every
-`install.sh` flag below works (`--minimal`, `--full`, `--with=ops`, `--yes`, `--user`). It runs
+`install.sh` flag below works (`--stack`, `--minimal`, `--full`, `--with=ops`, `--yes`, `--user`). It runs
 the same `install.sh` as a clone, so the result is identical, and it needs bash, git, jq and
 Node 18+. On Windows use Git Bash or WSL, or the plugin.
 
-Add `#v2.1.0` to pin a release (`npx github:stasmarkov/sdd-kit#v2.1.0 install --project`);
+Add `#v3.1.0` to pin a release (`npx github:stasmarkov/sdd-kit#v3.1.0 install --project`);
 without a tag npx fetches the default branch. npx caches the download. The package is not
 published to npm.
 
@@ -136,7 +196,7 @@ published to npm.
 | `--stack=LIST` | Stack add-ons to install, comma-separated, or `none` for core only. Default: `laravel,nextjs` on a fresh install, the installed stacks on an upgrade. Other stacks: `drupal`, `ios`. An add-on that is not a stack (`devenv`, `ops`, `design`) is rejected with a hint to use `--with` |
 | `--with=LIST` | Add optional add-ons, comma-separated: `devenv`, `ops`, `design`, plus any stack add-on |
 | `--prune` | On an upgrade, remove installed add-ons that are not selected. Without it, flags and prompt answers only add, and unselected add-ons are kept. Modified files are never deleted, and everything removed is backed up |
-| `--third-party` | Also install the pinned third-party skills from `src/settings/third-party.json` and print the recommended plugin commands. Policy: [third-party.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/third-party.md) |
+| `--third-party` | Also install the pinned third-party skills from `src/settings/third-party.json` and print the recommended plugin commands. Policy: [third-party.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/third-party.md) |
 | `--dry-run` | Print added / updated / removed files and stop. Nothing is written |
 | `--yes`, `-y` | Skip the confirmation prompt |
 | `--help`, `-h` | Show help |
@@ -172,15 +232,15 @@ install; clone the repository (or use npx) and run `install.sh` as a command.
 
 | | `--minimal` | `--full` |
 |---|---|---|
-| Skills | The main path: `sdd`, `product-brief`, `write-spec`, `execute-task`, `simple-task`, `run-tests`, `deep-review`, `open-pr`, `framework-doctor`, `stack-trust` (overlay approvals), the shared `verification-gates` and `source-verification` references, and the stack skills the agents preload: `laravel-12`, `pest-3`, `dto-first`, `service-repository`, `api-design`, `api-security`, `nextjs-15`, `nextjs-testing`, `nextjs-auth` | Every core skill ([skill index](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/skills.md)) |
-| Agents | Every agent the main path hands off to: `code-explorer`, `requirements-analyst` (product-brief, write-spec), `laravel-backend-dev`, `nextjs-frontend-dev`, `test-writer`, `code-quality` (execute-task), `adversarial-reviewer`, `security-auditor` (deep-review) | Every core agent ([agents index](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/agents.md)) |
+| Skills | The main path: `sdd`, `product-brief`, `write-spec`, `execute-task`, `simple-task`, `run-tests`, `deep-review`, `open-pr`, `framework-doctor`, `stack-trust` (overlay approvals), the shared `verification-gates` and `source-verification` references, and the stack-neutral `api-design` and `api-security` | Every core skill ([skill index](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/skills.md)) |
+| Agents | Every agent the main path hands off to: `code-explorer`, `requirements-analyst` (product-brief, write-spec), `test-writer`, `code-quality` (execute-task), `adversarial-reviewer`, `security-auditor` (deep-review) | Every core agent ([agents index](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/agents.md)) |
 | Not included | Four of the after-`/sdd` commands (`/progress`, `/spec-board`, `/investigate`, `/learn`) and `/fix-ci`, the `/sdd` route for red CI. Use `--full` if you want them | Included |
 | Workflows | All six: `ship-feature`, `create-spec`, `fix-bug`, `qa-and-docs`, `tech-research`, `greenfield-build` | Same |
 | Templates | Context and spec templates | All templates |
 | Hooks | Lifecycle hooks merged into `settings.json` | Same, plus the git/CI scripts in `.claude/hooks/` |
-| Also | Settings templates, MCP configs, output styles, hook scripts | Same, plus these docs and the one-release redirect stubs in `.claude/commands/` |
+| Also | Settings templates, MCP configs, output styles, hook scripts | Same, plus these docs and the 1.x redirect stubs in `.claude/commands/` |
 
-The stack add-ons are staged in full with either choice; `--minimal` only trims core. Add-ons (`--with=`) work with either. Re-run with `--full` at any time to grow a minimal
+Stack skills and agents (Laravel, Next.js, Drupal, iOS) ship only through add-ons, never through core. The stack add-ons are staged in full with either choice; `--minimal` only trims core. Add-ons (`--with=`) work with either. Re-run with `--full` at any time to grow a minimal
 install. A few agents also preload depth skills that only `--full` ships (`event-driven`,
 `error-handling-patterns`, `typescript`, `tailwind-4`, `accessibility`, `oauth2-passport`);
 they load when installed and are skipped otherwise.
@@ -202,8 +262,14 @@ single-file installer; use the `install.sh` in a clone of `stasmarkov/sdd-kit`, 
    update changed files and remove files the kit no longer ships.
 4. **Removes retired files.** Files that 1.x installed but 2.0 dropped (merged agents,
    knowledge-graph scripts) are removed even when no manifest exists yet.
-5. **Keeps the latest backup.** Every file it overwrites or removes is copied to
-   `.claude/.framework-backups/<timestamp>/`. Older framework backups are pruned.
+5. **Keeps unowned files and the five newest backups.** An unowned file at a staged path (one the
+   manifest does not list) is kept and the kit copy is not installed. A modified kit file is copied to
+   `.claude/.framework-backups/<stamp>/` and replaced. On a 1.x upgrade (no manifest yet), a file that
+   still matches a version a 1.x installer placed at that path counts as a kit file and is replaced
+   the same way. The five newest backup folders are kept and older ones are pruned; pruning never
+   follows a symlink and never deletes anything outside `.framework-backups/`. When
+   `.framework-backups` is itself a symlink, the installer stops before changing anything rather than
+   write backups outside `.claude/`.
 6. **Merges hooks into `settings.json`** via `src/scripts/install-hooks.sh` (needs jq). A
    missing file is created; an existing one is backed up to `settings.json.backup.<timestamp>`
    and only the kit's own hook entries are replaced. Permissions, env, model, and your own
@@ -278,7 +344,7 @@ the install commands, or run them yourself:
 /plugin install typescript-lsp@claude-plugins-official
 ```
 
-See [third-party.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/third-party.md)
+See [third-party.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/third-party.md)
 for the review policy behind the list.
 
 **Permissions and sandboxing.** Permission mode and sandboxing depend on your machine and
@@ -288,10 +354,13 @@ threat model, so the kit does not force either, and the installer does not write
 `rm -rf`, force-push, `git reset --hard`) and `env.CLAUDE_BUDGET_THRESHOLD`. Copy what you want
 from it into your own `settings.json`, in either mode. A plugin's `settings.json` does not apply
 these keys; see
-[plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/plugin-mode.md#limitation-plugin-settingsjson).
+[plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/plugin-mode.md#limitation-plugin-settingsjson).
 To opt in to a stricter `defaultMode` or sandbox, set them in your own `settings.json`.
 Filesystem sandboxing limits where Claude can write; do not rely on network sandboxing as a
 security control.
+
+A stack manifest (`stack.json`) is the only thing that makes a stack; its fields and the trust
+rules are in [stack-manifest.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/stack-manifest.md).
 
 **Read rules for overlay stacks.** Workflows read four locations outside the project: the trust
 store, the user stacks directory, the installed plugin list and the plugin cache that holds each
@@ -314,7 +383,7 @@ With `CLAUDE_CONFIG_DIR` set, the last three name that directory as an absolute 
 database records it: neither `$HOME` nor `CLAUDE_CONFIG_DIR` moves it.
 
 Model tiers and effort per workflow phase are covered in
-[effort-guidelines.md](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/effort-guidelines.md).
+[effort-guidelines.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/effort-guidelines.md).
 
 ## Upgrading from 2.x
 
@@ -339,9 +408,9 @@ them up first. It only removes a file whose content matches a copy the kit shipp
 edited or replaced (for example an upstream Stripe or skill-creator skill installed at the same
 path) is listed as "kept (modified or not from the kit)" and left for you to review.
 
-The tables below match the CHANGELOG's [Migrating from 1.x](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/CHANGELOG.md#migrating-from-1x) section. They list what a 1.x release shipped; components that were added and removed again during the 2.0 cycle appear only in the CHANGELOG's *Removed* table.
-Current lists: [skills](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/skills.md),
-[agents](https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/agents.md).
+The tables below match the CHANGELOG's [Migrating from 1.x](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/CHANGELOG.md#migrating-from-1x) section. They list what a 1.x release shipped; components that were added and removed again during the 2.0 cycle appear only in the CHANGELOG's *Removed* table.
+Current lists: [skills](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/skills.md),
+[agents](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/agents.md).
 
 ### Commands
 
@@ -382,8 +451,8 @@ command and has no stub.
 `/ship-feature`, `/fix-bug`, `/qa-and-docs`, `/tech-research`, `/greenfield-build`, and
 `/create-spec`.
 
-The old namespaced commands remain for one release as redirect stubs in `.claude/commands/`
-(full installs and plugin mode). They are manual-only: Claude will not pick them on its own.
+The old namespaced commands remain as redirect stubs in `.claude/commands/`
+(full installs and plugin mode; they are still shipped in 3.x and go in a later release). They are manual-only: Claude will not pick them on its own.
 A stub translates old flags that changed meaning (`/workflow:add-context`, `/workflow:kanban`,
 `/workflow:status`) and, for a user-invoked skill such as `/changelog` or `/framework-doctor`,
 tells you the command to type. `/workflow:update-knowledge-graph` has no replacement; its stub
@@ -405,7 +474,7 @@ Skills and templates are removed as well, not only commands:
 | `src/templates/context/workflow.template.md` | None: the Golden Triangle is business rules, architecture, and API contracts (`templates/context/golden-triangle.md`); the process lives in `/sdd` and `AGENTS.md` |
 | `src/templates/commands/_templates/command.template.md` | `src/templates/skills/_templates/` (commands became skills) |
 | `src/templates/knowledge-graph/*` | Removed (knowledge graph retired) |
-| `drupal-11` (core in 1.x) | `drupal-11` in the drupal add-on (`--with=drupal`) |
+| `drupal-11` (core in 1.x) | `drupal-11` in the drupal add-on (`--stack=drupal`) |
 
 ### Merged, moved, and removed agents
 
@@ -429,7 +498,7 @@ Skills and templates are removed as well, not only commands:
 | `ui-ux-advisor` | Same name, design add-on |
 | `knowledge-graph-manager`, `learning-extractor` | Removed (knowledge graph retired) |
 
-If you used the moved agents, add the add-on: `--with=ops,design,ios` or the matching
+If you used the moved agents, add the add-on: `--stack=laravel,nextjs,ios --with=ops,design` or the matching
 `sdd-kit-*` plugins.
 
 ### Knowledge graph retired

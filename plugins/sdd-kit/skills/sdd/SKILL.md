@@ -52,7 +52,7 @@ Show the route and a one-line reason, then confirm with `AskUserQuestion` (recom
 
 Background workflows **cannot stop and ask questions**, so gather everything now (2–4 questions maximum, skip anything already known):
 
-- **Repos**: single repo, or polyrepo `{ backend, frontend }` paths (check for sibling repos / a parent-folder workspace).
+- **Repos**: single repo, or polyrepo `{ backend, frontend }` paths (check for sibling repos / a parent-folder workspace). With several frontends, ask for a dev URL per frontend and either pass them all in one `repos` array or plan one run per frontend.
 - **Dev URL** for browser acceptance, when there is a UI.
 - Route-specific inputs from the table in Step 4.
 

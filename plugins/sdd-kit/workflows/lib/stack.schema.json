@@ -102,6 +102,60 @@
                 "items": {
                   "type": "string"
                 }
+              },
+              "requires": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_./-]+$"
+              },
+              "lintFix": {
+                "type": "object",
+                "required": [
+                  "flag",
+                  "fallback"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "flag": {
+                    "type": "string",
+                    "pattern": "^-[A-Za-z0-9=_-]+$"
+                  },
+                  "fallback": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9 _<>./@:=-]+$"
+                  }
+                }
+              },
+              "scriptFallback": {
+                "type": "object",
+                "required": [
+                  "dependency",
+                  "manifest",
+                  "minMajor",
+                  "contains",
+                  "fallback"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "dependency": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9@_./-]+$"
+                  },
+                  "manifest": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*(/[A-Za-z0-9_][A-Za-z0-9_.-]*)*$"
+                  },
+                  "minMajor": {
+                    "type": "integer"
+                  },
+                  "contains": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9 _./:=-]+$"
+                  },
+                  "fallback": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9 _<>./@:=-]+$"
+                  }
+                }
               }
             }
           }
@@ -126,6 +180,29 @@
         },
         "buildGateGuard": {
           "type": "string"
+        },
+        "execWrapper": {
+          "type": "object",
+          "required": [
+            "when",
+            "command"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "when": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._][A-Za-z0-9._/-]*$"
+            },
+            "command": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]+( [A-Za-z0-9._-]+)*$"
+            },
+            "requiresRunning": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]+( [A-Za-z0-9._-]+)*$"
+            }
+          },
+          "description": "Run this stack's gates through a wrapper (for example a container exec) when the marker file `when` exists in the repo: each gate runs as `<command> <gate command>`. `requiresRunning` is a command whose success shows the wrapper is up; when it fails the wrapped gates are skipped."
         },
         "contractSync": {
           "type": "object",
@@ -443,6 +520,60 @@
                   "items": {
                     "type": "string"
                   }
+                },
+                "requires": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_./-]+$"
+                },
+                "lintFix": {
+                  "type": "object",
+                  "required": [
+                    "flag",
+                    "fallback"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "flag": {
+                      "type": "string",
+                      "pattern": "^-[A-Za-z0-9=_-]+$"
+                    },
+                    "fallback": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9 _<>./@:=-]+$"
+                    }
+                  }
+                },
+                "scriptFallback": {
+                  "type": "object",
+                  "required": [
+                    "dependency",
+                    "manifest",
+                    "minMajor",
+                    "contains",
+                    "fallback"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "dependency": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9@_./-]+$"
+                    },
+                    "manifest": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*(/[A-Za-z0-9_][A-Za-z0-9_.-]*)*$"
+                    },
+                    "minMajor": {
+                      "type": "integer"
+                    },
+                    "contains": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9 _./:=-]+$"
+                    },
+                    "fallback": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9 _<>./@:=-]+$"
+                    }
+                  }
                 }
               }
             }
@@ -467,6 +598,29 @@
           },
           "buildGateGuard": {
             "type": "string"
+          },
+          "execWrapper": {
+            "type": "object",
+            "required": [
+              "when",
+              "command"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "when": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._][A-Za-z0-9._/-]*$"
+              },
+              "command": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._-]+( [A-Za-z0-9._-]+)*$"
+              },
+              "requiresRunning": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._-]+( [A-Za-z0-9._-]+)*$"
+              }
+            },
+            "description": "Run this stack's gates through a wrapper (for example a container exec) when the marker file `when` exists in the repo: each gate runs as `<command> <gate command>`. `requiresRunning` is a command whose success shows the wrapper is up; when it fails the wrapped gates are skipped."
           },
           "contractSync": {
             "type": "object",

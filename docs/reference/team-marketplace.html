@@ -21,7 +21,7 @@
 <header class="site-header">
   <div class="brand">
     <a class="brand-name" href="../index.html">SDD Kit</a>
-    <span class="badge">v3.0.0</span>
+    <span class="badge">v3.1.0</span>
   </div>
   <div class="header-actions">
     <a class="btn" href="../index.html"><span aria-hidden="true">←</span><span class="btn-label">Guide</span></a>
@@ -47,14 +47,58 @@
   &quot;owner&quot;: { &quot;name&quot;: &quot;Platform Team&quot;, &quot;email&quot;: &quot;platform@your-org.example&quot; },
   &quot;plugins&quot;: [
     {
+      &quot;name&quot;: &quot;sdd-kit-laravel-nextjs&quot;,
+      &quot;description&quot;: &quot;Preset: the core plus the Laravel, Next.js and devenv add-ons.&quot;,
+      &quot;source&quot;: {
+        &quot;source&quot;: &quot;git-subdir&quot;,
+        &quot;url&quot;: &quot;stasmarkov/sdd-kit&quot;,
+        &quot;path&quot;: &quot;plugins/sdd-kit-laravel-nextjs&quot;,
+        &quot;ref&quot;: &quot;v3.1.0&quot;,
+        &quot;sha&quot;: &quot;&lt;40-char commit sha of v3.1.0&gt;&quot;
+      }
+    },
+    {
       &quot;name&quot;: &quot;sdd-kit&quot;,
-      &quot;description&quot;: &quot;Spec-driven Laravel API + Next.js framework: /sdd, workflows, agents, skills, hooks.&quot;,
+      &quot;description&quot;: &quot;Spec-driven core: /sdd, workflows, agents, skills, hooks.&quot;,
       &quot;source&quot;: {
         &quot;source&quot;: &quot;git-subdir&quot;,
         &quot;url&quot;: &quot;stasmarkov/sdd-kit&quot;,
         &quot;path&quot;: &quot;plugins/sdd-kit&quot;,
-        &quot;ref&quot;: &quot;v2.1.0&quot;,
-        &quot;sha&quot;: &quot;&lt;40-char commit sha of v2.1.0&gt;&quot;
+        &quot;ref&quot;: &quot;v3.1.0&quot;,
+        &quot;sha&quot;: &quot;&lt;40-char commit sha of v3.1.0&gt;&quot;
+      }
+    },
+    {
+      &quot;name&quot;: &quot;sdd-kit-laravel&quot;,
+      &quot;description&quot;: &quot;Laravel agent, skills, rules and hooks.&quot;,
+      &quot;source&quot;: {
+        &quot;source&quot;: &quot;git-subdir&quot;,
+        &quot;url&quot;: &quot;stasmarkov/sdd-kit&quot;,
+        &quot;path&quot;: &quot;plugins/sdd-kit-laravel&quot;,
+        &quot;ref&quot;: &quot;v3.1.0&quot;,
+        &quot;sha&quot;: &quot;&lt;40-char commit sha of v3.1.0&gt;&quot;
+      }
+    },
+    {
+      &quot;name&quot;: &quot;sdd-kit-nextjs&quot;,
+      &quot;description&quot;: &quot;Next.js agent, skills, rules and hooks.&quot;,
+      &quot;source&quot;: {
+        &quot;source&quot;: &quot;git-subdir&quot;,
+        &quot;url&quot;: &quot;stasmarkov/sdd-kit&quot;,
+        &quot;path&quot;: &quot;plugins/sdd-kit-nextjs&quot;,
+        &quot;ref&quot;: &quot;v3.1.0&quot;,
+        &quot;sha&quot;: &quot;&lt;40-char commit sha of v3.1.0&gt;&quot;
+      }
+    },
+    {
+      &quot;name&quot;: &quot;sdd-kit-devenv&quot;,
+      &quot;description&quot;: &quot;docker and ddev skills.&quot;,
+      &quot;source&quot;: {
+        &quot;source&quot;: &quot;git-subdir&quot;,
+        &quot;url&quot;: &quot;stasmarkov/sdd-kit&quot;,
+        &quot;path&quot;: &quot;plugins/sdd-kit-devenv&quot;,
+        &quot;ref&quot;: &quot;v3.1.0&quot;,
+        &quot;sha&quot;: &quot;&lt;40-char commit sha of v3.1.0&gt;&quot;
       }
     },
     {
@@ -64,8 +108,8 @@
         &quot;source&quot;: &quot;git-subdir&quot;,
         &quot;url&quot;: &quot;stasmarkov/sdd-kit&quot;,
         &quot;path&quot;: &quot;plugins/sdd-kit-ops&quot;,
-        &quot;ref&quot;: &quot;v2.1.0&quot;,
-        &quot;sha&quot;: &quot;&lt;40-char commit sha of v2.1.0&gt;&quot;
+        &quot;ref&quot;: &quot;v3.1.0&quot;,
+        &quot;sha&quot;: &quot;&lt;40-char commit sha of v3.1.0&gt;&quot;
       }
     },
     {
@@ -76,20 +120,20 @@
         &quot;source&quot;: &quot;git-subdir&quot;,
         &quot;url&quot;: &quot;stasmarkov/sdd-kit&quot;,
         &quot;path&quot;: &quot;plugins/sdd-kit-design&quot;,
-        &quot;ref&quot;: &quot;v2.1.0&quot;,
-        &quot;sha&quot;: &quot;&lt;40-char commit sha of v2.1.0&gt;&quot;
+        &quot;ref&quot;: &quot;v3.1.0&quot;,
+        &quot;sha&quot;: &quot;&lt;40-char commit sha of v3.1.0&gt;&quot;
       }
     }
   ]
 }</code></pre>
 <p>Notes:</p>
-<ul><li>Keep each entry&#39;s <code>name</code> identical to the <code>name</code> in that plugin&#39;s own <code>.claude-plugin/plugin.json</code>; the entry name is the install id (<code>&lt;name&gt;@your-org-claude</code>) and the key written to <code>enabledPlugins</code>.</li><li>Get the commit for a tag with <code>git ls-remote https://github.com/stasmarkov/sdd-kit refs/tags/v2.1.0</code> (use the <code>^{}</code> line for annotated tags).</li><li>If you fork the framework, point <code>repo</code> / <code>url</code> at your fork. A fork is the right choice when you carry local changes; otherwise reference upstream.</li><li>Stack add-ons are separate entries (<code>plugins/sdd-kit-laravel</code>, <code>plugins/sdd-kit-nextjs</code>, <code>plugins/sdd-kit-devenv</code>). The preset <code>sdd-kit-laravel-nextjs</code> (<code>plugins/sdd-kit-laravel-nextjs</code>) only declares dependencies on them and the core; list the add-ons it depends on in your catalog too, pinned like the core.</li><li>List only the add-ons you approve. <code>ios</code> and <code>drupal</code> can be added the same way (<code>path: plugins/sdd-kit-ios</code>, <code>plugins/sdd-kit-drupal</code>).</li><li><code>defaultEnabled: false</code> makes an add-on opt-in even after install.</li></ul>
+<ul><li>Keep each entry&#39;s <code>name</code> identical to the <code>name</code> in that plugin&#39;s own <code>.claude-plugin/plugin.json</code>; the entry name is the install id (<code>&lt;name&gt;@your-org-claude</code>) and the key written to <code>enabledPlugins</code>.</li><li>Get the commit for a tag with <code>git ls-remote https://github.com/stasmarkov/sdd-kit refs/tags/v3.1.0</code> (use the <code>^{}</code> line for annotated tags).</li><li>If you fork the framework, point <code>repo</code> / <code>url</code> at your fork. A fork is the right choice when you carry local changes; otherwise reference upstream.</li><li>Stack add-ons are separate entries (<code>plugins/sdd-kit-laravel</code>, <code>plugins/sdd-kit-nextjs</code>, <code>plugins/sdd-kit-devenv</code>) that the preset resolves from your catalog. The preset <code>sdd-kit-laravel-nextjs</code> (<code>plugins/sdd-kit-laravel-nextjs</code>) is the first entry above: it only declares dependencies on the core and those three add-ons, so list all of them in your catalog too, pinned like the preset.</li><li>List only the add-ons you approve. <code>ios</code> and <code>drupal</code> can be added the same way (<code>path: plugins/sdd-kit-ios</code>, <code>plugins/sdd-kit-drupal</code>).</li><li><code>defaultEnabled: false</code> makes an add-on opt-in even after install.</li></ul>
 <p>Validate before pushing:</p>
 <pre><code class="language-bash">claude plugin validate ./claude-marketplace</code></pre>
 <p>Then test the full loop on your machine:</p>
 <pre><code class="language-bash">claude plugin marketplace add ./claude-marketplace
-claude plugin install sdd-kit@your-org-claude
-claude plugin details sdd-kit</code></pre>
+claude plugin install sdd-kit-laravel-nextjs@your-org-claude
+claude plugin details sdd-kit-laravel-nextjs</code></pre>
 <p>Push the repo. Teammates register it with <code>claude plugin marketplace add your-org/claude-marketplace</code>. For a private repo, each user needs read access through their git credentials; CI needs a token (on GitHub Actions: export <code>GH_TOKEN</code> and run <code>gh auth setup-git</code>).</p>
 <h3 id="2-enable-plugins-per-project">2. Enable plugins per project</h3>
 <p>Commit this to each application repo&#39;s <code>.claude/settings.json</code>. Contributors get the marketplace registered after they accept the workspace trust dialog, and the listed plugins enabled for that project only:</p>
@@ -100,12 +144,12 @@ claude plugin details sdd-kit</code></pre>
     }
   },
   &quot;enabledPlugins&quot;: {
-    &quot;sdd-kit@your-org-claude&quot;: true,
+    &quot;sdd-kit-laravel-nextjs@your-org-claude&quot;: true,
     &quot;sdd-kit-ops@your-org-claude&quot;: true
   }
 }</code></pre>
 <p>Because the plugin entries point at an external source (this framework&#39;s repo), each contributor installs once per project:</p>
-<pre><code class="language-bash">claude plugin install sdd-kit@your-org-claude --scope project</code></pre>
+<pre><code class="language-bash">claude plugin install sdd-kit-laravel-nextjs@your-org-claude --scope project</code></pre>
 <p>Until then Claude Code reports <code>Plugin &quot;&lt;name&gt;&quot; is enabled in project settings but isn&#39;t installed</code>.</p>
 <p>Choose add-ons per project: a backend-only service might enable only the core plugin; a project with a production on-call rotation adds <code>-ops</code>; a design-heavy frontend adds <code>-design</code>. To switch a plugin off for one project when it is on elsewhere, set it to <code>false</code>.</p>
 <p>In headless runs (<code>claude -p</code>, CI), <code>extraKnownMarketplaces</code> from a repo&#39;s settings applies only in a folder whose trust was accepted. Installs run in the background, so set <code>CLAUDE_CODE_SYNC_PLUGIN_INSTALL=1</code> if the first turn needs the plugin. For containers that cannot clone at runtime, pre-build a seed with <code>CLAUDE_CODE_PLUGIN_CACHE_DIR</code> and point <code>CLAUDE_CODE_PLUGIN_SEED_DIR</code> at it.</p>
@@ -142,7 +186,7 @@ claude plugin details sdd-kit</code></pre>
 <h3 id="verify-the-rollout">Verify the rollout</h3>
 <ul><li>Interactive: run <code>/plugin</code>; your marketplace and the enabled plugins are listed.</li><li>CI: <code>claude -p &quot;ok&quot; --output-format stream-json --verbose</code> and check the <code>plugins</code> list in the <code>init</code> event.</li><li>Policy problems: <code>/status</code> should list <code>Enterprise managed settings</code> under setting sources; blocked sources show <code>is not in the allowed marketplace list</code> or <code>is blocked by enterprise policy</code>.</li></ul>
   </article>
-  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v3.0.0/docs/reference/team-marketplace.md">View the Markdown source</a></p>
+  <p class="doc-source"><a href="https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/team-marketplace.md">View the Markdown source</a></p>
 </main>
 <script>
   (function () {

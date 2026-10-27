@@ -84,7 +84,7 @@ Run every check, collect results, and track PASS / WARN / FAIL / SKIP counts.
 
 - `${INSTALL_DIR}/skills/` and `${INSTALL_DIR}/agents/` exist → FAIL if missing.
 - `${INSTALL_DIR}/scripts/` exists → WARN if missing (hooks will not run).
-- `${INSTALL_DIR}/commands/` with framework namespaces (`upstream/`, `quality/`, `execution/`, `workflow/`, `design/`, `discovery/`, `release/`, `operations/`): a 2.0 full install and plugin mode ship one-release redirect stubs at exactly these paths, so tell stubs from 1.x leftovers per file:
+- `${INSTALL_DIR}/commands/` with framework namespaces (`upstream/`, `quality/`, `execution/`, `workflow/`, `design/`, `discovery/`, `release/`, `operations/`): a 2.0 full install and plugin mode ship the 1.x redirect stubs at exactly these paths, so tell stubs from 1.x leftovers per file:
 
   ```bash
   MANIFEST="${INSTALL_DIR}/.framework-manifest"
@@ -263,17 +263,24 @@ Classify every installed SDD Kit add-on. All problems here are WARN, never FAIL.
 
 When neither selection finds a stack add-on, print `[PASS] no stack add-ons installed` with the hints: `install.sh --stack=<key>` for file-copy installs, `/plugin install sdd-kit-laravel-nextjs@sdd-kit` (or one `sdd-kit-<stack>` add-on) for plugin installs. A core-only install is valid and is never a FAIL.
 
-**Mixed-mode shadowing.** When a stack add-on is installed as a plugin and a file-copy copy also exists, warn and name the file to delete:
+**Mixed-mode shadowing.** When a plugin is enabled and a file-copy copy of the same component also exists, both load: skills load twice, agents shadow each other and kit hooks run twice. "Enabled" comes from `claude plugin list --json`: its `enabled` reflects `enabledPlugins` false entries from the project and local settings, so no separate settings merge is needed. Without the CLI, skip the check. Consider only enabled plugins whose id starts with `sdd-kit`.
 
 ```bash
-for a in laravel-backend-dev nextjs-frontend-dev; do
-  [ -f ".claude/agents/$a.md" ] && echo "SHADOW .claude/agents/$a.md"
+# agents: flat and nested add-on layouts, matched by name against each enabled plugin's agents/
+for f in .claude/agents/*.md .claude/agents/*/*.md; do
+  [ -f "$f" ] && ls "$PLUGIN_PATH/agents/$(basename "$f")" 2>/dev/null && echo "SHADOW $f"
 done
-jq -r '[.hooks // {} | .[][] .hooks[] | .command? // empty | select(test("lint-check\\.sh|test-first-check\\.sh|laravel-lint\\.sh|laravel-test-first\\.sh|nextjs-lint\\.sh|nextjs-test-first\\.sh"))] | .[]' .claude/settings.json 2>/dev/null
+# hooks: match by basename (scripts/<name>.sh), as install-hooks.sh does
+for s in "$PLUGIN_PATH"/scripts/*.sh; do
+  n=$(basename "$s")
+  jq -r --arg n "$n" '[.hooks // {} | .[][] .hooks[] | .command? // empty | select(endswith("/scripts/" + $n))] | .[]' .claude/settings.json 2>/dev/null
+done
 ```
 
-- `.claude/agents/<agent>.md` next to the plugin add-on that ships `<agent>` → WARN: "`.claude/agents/<agent>.md` shadows the plugin agent `<plugin>:<agent>`. Fix: delete `.claude/agents/<agent>.md`." (use the agent name each add-on ships; the list above is the first-party pair).
-- A lint or test-first hook entry in `.claude/settings.json` (for example `laravel-lint.sh`) while the plugin add-on wires the same hook → WARN: "the hook would run twice. Fix: delete the entry naming `<script>` from `.claude/settings.json`."
+`$PLUGIN_PATH` is each enabled plugin's `installPath`. Read the plugin's own wiring from its `hooks/hooks.json` (core) or `hooks/hooks.json` in the add-on, and report only scripts that plugin wires.
+
+- `.claude/agents/<agent>.md` or `.claude/agents/<addon>/<agent>.md` (the layout `install.sh` writes for add-on agents) next to an enabled plugin that ships `<agent>` → WARN: "`<file>` shadows the plugin agent `<plugin>:<agent>`. Fix: delete `<file>`."
+- A kit hook script (for example `block-dangerous.sh`, or an add-on lint or test-first script such as `laravel-lint.sh`) wired both by an enabled plugin's `hooks/hooks.json` and in `.claude/settings.json` → one WARN listing all such scripts: "the hooks would run twice, and the plugin skills load a second time next to the file-copy skills. Fix: set `enabledPlugins` to false for the preset and each of its dependencies in `.claude/settings.json` (keep the file-copy install), or delete the entries naming these scripts from `.claude/settings.json` and the file-copy kit files."
 
 #### Check 13: Built-in Diagnostics
 
@@ -285,7 +292,7 @@ Always end with a SKIP-style note recommending the Claude Code built-ins, which 
 ### Phase 3: Report
 
 ```
-Framework Health Check (project, v2.0.0)
+Framework Health Check (project, v<version>)
 ========================================
 [PASS] Directory structure: skills/, agents/, scripts/
 [PASS] Skills flat: <n> discoverable, 0 nested; agents: <n>
@@ -313,9 +320,9 @@ Result: 6 passed, 6 warnings, 0 failures
 In plugin mode the header names the plugin root, and the checks that only apply to file-copy installs are skipped:
 
 ```
-Framework Health Check (plugin, v2.0.0)
+Framework Health Check (plugin, v<version>)
 ========================================
-Install: ~/.claude/plugins/cache/<marketplace>/sdd-kit/2.0.0
+Install: ~/.claude/plugins/cache/<marketplace>/sdd-kit/<version>
 [PASS] Directory structure: skills/, agents/, scripts/
 [PASS] Skills flat: <n> discoverable, 0 nested; agents: <n>
 [SKIP] Manifest: plugin installs are managed by /plugin
