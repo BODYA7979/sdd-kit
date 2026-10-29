@@ -2290,11 +2290,13 @@ ${splitStacks && isContractConsumer(t.stack) ? '6' : '5'}. \`git init\` if neede
 Return the created paths, packageManager${packageManagersFor(t.stack).length ? ' (the one the lockfile names)' : ' (omit it: the stack declares no package managers)'}, the real gateCommands (tagged with repo="${t.path}"; ${gateReportRule(t.stack)}), gateCheck, and committed=true.`
 
 const ciPrompt = (t, s) =>
-  `Add the CI pipeline for the ${t.role} repo (${t.stack}) at "${t.path}" — cd there. The skeleton and gate tooling already exist and were committed.
+  `Add the CI verification chosen by the architecture for the ${t.role} repo (${t.stack}) at "${t.path}" — cd there. The skeleton and gate tooling already exist and were committed.
+Architecture decisions (binding): ${JSON.stringify(architecture.decisions)}
+First-slice expected end state: ${architecture.firstSlice.expectedEndState}
 Gate commands to run in CI, in this order: ${JSON.stringify(gatePlanFor(scaffoldedTarget(t, s && s.gateCommands, s && s.packageManager)).run.map((g) => g.command))}
 Package manager: ${(s && declaredPackageManager(t.stack, s.packageManager, t.path)) || 'from the lockfile'}.
-Write .github/workflows/ci.yml following the ci-cd skill: one job per stack, dependency caching keyed on the lockfile, ${ciFor(t.stack).services.length ? `the services the stack declares (${ciFor(t.stack).services.join('; ')}), ` : ''}${ciFor(t.stack).setup.length ? `its setup steps (${ciFor(t.stack).setup.join('; ')}), ` : ''}and every gate above as its own step. ${s && s.contractSync ? 'Add a contract-sync step that reads the backend route list exported as an artifact (see the contract-sync README).' : ''}
-Never weaken a gate to get green (no continue-on-error, no skipped tests). Commit the CI file as a second checkpoint. Return configured, files, the job names, and committed.`
+For local-only CI, implement the agreed checked-in runner (for example ci.sh), fail on the first failing command, and do not add a hosted workflow. Otherwise use the architecture's chosen provider; use .github/workflows/ci.yml following the ci-cd skill only when GitHub Actions is selected or no provider/local-only choice was made. For a hosted workflow use one job per stack, dependency caching keyed on the lockfile when dependencies exist, and every gate above as its own step. Configure ${ciFor(t.stack).services.length ? `the declared services (${ciFor(t.stack).services.join('; ')}) and ` : ''}${ciFor(t.stack).setup.length ? `setup steps (${ciFor(t.stack).setup.join('; ')}) and ` : ''}the gate tooling for the chosen environment. ${s && s.contractSync ? 'Add a contract-sync step that reads the backend route list through the chosen local or hosted arrangement (see the contract-sync README).' : ''}
+Never weaken a gate to get green (no continue-on-error, no skipped tests). Run the local runner when one is required; writing a file alone is not execution evidence. Commit the CI files as a second checkpoint. Return configured, files, the job names (empty for a local runner), and committed.`
 
 async function scaffoldTarget(t) {
   const result = await runAgent(scaffoldPrompt(t), { phase: 'Scaffold', label: `scaffold:${t.role}`, schema: SCAFFOLD_SCHEMA, agentType: agentForStack(t.stack), ...MODELS.scaffold })

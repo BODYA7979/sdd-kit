@@ -12,6 +12,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const decisions = [
   { decision: 'Accept decimal operands only; reject 0x, 0b and 0o prefixes', rationale: 'The agreed CLI input contract' },
   { decision: 'Imports have no side effects', rationale: 'Reusable arithmetic functions' },
+  { decision: 'Use local-only ci.sh; do not generate hosted CI configuration', rationale: 'Offline project scope' },
 ];
 const valid = () => ({ resolved: true, steps: [{ step: 'CLI', expected: '5', actual: '5', ok: true }], brokenLinks: [], architectureChecks: decisions.map((d, decisionIndex) => ({ decisionIndex, ok: true, evidence: `Verified ${d.decision}` })) });
 
@@ -28,7 +29,7 @@ async function scenario(t, acceptance, host) {
       case 'Detect': return { greenfield: true, targets: [{ role: 'fullstack', path: '.', stack: 'other', empty: true, hasTrackedFiles: false }], ...stackContext };
       case 'Constitution': return { principles: ['No dependencies'] };
       case 'Architecture': return options.label ? { real: true, reason: 'Fixture proposal accepted' } : { repoLayout: 'single', layers: ['CLI', 'pure functions'], dataModelSketch: [], firstSlice: { title: 'Add two numbers', entryPoint: 'node index.js 2 3', expectedEndState: 'Print 5', touchesRepos: ['.'] }, decisions };
-      case 'Scaffold': return options.label.startsWith('ci:') ? { configured: true, files: ['.github/workflows/ci.yml'], committed: true } : { created: ['index.js'], committed: true, gateCheck: [{ name: 'test', ran: true }] };
+      case 'Scaffold': return options.label.startsWith('ci:') ? { configured: true, files: ['ci.sh'], jobs: [], committed: true } : { created: ['index.js'], committed: true, gateCheck: [{ name: 'test', ran: true }] };
       case 'Slice': return { summary: 'Fixture implementation', changedFiles: ['index.js'], completed: true };
       case 'Gates': return { repo: '.', allPassed: true, gates: [{ name: 'test', status: 'pass', details: 'Fixture tests' }] };
       case 'Acceptance': return acceptance;
@@ -63,6 +64,9 @@ for (const host of ['claude', 'codex']) {
       const prompt = prompts.find(p => p.phase === phase).prompt;
       for (const { decision } of decisions) assert.ok(prompt.includes(decision), `${phase} omitted ${decision}`);
     }
+    const ciPrompt = prompts.find(p => p.label?.startsWith('ci:')).prompt;
+    for (const { decision } of decisions) assert.ok(ciPrompt.includes(decision), `CI omitted ${decision}`);
+    assert.match(ciPrompt, /local-only.*do not add a hosted workflow/i);
     const schema = prompts.find(p => p.phase === 'Acceptance').schema;
     assert.equal(new Ajv({ strict: false }).compile(schema)({ resolved: true, steps: [] }), false);
   });
