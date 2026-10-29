@@ -1,5 +1,9 @@
 # SDD Kit
 
+<p align="center">
+  <img src="assets/branding/sdd-kit-logo-v1-preview.png" alt="SDD Kit" width="480">
+</p>
+
 Spec-driven development for **Claude Code and Codex**, using one shared set of workflows, skills, agents, templates and stack definitions. Host adapters handle installation and native execution; the project remains SDD Kit.
 
 This branch extends the public 3.1.0 distribution with shared development entry points. The author's release pipeline still generates its distribution from a separate source repository; integrating this work there is a future upstream step. See [architecture and contribution boundaries](docs/architecture.md).
