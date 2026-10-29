@@ -1,0 +1,9 @@
+{
+  "name": "sdd-kit-codex",
+  "version": "3.1.0-codex.1",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "pretest": "node build.mjs", "test": "node --test test/*.test.mjs", "build": "node build.mjs" },
+  "dependencies": { "ajv": "8.17.1" }
+}

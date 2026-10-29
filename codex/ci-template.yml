@@ -1,0 +1,24 @@
+name: Codex compatibility
+on:
+  push:
+    paths: ['codex/**', 'plugins/**', 'share/**', '.github/workflows/codex-compatibility.yml']
+  pull_request:
+    paths: ['codex/**', 'plugins/**', 'share/**', '.github/workflows/codex-compatibility.yml']
+permissions:
+  contents: read
+jobs:
+  native-bridge:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: codex
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: codex/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npm test
