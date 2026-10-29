@@ -142,19 +142,24 @@
 
   var G = window.GUIDE;
   var C = window.CATALOG;
+  var H = window.SDDHost || { choice: 'compare', label: 'Compare both', variants: function (code) { return [{ label: '', code: code }]; }, command: function (code) { return code; } };
+  // Keep the generated catalog shared; availability is a view, not a second catalog.
+  if (C) C = Object.assign({}, C, { skills: C.skills.filter(function (s) { return H.choice === 'compare' || !s.hosts || s.hosts.indexOf(H.choice) !== -1; }).map(function (s) {
+    return H.choice === 'codex' && s.codexDescription ? Object.assign({}, s, { description: s.codexDescription }) : s;
+  }) });
   var E = window.EXAMPLE || null;
   var $ = function (id) { return document.getElementById(id); };
   if (!G || !C) {
     var notice = document.createElement('p');
     notice.className = 'note data-missing';
     notice.setAttribute('role', 'alert');
-    notice.textContent = 'The guide data did not load. Keep index.html next to guide-data.js, catalog.js and example-data.js in docs/guide/ and reopen it.';
+    notice.textContent = 'The guide data did not load. Keep the files in docs/ together and reopen index.html.';
     var main = document.getElementById('content');
     if (main) main.insertBefore(notice, main.firstChild);
     return;
   }
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  var QS_KEY = 'sdd-kit-flowmap-quickstart';
+  var QS_KEY = 'sdd-kit-quickstart-v2-' + H.choice;
   var rendered = [];
 
   /**
@@ -219,15 +224,21 @@
     else fallback();
   }
   function codeBlock(code, label) {
-    return h('div', { class: 'code' },
-      h('code', code),
-      h('button', { type: 'button', class: 'copy', 'aria-label': 'Copy ' + (label || code), onclick: function () { copyText(code); } }, 'Copy'));
+    return h('div', { class: 'command-variants' }, H.variants(code).map(function (v) {
+      return h('div', { class: 'command-variant' },
+        v.label ? h('span', { class: 'command-host' }, v.label) : null,
+        h('div', { class: 'code' }, h('code', v.code),
+          h('button', { type: 'button', class: 'copy', 'aria-label': 'Copy ' + (v.label ? v.label + ': ' : '') + (label || code), onclick: function () { copyText(v.code); } }, 'Copy')));
+    }));
+  }
+  function commandLabel(name) {
+    return H.choice === 'compare' ? name : H.command('/' + name, H.choice);
   }
   function labeled(label, code) {
     return h('div', { class: 'labeled' }, h('span', { class: 'code-label' }, label), codeBlock(code, label));
   }
   function chip(text, cls) { return h('span', { class: 'chip' + (cls ? ' ' + cls : '') }, text); }
-  function para(text, cls) { return h('p', { class: cls || null }, text); }
+  function para(text, cls) { return h('p', { class: cls || null }, H.prose ? H.prose(text) : text); }
   function list(items, cls) { return h('ul', { class: cls || 'outs' }, items.map(function (t) { return h('li', t); })); }
   function plain(href, label, cls) { return h('a', { class: cls || 'linkbtn', href: href }, label); }
 
@@ -447,7 +458,7 @@
     if (!w) return false;
     var routes = G.routes.filter(function (r) { return r.launches.indexOf(w.name) !== -1; });
     var out = [para(w.description), h('h3', 'Phases'), phaseTrack(w), h('h3', 'When to use'), para(w.whenToUse, 'muted')];
-    if (routes.length) out.push(h('h3', 'Reached from /sdd'), routeButtons(routes));
+    if (routes.length) out.push(h('h3', 'Reached from the SDD router'), routeButtons(routes));
     openDrawer('Workflow', w.name, out, 'workflows');
     if (!fromRouter) setHash('workflow/' + w.name);
     return true;
@@ -461,12 +472,23 @@
       h('dt', 'Ships'), h('dd', it.ships === 'core' ? chip('core', 'tools') : chip(addon ? addon.name : it.ships, 'addon'))
     ];
     if (type === 'skill') meta.push(h('dt', 'Invoke'), h('dd', chip(it.invoke)));
-    else meta.push(h('dt', 'Model'), h('dd', chip(it.model || '—', 'agent')), h('dt', 'Effort'), h('dd', it.effort || 'not set'));
+    else meta.push(h('dt', H.choice === 'codex' ? 'Codex model' : 'Claude model tier'), h('dd', chip(H.choice === 'codex' ? 'Inherited unless explicitly mapped' : it.model || '—', 'agent')), h('dt', 'Effort'), h('dd', H.choice === 'codex' ? 'Host settings; no Claude alias mapping' : it.effort || 'not set'));
     var out = [para(it.description), h('h3', 'Details'), h('dl', { class: 'meta-grid' }, meta)];
-    if (addon) out.push(h('h3', 'Add-on'), para(addon.what, 'muted'), codeBlock('/plugin install ' + addon.name + '@sdd-kit', 'install command for ' + addon.name));
+    if (type === 'skill') {
+      if (it.invoke === 'auto') {
+        if (H.choice !== 'codex') out.push(para('Claude Code: reference material loaded when relevant; no user slash command.', 'note'));
+        if (H.choice !== 'claude') out.push(codeBlock('$' + it.name, 'Codex skill'));
+      } else out.push(h('h3', 'Use this skill'), codeBlock(it.name === 'sdd-runtime' ? '$sdd-runtime' : '/' + it.name));
+    }
+    if (H.choice === 'compare' && type === 'agent') out.push(para('Codex inherits the current model unless explicitly mapped. Claude aliases above describe the shared source role, not Codex model IDs.', 'note'));
+    if (addon) {
+      out.push(h('h3', 'Add-on'), para(addon.what, 'muted'));
+      if (H.choice !== 'codex') out.push(para('Claude Code plugin installation'), codeBlock('/plugin install ' + addon.name + '@sdd-kit', 'install command for ' + addon.name));
+      if (H.choice !== 'claude') out.push(para('Codex: included in the native sdd-kit package; no separate install.', 'note'));
+    }
     if (type === 'skill') {
       var routes = G.routes.filter(function (r) { return routeLinks(r).skills.indexOf(it) !== -1; });
-      if (routes.length) out.push(h('h3', 'Reached from /sdd'), routeButtons(routes));
+      if (routes.length) out.push(h('h3', 'Reached from the SDD router'), routeButtons(routes));
     }
     openDrawer(type === 'skill' ? 'Skill' : 'Agent', it.name, out, type === 'skill' ? 'skills' : 'agents');
     if (!fromRouter) setHash(type + '/' + it.name);
@@ -475,11 +497,14 @@
 
   /* ---------- Hero ---------- */
   function renderHero() {
+    $('guide-host-context').textContent = H.choice === 'compare'
+      ? 'Compare both agents. Shared explanations appear once; copyable skill examples show both forms. Reference pages keep explicit host labels.'
+      : 'Showing ' + H.label + ' installation and commands. Shared SDD concepts stay the same. Reference pages keep both variants labeled for comparison.';
     var stats = [['routes', G.routes.length, '#map'], ['skills', C.skills.length, '#skills'], ['agents', C.agents.length, '#agents'], ['workflows', C.workflows.length, '#workflows']];
     if (E) stats.push(['chapters', E.chapters.length, '#example'], ['example specs', E.specs.length, '#board']);
     fill($('stats'), stats.map(function (s) { return h('li', plain(s[2], [h('b', s[1]), h('span', s[0])], 'stat')); }));
     if (G.stacks) {
-      fill($('stack-note'), ['Supported stacks: ' + G.stacks.now + '. ', 'Next on the ', plain(G.stacks.href, 'roadmap', 'inline'), ': ' + G.stacks.roadmap + '.']);
+      fill($('stack-note'), ['Supported stacks: ' + G.stacks.now + '. ', 'Next on the ', plain(G.stacks.href, 'roadmap', 'inline'), ': ' + (H.prose ? H.prose(G.stacks.roadmap) : G.stacks.roadmap) + '.']);
     }
     done('start');
   }
@@ -489,7 +514,7 @@
     var pr = G.primer, out = [];
     if (!pr) { $('primer').hidden = true; done('primer'); return; }
     out.push(para(pr.what));
-    out.push(h('h3', 'Install Claude Code'), h('div', { class: 'stack-gap' }, pr.install.map(function (i) { return labeled(i.label, i.code); })));
+    out.push(h('h3', 'Prepare the host'), h('div', { class: 'stack-gap' }, pr.install.map(function (i) { return labeled(i.label, i.code); })));
     if (pr.installNote) out.push(para(pr.installNote, 'note'));
     out.push(h('h3', 'Your first session'), h('ol', { class: 'do-list' }, pr.firstSession.map(function (f) {
       return h('li', h('b', f.do), h('span', f.how));
@@ -503,14 +528,16 @@
     })));
     var first = E ? E.chapters.filter(function (c) { return c.route === 'feature'; })[0] : null;
     out.push(h('h3', 'Next'), para(pr.next), h('div', { class: 'linkrow' },
-      plain('#install', 'Install the kit'), plain('#after', 'After /sdd'),
+      plain('#install', 'Install the kit'), plain('#after', 'After the router'),
       first ? plain('#example/' + first.n, E.product + ' chapter ' + first.n) : null));
     fill(body('primer'), out);
     done('primer');
   }
 
   /* ---------- Install ---------- */
-  var instModes = [['plugin', G.install.plugin], ['file-copy', G.install.fileCopy]];
+  var instModes = [['plugin', G.install.plugin]];
+  if (G.install.fileCopy) instModes.push(['file-copy', G.install.fileCopy]);
+  if (G.install.codex) instModes.push(['codex', G.install.codex]);
   if (G.install.npx) instModes.push(['npx', G.install.npx]);
   var instMode = 'plugin';
   function hasInstMode(m) { return instModes.some(function (x) { return x[0] === m; }); }
@@ -586,7 +613,7 @@
             'aria-label': 'Mark step ' + (i + 1) + ', ' + q.title + ', as done',
             onclick: function () { qsDone[i] = !qsDone[i]; saveQs(); draw(i); }
           }, isDone ? '✓' : String(i + 1)),
-          h('div', h('h3', q.title), para(q.text), codeBlock(q.code, q.title + ' command')));
+          h('div', h('h3', q.title), para(q.text), q.code ? codeBlock(q.code, q.title + ' command') : null));
       }));
       var n = qsDone.filter(Boolean).length;
       count.textContent = n + ' / ' + steps.length + ' done';
@@ -619,7 +646,7 @@
 
     function mark(id) { Object.keys(indexBtns).forEach(function (k) { indexBtns[k].setAttribute('aria-pressed', String(k === id)); }); }
     function empty() {
-      fill(answer, h('div', { class: 'picker-empty' }, 'Your route will appear here. ' + G.routes.length + ' routes, one front door: ', h('code', '/sdd')));
+      fill(answer, h('div', { class: 'picker-empty' }, 'Your route will appear here. ' + G.routes.length + ' routes, one front door: ', h('code', commandLabel('sdd'))));
       mark(null);
     }
     function resultCard(res) {
@@ -684,7 +711,7 @@
     var m = qs ? /^(.*?)\.\s*\/sdd\s+(.*?);\s*(.*?)\.?$/.exec(qs.text) : null;
     var flow = h('ol', { class: 'flow-head', 'aria-label': 'How a request flows' },
       h('li', h('span', { class: 'kind you' }, 'you'), h('b', 'Your request'), m ? h('span', m[1].charAt(0).toLowerCase() + m[1].slice(1)) : null),
-      h('li', h('span', { class: 'kind agent' }, 'agent'), h('b', '/sdd'), m ? h('span', m[2]) : null, m ? chip(m[3], 'you') : null));
+      h('li', h('span', { class: 'kind agent' }, 'agent'), h('b', commandLabel('sdd')), m ? h('span', m[2]) : null, m ? chip(m[3], 'you') : null));
     var grid = h('ul', { class: 'route-grid' }, G.routes.map(function (r) {
       var b = h('button', {
         type: 'button', class: 'route-card-btn rt-' + r.id, onclick: function () { showRoute(r.id); }
@@ -749,7 +776,7 @@
       para(p.text),
       p.href ? h('p', { class: 'note' }, 'How manifests are checked and approved: ', plain(p.href, 'stack manifest', 'inline'), '.') : null,
       p.id === 'acceptance' && G.browser ? para(G.browser, 'note') : null,
-      p.id === 'docs' && A ? h('p', { class: 'note' }, 'Next: ', plain('#after', 'after /sdd', 'inline'), ', ' + A.intro) : null),
+      p.id === 'docs' && A ? h('p', { class: 'note' }, 'Next: ', plain('#after', 'continue after the router', 'inline'), '.') : null),
       h('div', { class: 'hint' }, (i + 1) + ' / ' + P.length)];
     fill(pipeDetail, out);
     prevBtn.disabled = i === 0;
@@ -792,7 +819,7 @@
         h('ul', g.items.map(function (it) {
           var name = cmdName(it.cmd), args = cmdArgs(it.cmd);
           var b = h('button', { type: 'button', class: 'after-card', onclick: function () { showAfter(name); } },
-            h('span', { class: 'cmd' }, '/' + name), args ? h('span', { class: 'args' }, args) : null, h('span', { class: 'when' }, it.when));
+            h('span', { class: 'cmd' }, commandLabel(name)), args ? h('span', { class: 'args' }, args) : null, h('span', { class: 'when' }, it.when));
           afterCards[name] = b;
           return h('li', b);
         })));
@@ -819,9 +846,9 @@
     }
     out.push(h('h3', it.group.label), h('div', { class: 'linkrow' }, it.group.items.map(function (x) {
       var nm = cmdName(x.cmd);
-      return nm === name ? chip('/' + nm) : openLink('/' + nm, 'after/' + nm);
+      return nm === name ? chip(commandLabel(nm)) : openLink(commandLabel(nm), 'after/' + nm);
     })));
-    openDrawer('After /sdd · ' + it.group.label, '/' + name, out, 'after');
+    openDrawer('Continue · ' + it.group.label, commandLabel(name), out, 'after');
     markAfter(name);
     if (!fromRouter) setHash('after/' + name);
     return true;
@@ -941,7 +968,7 @@
   /* ---------- Hooks ---------- */
   function renderHooks() {
     append(body('hooks'), [
-      para('Hooks run automatically. Verify they fire with /framework-doctor.', 'note'),
+      para(G.hooksNote, 'note'),
       h('ul', { class: 'tl-legend' },
         h('li', h('i', { class: 'f-pre' }), 'before a tool runs'),
         h('li', h('i', { class: 'f-post' }), 'after a tool runs'),
@@ -1013,11 +1040,12 @@
     var root = body('example');
     append(root, para('Follow ' + E.product + ' through ' + E.chapters.length + ' chapters: the route /sdd picked for each ticket, the commands typed, what each chapter teaches, and the specs it produced. Select a chapter, or highlight a route.', 'note'));
     append(root, h('div', { class: 'ex-meta' },
+      para('The following is an illustrative project snapshot. Its recorded approvals, dates and gate results are teaching fixtures; this documentation update does not rerun Hireboard or establish acceptance in either host.', 'host-context'),
       para(E.summary), para(E.fictionNote, 'fiction'),
       h('div', { class: 'linkrow' }, plain(E.readme, 'Read the example\'s README')),
       h('div', { class: 'frow' }, h('span', { class: 'lbl' }, 'People'), E.people.map(function (p) { return chip(p.name + ' · ' + p.role, 'you'); })),
       h('div', { class: 'frow' }, h('span', { class: 'lbl' }, 'Repos'), E.repos.map(function (r) { return chip(r.id + ' · ' + r.stack, 'agent'); })),
-      h('details', { class: 'gates' }, h('summary', 'Gates the finished code passes (' + E.gates.length + ')'),
+      h('details', { class: 'gates' }, h('summary', 'Recorded example gate results (' + E.gates.length + ')'),
         h('table', { class: 'flags' }, h('caption', { class: 'sr-only' }, 'Gates'),
           h('thead', h('tr', ['Gate', 'Repo', 'Result'].map(function (t) { return h('th', { scope: 'col' }, t); }))),
           h('tbody', E.gates.map(function (g) { return h('tr', h('td', g.gate), h('td', g.repo), h('td', g.result)); }))))));
@@ -1094,7 +1122,7 @@
     var gr = routes.map(guideRouteId).filter(function (id, k, arr) { return arr.indexOf(id) === k && routeById(id); });
     if (gr.length) out.push(routeButtons(gr.map(routeById)));
     if (c.features.length) out.push(h('h3', 'Kit features'), list(c.features));
-    if (c.commands.length) out.push(h('h3', 'Commands typed'), h('div', { class: 'stack-gap' }, c.commands.map(function (cmd) { return codeBlock(cmd, cmd); })));
+    if (c.commands.length) out.push(h('h3', 'Example commands'), para('Registered skill calls follow the selected host. Original shell setup and workflow API snippets remain Claude examples; use the chapter’s Codex instructions for their native equivalents.', 'note'), h('div', { class: 'stack-gap' }, c.commands.map(function (cmd) { return codeBlock(cmd, cmd); })));
     if (c.afterSdd.length) {
       out.push(h('h3', 'After /sdd in this chapter'), h('div', { class: 'stack-gap' }, c.afterSdd.map(function (a) {
         var g = A ? A.groups.filter(function (x) { return x.id === a.group; })[0] : null;
@@ -1218,7 +1246,7 @@
             h('div', { class: 'linkrow' }, plain(a.href, a.file), plain(a.chapterHref, 'explained in the chapter'))));
       }));
     }
-    out.push(h('h3', 'Files'), h('div', { class: 'linkrow' }, s.files.map(function (f) { return plain(s.href.replace(/[^\/]*$/, '') + f, f); })));
+    out.push(h('h3', 'Files'), h('div', { class: 'linkrow' }, s.files.map(function (f) { return plain(s.href.replace(/[^\/]*$/, '') + f.replace(/\.md$/, '.html'), f); })));
     out.push(h('div', { class: 'linkrow' }, plain(E.board.href + '#spec/' + s.key, 'Open in the full board ↗', 'btn primary'), ch ? openLink('Chapter ' + ch.n, 'chapter/' + ch.n, 'btn') : null));
     openDrawer('Spec · ' + s.repo + ' · ' + (STATUS_LABEL[s.status] || s.status), s.shortId + ' · ' + s.title, out, 'board');
     if (!fromRouter) setHash('board/' + s.key);
@@ -1296,13 +1324,13 @@
       h('label', { class: 'search' }, h('span', { class: 'sr-only' }, 'Search ' + catState.tab), input),
       catState.tab !== 'workflows' ? chipRow('Ships', 'ships', uniq(items, 'ships'), shipsLabel) : null,
       catState.tab === 'skills' ? chipRow('Invoke', 'invoke', uniq(items, 'invoke')) : null,
-      catState.tab === 'agents' ? chipRow('Model', 'model', uniq(items, 'model')) : null
+      catState.tab === 'agents' && H.choice !== 'codex' ? chipRow('Claude model', 'model', uniq(items, 'model')) : null
     ]);
   }
   function catMatches(x) {
     if (catState.ships && x.ships !== catState.ships) return false;
     if (catState.invoke && x.invoke !== catState.invoke) return false;
-    if (catState.model && x.model !== catState.model) return false;
+    if (H.choice !== 'codex' && catState.model && x.model !== catState.model) return false;
     if (!catState.q) return true;
     var hay = (x.name + ' ' + x.description + ' ' + (x.whenToUse || '') + ' ' + (x.category || '')).toLowerCase();
     return catState.q.toLowerCase().split(/\s+/).every(function (t) { return hay.indexOf(t) !== -1; });
@@ -1326,7 +1354,8 @@
         h('div', { class: 'cards' }, groups[k].map(function (x) {
           var chips = [x.ships === 'core' ? chip('core', 'tools') : chip(shipsLabel(x.ships), 'addon')];
           if (type === 'skill') chips.push(chip(x.invoke));
-          else chips.push(chip(x.model, 'agent'), x.effort ? chip('effort ' + x.effort) : null);
+          else if (H.choice === 'codex') chips.push(chip('inherited model', 'agent'));
+          else chips.push(chip('Claude: ' + x.model, 'agent'), x.effort ? chip('effort ' + x.effort) : null);
           return h('button', { type: 'button', class: 'card k-' + type, onclick: function () { showItem(type, x.name); } },
             h('span', { class: 'nm' }, x.name), h('span', { class: 'ds' }, x.description), h('span', { class: 'chips' }, chips));
         })));

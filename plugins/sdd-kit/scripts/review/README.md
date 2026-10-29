@@ -4,6 +4,16 @@ A bash pipeline that reviews an existing codebase with `claude -p`, validates ev
 
 It runs from a plain terminal, typically overnight. For reviewing a single change before merge, use `/deep-review` instead.
 
+## Host scope
+
+This is the **Claude Code headless pipeline**. Its implementation invokes `claude -p`; it is intentionally excluded from the native Codex package. Do not run it from Codex by launching nested Claude or replace its executable with `codex exec` and assume compatibility.
+
+For a scoped review in Codex, use `$deep-review`, which delegates native subagents. For a wider investigation, describe the scope through `$sdd` or `$investigate`. Those paths share review principles, but they are not a port of this overnight script's phases or resumable files.
+
+The verified Markdown output can inform either host: put shared project facts in `AGENTS.md` and the documented context files; use `CLAUDE.md` only for Claude-specific loading. Treat a past report as evidence from its recorded revision and verify material claims against current code.
+
+Source: [review.sh](review.sh), [Codex build exclusion](../../../../adapters/codex/build.mjs).
+
 ## Requirements
 
 - **Claude Code**, installed and logged in (`claude --version`, `claude auth status`). For CI or untrusted checkouts, export `ANTHROPIC_API_KEY`: every call then runs with `--bare` (see [Headless safety](#headless-safety)).
@@ -299,7 +309,7 @@ With `EXISTING_DOCS_PATHS` empty (the default), Phase I is skipped.
 
 ### Cost and time
 
-Figures are from past runs on a mid-size Laravel + Next.js project and drift with pricing; check current pricing ([effort guidelines](../../docs/effort-guidelines.md)) and cap each call with `REVIEW_MAX_BUDGET_USD`.
+Figures are from past runs on a mid-size Laravel + Next.js project and drift with pricing; check current pricing ([effort guidelines](../../../../docs/reference/effort-guidelines.md)) and cap each call with `REVIEW_MAX_BUDGET_USD`.
 
 | Phase | Model | Est. cost | Time |
 |-------|-------|-----------|------|
@@ -355,7 +365,7 @@ The survey usually marks 20 to 40% of chunks GREEN, which C and D then skip. Pha
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CLAUDE_MODEL` | `sonnet` | Model for phases C to H. Use a tier alias, or a current full ID for reproducible runs ([effort guidelines](../../docs/effort-guidelines.md)) |
+| `CLAUDE_MODEL` | `sonnet` | Model for phases C to H. Use a tier alias, or a current full ID for reproducible runs ([effort guidelines](../../../../docs/reference/effort-guidelines.md)) |
 | `SURVEY_MODEL` | `haiku` | Model for phase B |
 | `CLAUDE_TIMEOUT` | `720` | Timeout per call, in seconds |
 | `MAX_PARALLEL` | `5` | Maximum concurrent calls |

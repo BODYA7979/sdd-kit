@@ -2,7 +2,28 @@
 
 This records bounded acceptance of the shared-root integration, not a guarantee that model-generated applications are correct or production-ready.
 
-## Reproducible checks
+This is a **dated evidence record**, not a live status dashboard. Counts, installed-plugin state and dependency-audit results below describe the recorded run. Documentation renovation does not rerun or expand those scenarios. For installation use the [host chooser](reference/installation.md); for current reproducible checks, use the root package scripts and [documentation maintenance guide](maintaining-docs.md).
+
+## Integration with updated main — 2026-10-29
+
+The documentation was rebased onto `e1c5c51` (greenfield architecture enforcement and acceptance). The new-app reference, interactive route, architecture guide and Hireboard chapter now describe architecture-decision evidence, the selected local or hosted CI, and computed shipping/backlog outcomes. The newer greenfield acceptance record below was preserved alongside the earlier documentation checks.
+
+After integration, `npm test` passed **63 tests**, including the 16 greenfield regression scenarios for both host interfaces. Documentation build and freshness/link checks passed for **73 generated pages**. This run did not repeat the actual native-worker fixture scenarios or install new plugins.
+
+## Documentation renovation checks — 2026-10-29
+
+This separate run verified the documentation and its delivery paths:
+
+- `npm test`: 47 passing tests, including both host builds, adapter regressions, the local guide launcher, Markdown rendering, catalog metadata and host-selection behavior.
+- `npm run docs:build` and `npm run docs:check`: 73 Markdown-derived HTML pages, catalog freshness, local targets and heading anchors passed.
+- The 12 documentation/selector tests passed again after the final host-specific catalog correction. They cover command mapping, package namespaces, URL precedence, blocked browser storage, link propagation and distinct installer recipes.
+- A separate read-only scan checked 45 relative links in 14 root, plugin and ancillary README files; no missing targets were found.
+- Browser checks exercised Claude, Codex and comparison views, verified actual clipboard contents for each command form, followed host selection into reference pages, opened a native skill detail, searched the catalog, and opened/closed the mobile menu. No page errors were observed in these scenarios. Widths of 320 and 390 pixels had no page overflow; desktop views were checked at 1280 and 1440 pixels. Updated guide screenshots are in `docs/img/`.
+- Dependency audit reported zero known vulnerabilities after adding the patched documentation renderer. The package preview included the local guide, host scripts and hidden example artifacts.
+
+These are bounded documentation checks. A fresh real plugin installation, all vendor versions, every hook event, external URL availability and a screen-reader pass were not verified in this run. Native-select keyboard changes could not be confirmed through the browser automation; selection and focus behavior were checked separately. Existing workflow fixture acceptance below remains its original dated record.
+
+## Shared-root checks recorded after the greenfield fix
 
 - `npm ci --ignore-scripts` and root `npm test`: 51 passing tests on Node 22.17.1/macOS. GitHub Actions runs the same suite on Ubuntu/Node 22.
 - Tests compare the Claude artifact and the native artifact's original resources byte-for-byte with canonical `plugins/`, `share/` and marketplace sources.

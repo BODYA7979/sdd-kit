@@ -18,8 +18,6 @@ const SPEC_BOARD_CANDIDATES = [
   path.join(ROOT, 'plugins', 'sdd-kit', 'skills', 'spec-board', 'scripts', 'spec-board.mjs'),
 ];
 const INSTALLER = path.join(ROOT, 'install.sh');
-const GUIDE = path.join(ROOT, 'docs', 'guide', 'index.html');
-const EXAMPLE_BOARD = path.join(ROOT, 'docs', 'guide', 'example-board.html');
 
 const USAGE = `SDD Kit launcher (${readVersion()})
 
@@ -153,18 +151,23 @@ function openInBrowser(file) {
   }
 }
 
+export function guideLocation(target, root = ROOT) {
+  const filename = target === 'board' ? 'example-board.html' : 'index.html';
+  const candidates = [path.join(root, 'docs', filename), path.join(root, 'docs', 'guide', filename)];
+  return candidates.find(file => fs.existsSync(file)) || (target === 'board' ? `${PAGES_URL}example-board.html` : PAGES_URL);
+}
+
 function runGuide(args) {
   const [target, ...rest] = args;
   if (target === '-h' || target === '--help') {
-    process.stdout.write(`Usage: ${NPX} guide [board]\nOpens docs/guide/index.html, or with "board" the worked example's spec board.\n`);
+    process.stdout.write(`Usage: ${NPX} guide [board]\nOpens the packaged docs/index.html, or with "board" docs/example-board.html. Uses the published guide only when local documentation is absent.\n`);
     return 0;
   }
   if (rest.length || (target !== undefined && target !== 'board')) {
     process.stderr.write(`Unknown guide target "${args.join(' ')}". Use: ${NPX} guide [board]\n`);
     return 2;
   }
-  const local = target === 'board' ? EXAMPLE_BOARD : GUIDE;
-  const file = fs.existsSync(local) ? local : target === 'board' ? `${PAGES_URL}example-board.html` : PAGES_URL;
+  const file = guideLocation(target);
   process.stdout.write(`${file}\n`);
   openInBrowser(file);
   return 0;

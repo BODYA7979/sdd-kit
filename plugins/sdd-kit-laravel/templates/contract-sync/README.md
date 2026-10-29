@@ -12,6 +12,19 @@ Catches API drift between a Laravel backend and a Next.js frontend before it shi
 
 Exit codes: `0` in sync, `1` drift found, `2` bad input (missing file, unparseable output). Requires Node 18+, no dependencies.
 
+## Host compatibility
+
+The checker is a standalone Node script. Its CI and terminal behavior is the same whether Claude Code, Codex or a person authored the change.
+
+| Install | Template location |
+| --- | --- |
+| Shared checkout | `plugins/sdd-kit-laravel/templates/contract-sync/` |
+| Claude file-copy | `.claude/templates/laravel/contract-sync/` |
+| Claude plugin | `templates/contract-sync/` inside the installed Laravel plugin |
+| Codex native plugin | `source/plugins/sdd-kit-laravel/templates/contract-sync/` inside the installed package |
+
+Copy the checker into your project's `scripts/` and make CI its durable owner. The optional Claude hook example below is specifically for Claude payloads; do not copy it into Codex hook configuration. Native Codex workflows can run the shared contract-sync gate through their normal verification steps.
+
 ## Setup
 
 1. Copy `contract-sync.mjs` into the frontend repo (or a shared tooling repo), e.g. `scripts/contract-sync.mjs`.
@@ -112,7 +125,7 @@ Monorepo: run both steps in one job and point `routesCwd` at the backend folder,
 
 Start with warnings allowed; add `--strict` once the backlog of unused routes is cleaned up or listed in `ignore`.
 
-## As a Claude Code hook
+## As a Claude Code hook (optional, host-specific)
 
 Run the check whenever the agent edits a route file or the registry, so drift surfaces in the same turn. Copy the script to `.claude/scripts/contract-sync.mjs` and add to `.claude/settings.json`:
 
@@ -138,3 +151,5 @@ Run the check whenever the agent edits a route file or the registry, so drift su
 Exit code `2` from a `PostToolUse` hook feeds the report (stderr) back to Claude, which then fixes the route or the registry. Other exit codes don't interrupt. If `route:list` is slow or needs Docker, set `routesFile` in `CONFIG` and regenerate it in a separate step instead of booting Laravel on every edit.
 
 A lighter alternative is a pre-push git hook: `node scripts/contract-sync.mjs || exit 1`.
+
+For Codex, keep the check as a project command / CI gate. Adding a custom native hook requires its own payload mapping and the host's exact-definition trust review; this template does not install one.

@@ -131,6 +131,21 @@ code { padding: 1px 6px; border-radius: 4px; background: var(--code-bg); font-si
   font: var(--text-sm) / 1.6 var(--font-mono); color: var(--muted);
 }
 .header-actions { display: flex; align-items: center; gap: var(--space-2); }
+.host-picker { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); white-space: nowrap; }
+.host-picker select { min-height: 36px; max-width: 160px; padding: 0 26px 0 10px; border: 1px solid var(--field-border); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
+.host-context { padding: var(--space-3) var(--space-4); border-left: 3px solid var(--accent); background: var(--surface); font-size: var(--text-sm); }
+.host-start-links { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-5) 0; }
+.doc-nav { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-5); }
+.command-variants { display: grid; gap: var(--space-2); min-width: 0; }
+.command-variant { min-width: 0; }
+.command-host { display: block; color: var(--muted); font-size: 12px; margin-bottom: var(--space-1); }
+@media (max-width: 720px) {
+  :root { --header-h: 100px; }
+  .site-header { flex-wrap: wrap; align-content: center; gap: 6px 10px; }
+  .header-actions { width: 100%; justify-content: flex-end; }
+  .host-picker { margin-right: auto; }
+  .site-header .badge { font-size: 12px; }
+}
 
 .btn {
   display: inline-flex; align-items: center; gap: var(--space-2);

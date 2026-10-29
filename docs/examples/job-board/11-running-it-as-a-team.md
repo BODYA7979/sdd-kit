@@ -1,5 +1,15 @@
 # 11 — Running Hireboard as a team: contract-sync, routines, evals, pinned versions
 
+## Operate a team using both hosts
+
+Keep product invariants, gate commands and repository contracts in shared `AGENTS.md` and context docs. Claude `CLAUDE.md` files import that shared guidance; Codex reads it directly. Pin a team revision that includes the Codex adapter, build both host packages and record the tested revision. The original `v3.1.0` tag is not the native Codex release.
+
+The contract-sync CI examples below are host-neutral. The scheduled `/schedule` requests, `claude plugin eval` invocation and Claude marketplace configuration are **Claude-specific examples**. In Codex, configure an available native automation with the same report-only intent, use `$progress` / `$security-scan` for the work, and install the native package from the agreed checkout. Never claim the simulated routine report or Claude eval scores validate a Codex run.
+
+For native runtime validation, root `npm test` covers adapter contracts; a live Codex routing/worker acceptance exercise needs its own recorded evidence. Review exact hook definitions and custom stack hashes separately on each host. See [installation](../../reference/installation.md), [host differences](../../reference/plugin-mode.md) and [validation limits](../../validation.md).
+
+**Reading the original walkthrough:** slash skill names below use Claude file-copy shorthand; Claude plugins add their package namespace. `Workflow(...)`, `/workflows`, `CLAUDE.md` imports and `.claude` settings describe that host. Use the concrete Codex path above. All simulated outputs remain labelled examples.
+
 By the end of [chapter 10](10-qa-and-docs-browse-journey.md), Alex Rivera had shipped Hireboard on his own: one greenfield slice, an ADR, five specs, a trivial change, a bug fix and a QA plan. Two more developers join on Monday, 2026-11-09. This chapter turns what Alex did by habit into checks and conventions that hold when he isn't watching:
 
 1. The api/web contract becomes a check that fails CI.
@@ -132,7 +142,7 @@ Optional, but the agent benefits: the README's [PostToolUse hook](https://github
 
 ## 2. Routines: report-only drift checks
 
-CI only checks pull requests. If someone renames a route on api `main` while no web PR is open, nothing goes red. Routines cover the gap. They are Claude Code cloud agents on a cron, created with `/schedule`. [USAGE-EXAMPLES.md section 14](../../reference/usage-examples.md#14-recurring-checks-with-routines) gives generic prompts, and these are tailored to Hireboard. Give each routine access to both `hireboard/api` and `hireboard/web` when `/schedule` asks for repositories.
+CI only checks pull requests. If someone renames a route on api `main` while no web PR is open, nothing goes red. Routines cover the gap. The original story uses Claude host routines created with `/schedule` when that feature is available. In Codex request a native automation with the same schedule and scope; `/schedule` is not an SDD Codex skill. [USAGE-EXAMPLES.md section 14](../../reference/usage-examples.md#14-recurring-checks-with-routines) gives generic prompts, and these are tailored to Hireboard. Give each routine access to both `hireboard/api` and `hireboard/web` when `/schedule` asks for repositories.
 
 **Nightly contract drift:**
 
@@ -169,7 +179,7 @@ The rule that makes routines safe: **a routine finds, a person acts through `/sd
 
 ## 3. A Hireboard routing eval
 
-`/sdd` routing decides which pipeline runs, so a wrong route is expensive. A `trivial` request routed to `feature` costs a spec, and a `bug` routed to `trivial` skips the regression test. The kit's built-in `sdd-routing` case covers four routes (bug, feature, decision, trivial). Hireboard's tickets exercise all six, so the team adds a case in its own words. See evals.md for the format and flags.
+`/sdd` routing decides which pipeline runs, so a wrong route is expensive. A `trivial` request routed to `feature` costs a spec, and a `bug` routed to `trivial` skips the regression test. The kit's built-in `sdd-routing` case covers four routes (bug, feature, decision, trivial). Hireboard's tickets exercise all six, so the team adds a case in its own words. The fixture below records the original Claude eval format; this checkout does not include the upstream evals.md guide or a native Codex equivalent.
 
 Evals run against the plugin source, so the case lives in a fork of the kit (`hireboard/claude-laravel-nexjs`). The fork tracks upstream tags, and `evals/hireboard-routing/` is its only addition, so the plugin code under test is byte-identical to the version the team pins in section 4. The artifact `artifacts/kit-fork/evals/hireboard-routing/` maps to `evals/hireboard-routing/` in that fork:
 
@@ -262,9 +272,9 @@ Commit the same `.claude/settings.json` to **both** `api/` and `web/` (section 2
 
 Each developer then runs `claude plugin install sdd-kit@hireboard-claude --scope project` once per repo. Hireboard also needs the stack add-ons, so the catalog lists the preset `sdd-kit-laravel-nextjs`, which depends on `sdd-kit-laravel`, `sdd-kit-nextjs` and `sdd-kit-devenv`, pinned the same way. The workspace root `~/work/hireboard/` has no git, so nothing there can be committed. Each developer either keeps an untracked copy of that settings file at the root or starts cross-repo sessions from inside a repo with `--add-dir` (F3). Plugin mode namespaces skills, so `/sdd` in this walkthrough is `/sdd-kit:sdd` (F5, [INSTALLATION.md, "Namespacing"](../../reference/installation.md#namespacing)).
 
-Upgrades follow the doc's [pinning policy](../../reference/team-marketplace.md#4-update-and-pinning-policy). Open a PR to the marketplace repo that bumps `ref` and `sha`, rebase the fork onto the new tag, and run the section 3 eval plus the built-in suite. Merge only if the medians hold.
+Upgrades follow the doc's [pinning policy](../../reference/team-marketplace.md#updates-and-policy). Open a PR to the marketplace repo that bumps `ref` and `sha`, rebase the fork onto the new tag, and run the section 3 eval plus the built-in suite. Merge only if the medians hold.
 
-**Other AI tools.** Not everyone uses Claude Code. The `AGENTS.md` files from [chapter 02](02-greenfield-first-slice.md) are tool-neutral (stack, the exact gate commands, the red lines), and Cursor and Codex read them directly. Make sure they are committed in both repos, and that each `CLAUDE.md` imports `@AGENTS.md` so each fact lives in one file only (see the comment at the top of `src/templates/AGENTS.template.md`). Keep every `CLAUDE.md` under 200 lines, as `src/CLAUDE.template.md` and [GETTING-STARTED.md](../../reference/getting-started.md#2-give-claude-your-project-context) advise:
+**Shared instructions for both hosts.** Claude Code and Codex use the same project facts. The `AGENTS.md` files from [chapter 02](02-greenfield-first-slice.md) are tool-neutral (stack, the exact gate commands, the red lines), and Cursor and Codex read them directly. Make sure they are committed in both repos, and that each `CLAUDE.md` imports `@AGENTS.md` so each fact lives in one file only (see the comment at the top of `share/templates/AGENTS.template.md`). Keep every `CLAUDE.md` under 200 lines, as `share/CLAUDE.template.md` and [GETTING-STARTED.md](../../reference/getting-started.md#project-context) advise:
 
 ```bash
 cd ~/work/hireboard

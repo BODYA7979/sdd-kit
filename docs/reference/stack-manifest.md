@@ -2,7 +2,20 @@
 
 A stack manifest, `stack.json`, is the one file that teaches the SDD Kit workflows a stack: how to recognise it, which agent implements it, which gates verify it and how to scaffold, deploy and test it. The workflows read manifests and never name a stack themselves, so a new stack is a new manifest, not a code change.
 
-The format is defined by [`src/workflows/lib/stack.schema.json`](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/plugins/sdd-kit/workflows/lib/stack.schema.json). The examples on this page use a fictional stack, `acme`. To generate a manifest and a full add-on from a few answers, run `/new-stack`; this page is the field reference behind it.
+The format is defined by [the shared JSON schema](../../plugins/sdd-kit/workflows/lib/stack.schema.json). The examples use a fictional stack, `acme`. Generate a manifest with `/sdd-kit:new-stack` in Claude plugin mode (`/new-stack` in file-copy mode), or `$new-stack` in Codex. This page describes common fields and then host-specific discovery and approval.
+
+## Host paths and commands
+
+| Concern | Claude Code | Codex |
+| --- | --- | --- |
+| Review and approve | `/sdd-kit:stack-trust` or `/stack-trust` | `$stack-trust` |
+| Project manifests | `.claude/stacks/*.json` | `.codex/stacks/*.json` |
+| User manifests | `stacks/*.json` in the Claude config directory | OS user's `.codex/stacks/*.json` |
+| Project add-ons | `.claude/stack-addons/*/stack.json` and supported `--plugin-dir` discovery | `.codex/stack-addons/*/stack.json` |
+| Trust store | OS user's `.claude/sdd-kit/trusted-stacks.json` | OS user's `.codex/sdd-kit/trusted-stacks.json` |
+| Add-on generation | Project and source-add-on modes described by the Claude skill | Native project target only |
+
+The stores are independent. Installing both hosts does not copy approvals. The command examples in the common field reference use Claude file-copy shorthand; Codex uses the corresponding installed skill, for example `$lint` or `$run-tests`.
 
 ## Shape
 
@@ -30,7 +43,7 @@ A manifest file holds one entry object, or an array of 1 to 8 entries with uniqu
 
 | Field | Type | Meaning |
 |-------|------|---------|
-| `name` | string | The stack key, 2 to 32 characters: lowercase letters, digits and hyphens, starting with a letter. For an add-on in `src/plugins/<dir>/` one entry must be named `<dir>`. |
+| `name` | string | The stack key, 2 to 32 characters: lowercase letters, digits and hyphens, starting with a letter. For a first-party add-on in `plugins/sdd-kit-<stack>/`, one entry uses its stack key. |
 | `order` | integer | Position in the Detect catalog and tie-breaker when several stacks match. Unique across all manifests. |
 | `role` | string | `backend`, `frontend`, `fullstack` or `mobile`. Split-repo workflows pair a backend with a frontend. |
 | `detect` | string | One sentence the Detect step uses to recognise the stack in a repository. Describe files and their content, not tools to install. |
@@ -67,7 +80,7 @@ Workflows run a gate command only when the registry produces it. Detection only 
 
 - **A stack in the kit:** the gates of its inlined manifest that detection found (matched by gate name or by the exact catalog command), with `<pm>`/`<pmx>` filled from the package manager its lockfile names.
 - **An approved overlay:** the gates of the approved manifest content (see [Agent and trust](#agent-and-trust)).
-- **`other`:** the `gateTemplates` of the core `other` manifest (`src/workflows/lib/other.stack.json`), for example `make {script}` with the evidence file `Makefile`. Detection must name the evidence file and a script or target defined in it; the script name may hold only letters, digits and `:._-`. Only the core `other` manifest may declare `gateTemplates`; any other manifest that does is rejected.
+- **`other`:** the `gateTemplates` of the core `other` manifest (`plugins/sdd-kit/workflows/lib/other.stack.json`), for example `make {script}` with the evidence file `Makefile`. Detection must name the evidence file and a script or target defined in it; the script name may hold only letters, digits and `:._-`. Only the core `other` manifest may declare `gateTemplates`; any other manifest that does is rejected.
 
 Anything else, including a reformatted copy of a declined manifest's command, is dropped and logged as `Gate commands dropped for <repo>: ... — declined`. A repo whose stack comes from a rejected manifest runs no gate: it reports one `unreachable` gate whose details start with `not run (stack manifest not used` and name the reason. The contract-sync gate follows the same rule: it runs `node scripts/contract-sync.mjs`, or a `contract-sync` / `contract:sync` script through a gate template, and nothing else.
 
@@ -169,11 +182,14 @@ Without an `e2e` block the stack declares no browser tests. A frontend's `e2e` b
 
 ## Agent and trust
 
+The approval rules are shared. Claude-specific discovery details below are labelled; native Codex uses the adapter described in the Codex subsection. A role is an instruction set: Codex loads the role through `agent_instructions` and delegates to a native subagent, rather than requiring a native type with that exact name.
+
+
 `agent.name` is the specialist's agent name. `agent.plugin` is the name of the plugin that ships it; when set, workflows try the bare name first, then `<plugin>:<name>`. When the agent cannot be resolved, the workflow logs the attempted names and falls back to the default agent.
 
 Where a manifest comes from decides whether its commands may run:
 
-- **Add-ons in the kit** (`src/plugins/<dir>/stack.json`) are first-party. They need `agent.plugin` equal to their own plugin name, `sdd-kit-<dir>`, and verify Check 16 enforces it.
+- **Add-ons in the kit** (`plugins/sdd-kit-<stack>/stack.json`) are first-party. They need `agent.plugin` equal to their own plugin name, `sdd-kit-<dir>`, as the bundled manifests do.
 - **Overlay manifests** are third-party or project-local: `.claude/stacks/*.json` in a project, `stacks/*.json` in the user config directory, and `stack.json` in any other enabled plugin. They are validated with extra limits (strings up to 500 characters, lists up to 32 items) `agent.plugin` may not be `sdd-kit`, and `agent.name` may not be a core agent name (such as `test-writer` or `code-explorer`), so an overlay can never take over a core agent. A project or user overlay may not use a first-party key either: `/new-stack --target project` refuses one, and a workflow ignores such a file. Their commands (gates, `scaffold`, `ci`, `e2e.run`, `contractSync.routeListCommand`, `buildGateGuard`, `execWrapper`, `e2eBackend`) run only after you approve the exact content with `/stack-trust`, which records its hash. Any edit asks again. Until then workflows run none of them and print `not run (untrusted manifest)` against each gate by position (`gate 1 (untrusted manifest)`), never by the name the manifest gives it. An untrusted manifest's specialist agent and skill names are not used either: its steps run as the default agent with no stack skills, and the run log says so; a run is held at BLOCKED (NOT-RESOLVED for fix-bug) only when one of its repos uses the untrusted stack, and other untrusted manifests are listed for information. Once approved, workflows run the gate commands of the approved manifest, with `<pm>`/`<pmx>` filled from its `packageManagers`, not commands reported during detection.
 
 **Threat model (OD-17).** A manifest that is neither first-party nor approved through `/stack-trust` (hash-matched) never supplies a command, path, URL or other value that reaches a shell, a gate plan or an agent prompt as an instruction. On top of that, every value the Detect or Scaffold agent reports is checked before a prompt or command quotes it, and an invalid value is dropped and logged:
@@ -186,13 +202,15 @@ Where a manifest comes from decides whether its commands may run:
 
 Report prompts get these validated fields, never the raw Detect object. A rejected manifest's reason names only the JSON pointer (keys the schema does not declare become `<key>`) and the rule it breaks, for example `/role has a value outside the allowed list (rule enum)`; `/stack-trust --show` lists the full problems for you. A source label must use only letters, digits and `: . _ ~ / @ -`, or the manifest is rejected with `missing or invalid source`. With no allowlisted gate, a repo falls back to the lint and test tooling it visibly has only when its stack is first-party or `other` and no manifest was rejected, ignored or untrusted in the run. Otherwise its gates are reported `not run (no allowlisted gate)`.
 
-The trust check that skills run is the kit's own `trust-store.mjs`. The script is self-contained: `tools/gen-stacks.mjs` bundles the workflows' manifest checks and the first-party entries into it, and it loads no other script or registry file, so the hash covers everything it runs. A project copy is used only when its SHA-256 equals the hash generated into the `verification-gates` skill, and never by a hash stored in the project. When no copy can be verified, the check reports `trust check unavailable` and every overlay counts as untrusted. The trust store is always `~/.claude/sdd-kit/trusted-stacks.json` in your home directory as the operating system's user database records it; neither `$HOME` nor `CLAUDE_CONFIG_DIR` moves it, because a project setting can change both. User stack manifests still live in the config directory (`CLAUDE_CONFIG_DIR`, else `~/.claude`), since each one needs an approval anyway. As a further check, a config directory that resolves inside the current directory, its git toplevel, `CLAUDE_PROJECT_DIR`, or any ancestor of the current directory that holds `.git` is refused: the user stacks and plugin list there are reported unreadable.
+**Claude trust-helper implementation.** The trust check that Claude skills run is the kit's own `trust-store.mjs`. The script is self-contained: `tools/gen-stacks.mjs` bundles the workflows' manifest checks and the first-party entries into it, and it loads no other script or registry file, so the hash covers everything it runs. A project copy is used only when its SHA-256 equals the hash generated into the `verification-gates` skill, and never by a hash stored in the project. When no copy can be verified, the check reports `trust check unavailable` and every overlay counts as untrusted. The trust store is always `~/.claude/sdd-kit/trusted-stacks.json` in your home directory as the operating system's user database records it; neither `$HOME` nor `CLAUDE_CONFIG_DIR` moves it, because a project setting can change both. User stack manifests still live in the config directory (`CLAUDE_CONFIG_DIR`, else `~/.claude`), since each one needs an approval anyway. As a further check, a config directory that resolves inside the current directory, its git toplevel, `CLAUDE_PROJECT_DIR`, or any ancestor of the current directory that holds `.git` is refused: the user stacks and plugin list there are reported unreadable.
 
 Out of scope: running a workflow on a repository you do not trust. Agents read repository files and have Bash, so hostile repository content can steer them whatever `/stack-trust` says. `/stack-trust` controls manifests, not repository content. That includes values a repository's settings supply, such as the settings `env` values in `.claude/settings.json` (`NODE_OPTIONS`, `PATH`): they reach every process the agents start and sit outside the threat model.
 
 A project-local manifest should set `agent.plugin` to the add-on that ships its agent, for example `sdd-kit-acme` from `.claude/stack-addons/sdd-kit-acme/`. Workflows, `/stack-trust` and `/framework-doctor` see a `--plugin-dir` add-on in two ways: a directory or symlink under the project's `.claude/stack-addons/`, or the `--plugin-dir` flags on the Claude Code command line. Either is reported as `plugin:<name>@inline`.
 
 ## Discovery
+
+### Claude Code
 
 Workflows discover manifests in this order: the project's `.claude/stacks/`, then the user config directory's `stacks/`, then the manifests of enabled plugins (from `claude plugin list --json`, then the installed-plugins file, then a cache sweep). The kit's own add-ons are inlined into the workflows. The first valid entry for a key wins, project before plugin before user. An entry that reuses a first-party key is ignored.
 
@@ -213,12 +231,24 @@ With `CLAUDE_CONFIG_DIR` set elsewhere, the last three rules name that directory
 
 Staged first-party manifests are informational. File-copy installs stage copies of the kit's manifests under `.claude/stacks/` so you can read them, but editing one has no effect: the inlined registry wins, and a changed copy is reported as stale. To change a stack's behaviour, author a new key with `/new-stack`.
 
+### Codex
+
+The native bridge scans `.codex/stacks/`, the OS user's `.codex/stacks/`, project `.codex/stack-addons/`, and bundled first-party manifests. It injects sources and the trust snapshot into the Detect result; worker-reported trust is not authoritative. It does not query `claude plugin list` or use Claude's plugin cache.
+
+`$stack-trust` calls `stack_list` to show each source, SHA-256 and command-bearing fields. Only after the user approves those exact commands may the parent call `stack_approve` with that source and hash. A changed hash requires new approval. Errors reading the store remain errors. Native Codex file permissions apply; the adapter never adds the Claude Read allow rules shown above.
+
+`$new-stack` currently supports a project target. It creates a manifest, role instructions, native agent definition and project skill. Review the guidance, reload project skills/agents if needed, then approve commands with `$stack-trust`; scaffolding leaves the manifest untrusted. Claude's source-add-on target is not a native Codex scaffolding option.
+
+An active Codex run records its stack/trust snapshot. Changing definitions or approval during an interruption can prevent resume. Finish the run before changing its manifests or plugin build.
+
+Source: [native stack discovery and approval](../../adapters/codex/runtime/stacks.mjs), [native scaffolder](../../adapters/codex/runtime/new-stack.mjs), [provider mapping](../../adapters/codex/skill-overlays/sdd-runtime/SKILL.md).
+
 ## Hooks and trust
 
-Loading an add-on plugin is consent to its hooks, so an add-on's `hooks/hooks.json` entries run once the plugin is enabled. An overlay manifest alone never runs a hook: it carries gate commands that run only after `/stack-trust`, and hooks exist only in a plugin you chose to load.
+Manifest approval and hook approval are separate. An overlay manifest holds gate commands, not hook activation. In Codex the host must support and trust the exact hook definitions before they run; packaging and installation do not grant that trust. In Claude, inspect the active hooks and permissions for the install mode. See [hooks](../../share/hooks/README.md).
 
 ## Related
 
-- `/new-stack` scaffolds a manifest and add-on from a few answers; its template is [`src/templates/stack-addon/`](https://github.com/stasmarkov/sdd-kit/tree/v3.1.0/share/templates/stack-addon).
-- `node tools/gen-stacks.mjs` regenerates the workflow registry from the kit's manifests; `./verify.sh` checks the add-on layout (Check 16).
+- `/new-stack` scaffolds a manifest and add-on from a few answers; its template is [`share/templates/stack-addon/`](https://github.com/stasmarkov/sdd-kit/tree/v3.1.0/share/templates/stack-addon).
+- The original author's `tools/gen-stacks.mjs` / `verify.sh` pipeline belongs to a separate source repository. This checkout ships the registry; run root `npm test` to validate its host packages and adapter contracts.
 - [Plugin mode](plugin-mode.md) explains add-on installation.

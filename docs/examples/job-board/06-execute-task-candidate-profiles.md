@@ -1,5 +1,21 @@
 # 06 — Build task by task and resume: candidate profiles with /execute-task (HIRE-5)
 
+## Execute and resume tasks in Codex
+
+Use the same approved HIRE-5 spec. For direct task execution, open `api/` with access to the sibling `web/`, or explicitly provide the spec path from the parent workspace. Read both repositories' `AGENTS.md` before cross-repo edits.
+
+```text
+$sdd HIRE-5
+$execute-task --spec=HIRE-5
+$execute-task --spec=HIRE-5 --continue
+$progress
+$deep-review --staged
+```
+
+Choose **Approve only** to follow this chapter's task-by-task path. These `execute-task` checkpoints are the shared `.ai/session/` state. They are distinct from an interrupted native workflow's receipts in `.ai/codex-workflows/`; a workflow requires resume/reconnect with its original run id and workers. A new chat does not prove prior gate results are still current. The same manual tests and explicit review remain necessary before PRs.
+
+**Reading the original walkthrough:** slash skill names below use Claude file-copy shorthand; Claude plugins add their package namespace. `Workflow(...)`, `/workflows`, `CLAUDE.md` imports and `.claude` settings describe that host. Use the concrete Codex path above. All simulated outputs remain labelled examples.
+
 In chapters [04](04-feature-accounts-and-roles.md) and [05](05-feature-company-reviews-full-spec.md), approved specs went straight into `ship-feature`, which builds the whole feature in the background. This chapter uses the interactive alternative. Maya approves the spec without building it, then Alex runs `/execute-task` one task at a time, with TDD and a verification report after each task. He stops halfway at the end of the day and picks up the next morning in a fresh session from the saved state.
 
 | | |

@@ -1,5 +1,20 @@
 # 00 — Hireboard from scratch: overview and prerequisites
 
+## Choose your host before following the story
+
+This example teaches the shared SDD process: one brief, explicit acceptance criteria, human approval, gates and evidence. The original narrated sessions below use Claude Code. Codex runs the same workflow sources through its native adapter; the simulated outputs do not constitute a live Codex acceptance run.
+
+| Task | Claude Code plugin | Codex |
+| --- | --- | --- |
+| Route a ticket | `/sdd-kit:sdd HIRE-3` | `$sdd HIRE-3` |
+| Inspect progress | `/sdd-kit:progress`, `/workflows` | `$progress` and the runtime's run id |
+| Follow installation | [Claude host guide](../../hosts/claude.md) | [Codex host guide](../../hosts/codex.md) |
+| Shared project guidance | `CLAUDE.md` imports `AGENTS.md` | Read `AGENTS.md` directly |
+
+Each chapter now begins with the Codex entry point and any host-specific differences. Preserve the same ticket text, repo scope, approval and test expectations.
+
+**Reading the original walkthrough:** slash skill names below use Claude file-copy shorthand; Claude plugins add their package namespace. `Workflow(...)`, `/workflows`, `CLAUDE.md` imports and `.claude` settings describe that host. Use the concrete Codex path above. All simulated outputs remain labelled examples.
+
 This walkthrough builds a small job board called **Hireboard** from an empty folder to a
 team-ready product. It uses SDD Kit v3.1.0 (the 3.x line) for every step. Each chapter is
 one real ticket, taken through the `/sdd` route the kit picks for it. Read the chapters in order
@@ -59,7 +74,7 @@ chapter 03 as ADR-0001):
 
 ## Route map
 
-`/sdd` is the single front door ([src/skills/sdd/SKILL.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/plugins/sdd-kit/skills/sdd/SKILL.md)).
+`/sdd` is the single front door ([plugins/sdd-kit/skills/sdd/SKILL.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/plugins/sdd-kit/skills/sdd/SKILL.md)).
 It sorts each request into one of six routes, confirms the route with you, collects the inputs,
 and launches exactly one fixed pipeline:
 
@@ -90,7 +105,7 @@ The walkthrough uses every route at least once:
 | [11](11-running-it-as-a-team.md) | HIRE-11 (exercise) | — | Contract-sync as a failing CI check, routines, a project eval case, a pinned team marketplace |
 
 Need a one-page scenario instead of a story? The scenario catalogue in
-[src/docs/USAGE-EXAMPLES.md](../../reference/usage-examples.md) covers each route in a few
+[docs/reference/usage-examples.md](../../reference/usage-examples.md) covers each route in a few
 lines. This walkthrough does not repeat it.
 
 ## Prerequisites
@@ -101,7 +116,7 @@ adds the PHP and Node toolchains:
 
 | Tool | Why you need it here |
 |------|----------------------|
-| Claude Code | Runs `/sdd`, the skills and the background workflows |
+| Claude Code or Codex | Runs the shared SDD skills and workflows through its host integration |
 | git | Two repos (`api/`, `web/`), one branch and PR per feature in each |
 | jq | The file-copy installer refuses to run without it, and the hook scripts need it in both modes |
 | Node.js 20+ (`npx`) | The `context7` MCP server, `create-next-app@15`, and the web gates |
@@ -112,7 +127,9 @@ adds the PHP and Node toolchains:
 Quick check:
 
 ```bash
-claude --version && git --version && jq --version
+claude --version        # Claude path; use codex --version for Codex
+git --version
+jq --version
 node --version          # v20 or newer
 php --version           # 8.3.x
 composer --version      # 2.x
@@ -120,6 +137,8 @@ sqlite3 --version
 ```
 
 ### Plugin or file-copy?
+
+Codex uses the native plugin checkout path at the top of [chapter 01](01-workspace-and-install.md); it does not use the Claude file-copy installer. The two modes below are Claude options.
 
 [INSTALLATION.md#choose-a-mode](../../reference/installation.md#choose-a-mode) compares the
 two modes. For this walkthrough the choice comes down to one constraint: **`api/` and `web/` must
@@ -208,7 +227,7 @@ No workflow starts on its own. `/sdd` shows the exact `Workflow({ ... })` call a
 to agree before launching it. You can also opt in yourself with a direct call or a plain-English
 request that names the workflow (see
 [USAGE-EXAMPLES.md#running-workflows-directly](../../reference/usage-examples.md#running-workflows-directly)).
-To watch running workflows, use `/workflows`. The cheaper options appear where they fit:
+In Claude Code, watch running workflows with `/workflows`; in Codex use `$progress` and the native run id. The cheaper options appear where they fit:
 `/execute-task` in chapter 06 and `/simple-task` in chapters 07 and 08.
 
 > **Conventions used in every chapter**
@@ -227,9 +246,9 @@ To watch running workflows, use `/workflows`. The cheaper options appear where t
 
 ## Further reading
 
-- [src/docs/GETTING-STARTED.md](../../reference/getting-started.md): your first session,
+- [docs/reference/getting-started.md](../../reference/getting-started.md): your first session,
   `/framework-doctor`, and where artifacts go.
-- [src/docs/USAGE-EXAMPLES.md](../../reference/usage-examples.md): a short scenario for each
+- [docs/reference/usage-examples.md](../../reference/usage-examples.md): a short scenario for each
   route.
 - [docs/multi-repo.md](../../reference/multi-repo.md): workspace layout, configuration traps, and
   contract sensors for split repos.

@@ -1,9 +1,30 @@
 # Hooks
 
+SDD Kit shares guard behavior and adapts host events. Installation, payloads and trust are different for Claude Code and Codex; a hook in a package is not evidence that a live host executed it.
+
+## Host overview
+
+| Concern | Claude Code | Codex |
+| --- | --- | --- |
+| Lifecycle payloads | Claude hook events | Native lifecycle adapter and typed transcript parser |
+| File guards | `Write` / `Edit` payloads | Multi-file `apply_patch` normalization into shared guards |
+| Framework guards | Loaded stack add-on hooks | Bundled Laravel/Next.js guards filter matching projects |
+| Completion check | Prompt-based Stop/SubagentStop hooks | Explicit independent native completion review; lifecycle hooks do not substitute for a model review |
+| Read-volume hint | `CLAUDE_CONTEXT_USAGE`, `CLAUDE_BUDGET_THRESHOLD` | `SDD_CONTEXT_USAGE`, `SDD_CONTEXT_THRESHOLD`; no reliable automatic token accounting |
+| Activation | Inspect host hooks for the chosen plugin/file-copy mode | Requires host hook support and exact-definition trust review; install does not approve hooks |
+
+The native package normalizes patch edits, deletions and moves before invoking file guards. Shell writes are outside patch guard coverage. These safeguards reduce mistakes; they are not a general security boundary. Missing tools or untrusted/disabled hooks are not passing checks.
+
+Sources: [native hook packaging](../../adapters/codex/build.mjs), [payload normalization](../../adapters/codex/hooks/normalize.mjs), [dispatch](../../adapters/codex/hooks/dispatch.mjs), [lifecycle handling](../../adapters/codex/hooks/lifecycle.mjs).
+
+## Claude Code hook reference
+
+The remaining lifecycle tables describe the original Claude hooks and settings. For Codex use the native package's generated `hooks/hooks.json`, `$framework-doctor` and [host guide](../../docs/hosts/codex.md); do not apply Claude `settings.json` examples there.
+
 SDD Kit ships two kinds of scripts:
 
 - **Claude Code lifecycle hooks** in `scripts/` (copied to `.claude/scripts/` in file-copy installs). Claude Code runs them on session, prompt, and tool events. They are described below.
-- **Operational git/CI scripts** in `src/hooks/*.sh` (copied to `.claude/hooks/`). Claude Code never runs these; you wire them into git or CI yourself. See [Operational scripts](#operational-scripts).
+- **Operational git/CI scripts** in `share/hooks/*.sh` (copied to `.claude/hooks/`). Claude Code never runs these; you wire them into git or CI yourself. See [Operational scripts](#operational-scripts).
 
 For the hook API itself (events, matchers, exit codes, stdin/stdout JSON, async hooks), see the [official Claude Code hooks documentation](https://docs.claude.com/en/docs/claude-code/hooks).
 
@@ -21,6 +42,7 @@ For the hook API itself (events, matchers, exit codes, stdin/stdout JSON, async 
 | `token-budget.sh` | PreToolUse (`Read\|Grep\|Glob\|Bash`) | Yes (exit 2) | Always blocks `find /`. When context usage is at or above the threshold, it also blocks unbounded reads of 5,000+ line files, repo-wide content greps, `**` globs, unscoped recursive `grep`/`rg`, and `cat` of whole `.log` files | `CLAUDE_BUDGET_THRESHOLD` (default `75`, percent). Usage is read from `CLAUDE_CONTEXT_USAGE`. If that is unset, only the `find /` rule applies |
 | `prompt-preflight.sh` | UserPromptSubmit | No | Adds guardrail context when a prompt targets production data, force pushes, `rm -rf /`, or skipping verification. Adds a hint to load the spec when a prompt references one | Remove the entry |
 | `scan-secrets.sh` | PostToolUse (`Write\|Edit`) | Reports (exit 2) | Scans the written file with `gitleaks` if it is installed, otherwise with a regex bank. On a hit, tells Claude to remove the secret and rotate it. The file is already written by then | Remove the entry (not recommended) |
+| `gate-guard.sh` | PostToolUse (`Write\|Edit`) | No | Warns when new text suppresses types/lint, skips or focuses tests, changes a static-analysis baseline or alters coverage thresholds; does not undo the edit | Remove the entry |
 | `scan-injection.sh` | PostToolUse (`Bash\|WebFetch\|mcp__.*`), async | No | Scans the first 32 KB of tool output for prompt-injection patterns and warns Claude | Remove the entry |
 | `pre-compact-save.sh` | PreCompact | No | Writes a `.ai/session/pre-compact-<timestamp>.json` checkpoint (active spec, done/pending task counts) | Remove the entry |
 | `session-end.sh` | SessionEnd, async | No | Writes a session summary (branch, uncommitted changes, recent commits) to `.ai/session/<timestamp>.md` and deletes summaries older than 30 days | Remove the entry |
@@ -48,11 +70,11 @@ To turn off every hook temporarily, set `"disableAllHooks": true` in `settings.j
 | File-copy, project | `.claude/settings.json` | `"$CLAUDE_PROJECT_DIR"/.claude/scripts/<name>.sh` |
 | File-copy, user | `~/.claude/settings.json` | `"$HOME"/.claude/scripts/<name>.sh` |
 
-In file-copy mode, `src/scripts/install-hooks.sh` merges the hooks into your existing `settings.json`. It needs `jq`, backs up the file first, and keeps your permissions and your own hooks. Re-running the installer replaces the kit's hooks instead of duplicating them. That also restores any kit hook you deleted, so use the env-var opt-outs above for hooks you want to keep off. Installer behavior is covered in [INSTALLATION.md](../docs/INSTALLATION.md).
+In file-copy mode, `share/scripts/install-hooks.sh` merges the hooks into your existing `settings.json`. It needs `jq`, backs up the file first, and keeps your permissions and your own hooks. Re-running the installer replaces the kit's hooks instead of duplicating them. That also restores any kit hook you deleted, so use the env-var opt-outs above for hooks you want to keep off. Installer behavior is covered in [installation guide](../../docs/reference/installation.md).
 
 **Plugin mode.** The plugin's `hooks/hooks.json` is global. It applies to the whole session, subagents included, and you can't edit it per project. Use the env-var opt-outs or `disableAllHooks` instead. For what does and doesn't apply in plugin mode, see [plugin-mode.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/reference/plugin-mode.md).
 
-**Drift rule.** `src/settings/settings.template.json` must contain exactly the hooks in `hooks/hooks.json`, differing only in the script path prefix. `./verify.sh` fails the build if they drift. When you add or change a hook, edit both files.
+**Drift rule.** `share/settings/settings.template.json` must contain exactly the hooks in `hooks/hooks.json`, differing only in the script path prefix. The original upstream release check rejects drift; that upstream `verify.sh` is not shipped in this checkout. When you add or change a hook, edit both files.
 
 ## Add-on hooks
 
@@ -105,7 +127,7 @@ Don't put guardrails in agent frontmatter (`hooks:`, `permissionMode:`). Plugin 
 
 ## Operational scripts
 
-These live in `src/hooks/` (`.claude/hooks/` after a full file-copy install). Run them from the project root.
+These live in `share/hooks/` (`.claude/hooks/` after a full file-copy install). Run them from the project root.
 
 | Script | Purpose | Wire into |
 |--------|---------|-----------|
@@ -126,7 +148,7 @@ chmod +x .git/hooks/pre-commit
 
 ### Stack fragments (run-parts)
 
-The four scripts are dispatchers. Stack checks live in fragments that add-ons ship at `src/plugins/<add-on>/hooks/<stage>.d/NN-<add-on>.sh` (`NN` from 10 to 90, first-party add-ons use 50) and that `install.sh --full` stages to `.claude/hooks/<stage>.d/`. Plugin mode does not run them; run `install.sh --full` if you want them.
+The four scripts are dispatchers. Stack checks live in fragments that add-ons ship at `plugins/sdd-kit-<add-on>/hooks/<stage>.d/NN-<add-on>.sh` (`NN` from 10 to 90, first-party add-ons use 50) and that `install.sh --full` stages to `.claude/hooks/<stage>.d/`. Neither host's plugin automatically wires these operational scripts into Git or CI. Claude file-copy mode can stage them with `install.sh --full`; for Codex, copy reviewed scripts into project tooling and wire them explicitly.
 
 The contract each dispatcher follows:
 
@@ -136,7 +158,7 @@ The contract each dispatcher follows:
 4. Run all fragments even after a failure, then exit 1 and print `failed: <list>` if any failed or a neutral check failed.
 5. With no fragment directory or no executable fragment, print `no stack checks installed` and exit with the result of the neutral checks.
 
-Fragments are committed with mode 100755; `./verify.sh` asserts it. To add your own check, drop an executable `NN-name.sh` into the stage directory.
+Fragments must be executable when installed; the original upstream release checks assert their executable mode. To add your own check, drop an executable `NN-name.sh` into the stage directory.
 
 ## Checking hooks work
 

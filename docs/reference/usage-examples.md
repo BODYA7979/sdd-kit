@@ -4,9 +4,19 @@ What to type for each kind of work in SDD Kit, and what you get back.
 
 See every route used on one project: the [Hireboard worked example](../examples/job-board/README.md).
 
-Start with `/sdd` unless you already know you want a specific skill. It classifies the request, confirms the route with you, collects every input up front, and launches one fixed pipeline. The route tree itself is in the [README](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/README.md); this page shows each route in practice.
+Start with `sdd` unless you already know you want a specific skill. It classifies the request, confirms the route, collects the required inputs and launches one fixed pipeline. The same six routes and human approval rules apply to Claude Code and Codex. See [installation](installation.md) before the first run.
 
-Skill names below are bare (`/sdd`, `/write-spec`). In plugin mode they are namespaced: `/sdd-kit:sdd`, `/sdd-kit-ops:deploy`. The full lists are in [skill index](skills.md) and [agent index](agents.md).
+The route table uses Claude file-copy shorthand (`/sdd`, `/write-spec`). In Claude plugin mode, use namespaced skills such as `/sdd-kit:sdd` and `/sdd-kit-ops:deploy`. Codex uses `$sdd`, `$write-spec` and `$deploy`; concrete examples below show both forms. Enter these in the agent conversation, not a shell. Shell commands such as `node` and `npx` are labelled separately.
+
+| Host detail | Claude Code | Codex |
+| --- | --- | --- |
+| First-party add-ons | Install the needed plugin(s) | Bundled in the native package |
+| Workflow execution | Host `Workflow` and `Agent` primitives | MCP bridge plus native subagents, driven to completion by the parent |
+| Progress | `/workflows` and `progress` | `$progress`; native runtime status includes the run id |
+| Project guidance | `CLAUDE.md`, shared `AGENTS.md`, `.claude/rules` | `AGENTS.md`, applicable `.codex/rules` loaded through SDD |
+| Browser fallback | Available Playwright MCP, then Claude in Chrome | Available Playwright MCP or native host browser |
+
+A workflow result includes actual checks and missing evidence. Hook trust, browser availability, model identities and token accounting are host-specific; shared workflow source does not establish identical behavior on every host. Full lists: [skills](skills.md), [roles](agents.md).
 
 | Kind of work | Type | Runs |
 |---|---|---|
@@ -23,7 +33,7 @@ Skill names below are bare (`/sdd`, `/write-spec`). In plugin mode they are name
 | [Split backend/frontend repos](#11-split-backend-and-frontend-repos) | `/sdd` or `Workflow({ ..., repos })` | any workflow |
 | [Overnight codebase review](#12-overnight-headless-codebase-review) | `scripts/review/review.sh` | headless |
 | [Deploy, incidents, UI design](#13-add-ons-ops-and-design) | `/deploy`, `/incident`, `/design-ui` | add-on plugins |
-| [Recurring checks](#14-recurring-checks-with-routines) | `/schedule` | report-only routines in the cloud |
+| [Recurring checks](#14-recurring-checks-with-routines) | Host scheduler | report-only routines / automations when available |
 | [Red CI](#15-red-ci) | `/fix-ci <PR>` | restore the gates without weakening them |
 
 ---
@@ -34,9 +44,18 @@ Skill names below are bare (`/sdd`, `/write-spec`). In plugin mode they are name
 
 **Type:**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /sdd PROJ-123
 /sdd "Customers can cancel an order until it ships"
+```
+
+Codex:
+
+```text
+$sdd PROJ-123
+$sdd "Customers can cancel an order until it ships"
 ```
 
 **What happens:**
@@ -46,7 +65,7 @@ Skill names below are bare (`/sdd`, `/write-spec`). In plugin mode they are name
 - You resolve open questions, then choose **Approve and build**, **Approve only**, **Request changes**, or **Stop here**. Approval writes `approved_by` and `approved_at` into the spec frontmatter.
 - On **Approve and build**, `ship-feature` runs in the background against the approved spec:
   `Detect → Investigate → Spec → Build → Gates → Converge → Visual → Review → Acceptance → Docs → TestPlan → Report`
-- Converge audits code against the spec and rebuilds gaps (two rounds at most). Visual checks the UI at desktop and mobile widths with the built-in Playwright MCP server (headless) when you gave a dev URL, falls back to Claude in Chrome, and reports "not run" when no browser is available. Review is an adversarial panel with 3-vote verification.
+- Converge audits code against the spec and rebuilds gaps (two rounds at most). Visual checks the UI at desktop and mobile widths with the built-in Playwright MCP server (headless) when you gave a dev URL, uses the host-specific fallback listed above, and reports "not run" when no browser is available. Review is an adversarial panel with 3-vote verification.
 
 **You get:**
 
@@ -54,7 +73,7 @@ Skill names below are bare (`/sdd`, `/write-spec`). In plugin mode they are name
 - Code and tests in your repo(s), updated docs, and a ship report.
 - Verdict: `SHIP` (every task built, gates green, no gaps left, no critical findings, acceptance resolved) or `FIX-FIRST` / `BLOCKED` with the blockers listed.
 
-Watch the spec's status with `/spec-board` (or `npx github:stasmarkov/sdd-kit spec-board --serve` without Claude Code).
+Watch the spec's status with `/spec-board` (or `npx github:stasmarkov/sdd-kit spec-board --serve` without either agent host).
 
 Spec format, sizes (XS/S/M/L), and acceptance-criteria style: [specification-system.md](specification-system.md).
 
@@ -64,8 +83,16 @@ Spec format, sizes (XS/S/M/L), and acceptance-criteria style: [specification-sys
 
 **Type:**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /sdd "PROJ-456: refund button returns 500 for top-up orders"
+```
+
+Codex:
+
+```text
+$sdd "PROJ-456: refund button returns 500 for top-up orders"
 ```
 
 **What happens:**
@@ -91,8 +118,16 @@ Verdict:
 
 **Type:**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /sdd "Should order events go through Redis queues or SQS?"
+```
+
+Codex:
+
+```text
+$sdd "Should order events go through Redis queues or SQS?"
 ```
 
 **What happens:**
@@ -111,9 +146,18 @@ Verdict:
 
 **Type:**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /sdd "QA plan and docs for spec-PROJ-123-order-cancel"
 /sdd "Document the checkout flow"
+```
+
+Codex:
+
+```text
+$sdd "QA plan and docs for spec-PROJ-123-order-cancel"
+$sdd "Document the checkout flow"
 ```
 
 **What happens:**
@@ -136,9 +180,18 @@ Verdict:
 
 **Type:** start with the brief, then build its first slice:
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /product-brief "Studio room booking: members book rooms by the hour, admins manage rooms and opening hours"
 /sdd "New app — Studiobook, first slice SL-01: a member sees free slots for a room and books one"
+```
+
+Codex:
+
+```text
+$product-brief "Studio room booking: members book rooms by the hour, admins manage rooms and opening hours"
+$sdd "New app — Studiobook, first slice SL-01: a member sees free slots for a room and books one"
 ```
 
 **What happens:**
@@ -149,24 +202,40 @@ Verdict:
 - `greenfield-build` runs in the background:
   `Detect → Constitution → Architecture → Scaffold → Slice → Gates → Acceptance → Handoff → Report`
 - It stops before writing anything if the target already holds a tracked codebase.
-- Project conventions are loaded as a constitution; the architecture is checked against it.
-- It scaffolds the repo and CI, then builds **one** vertical slice TDD-first.
+- Project conventions are loaded as a constitution; the architecture plan is checked against it. The full decisions also constrain scaffolding, CI, implementation and acceptance.
+- It scaffolds the repo and the architecture's chosen CI, then builds **one** vertical slice TDD-first. An explicitly local-only design gets a checked-in runner that must be executed, without a hosted workflow. Otherwise it follows the selected provider; GitHub Actions is the default when no provider or local-only choice was made.
+- Acceptance checks both the end-to-end journey and every architecture decision, including rejected inputs and error behavior. Each decision needs exactly one passing check with concrete evidence. Missing, duplicate, invented, failed or unverified checks cannot be overridden by an overall `resolved=true` response.
 
-**You get:** a scaffold with CI, one working slice, and handoff docs: `getting-started.md`, `architecture.md` (a lightweight ADR), and `manual-test.md`. The slice is marked `shipped` in `backlog.md` and the next slices are added to it. Verdict: `SHIP-SLICE`, `FIX-FIRST`, or `BLOCKED` (target was not empty). Build later slices with their `Run:` line (scenario 1). Feedback from a demo or sprint review goes back into the backlog with `/product-brief --intake "<notes>"`.
+**You get:** scaffold and slice results, plus handoff docs when scaffolding succeeded: `getting-started.md`, `architecture.md` (a lightweight ADR), and `manual-test.md`. The result distinguishes `architecturePlanSound` from `architectureImplemented`; `architectureSound` requires both. `SHIP-SLICE` requires complete scaffolding and slice work, passing gates, a sound plan, successful journey steps with no broken links, verified implementation of every decision, and no blocking untrusted manifest. The report receives that computed recommendation and cannot claim a stronger result.
 
-Supported stacks come from the registry in [src/workflows/lib/stacks.js](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/plugins/sdd-kit/workflows/lib/stacks.js).
+Only a shippable slice is marked `shipped` in `backlog.md`. An unfinished one stays `approved` with `Spec: —`, so it remains visible in the Backlog column. The next slices are added separately. Other verdicts are `FIX-FIRST` or `BLOCKED`; an existing tracked codebase is refused before scaffolding. Build later slices with their `Run:` line (scenario 1). Feedback from a demo or sprint review goes back into the backlog with `/product-brief --intake "<notes>"`.
+
+Source: [greenfield CI selection](../../plugins/sdd-kit/workflows/greenfield-build.js#L2292), [acceptance and computed outcomes](../../plugins/sdd-kit/workflows/greenfield-build.js#L2433).
+
+Supported stacks come from the [shared workflow registry](../../plugins/sdd-kit/workflows/lib/stacks.js). Custom stack discovery and approval use the paths for your host; see [stack manifests](stack-manifest.md).
 
 ## 6. Small change
 
-**When:** a clear change touching about five files or fewer, with no design choice and no behavior contract at risk. `/sdd` routes a request here as `trivial` only when it touches about three files; anything bigger gets a spec.
+**When:** a clear change touching roughly three files or fewer, with no design choice and no behavior contract at risk. `/sdd` routes a request here as `trivial` only when it touches about three files; anything bigger gets a spec.
 
 **Type:**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /simple-task "Add created_at column to the orders CSV export"
 /simple-task --rename "OrderService to OrderProcessingService"
 /simple-task "How should we rate-limit the public API?" --research-only
 /simple-task --continue=TASK-0042
+```
+
+Codex:
+
+```text
+$simple-task "Add created_at column to the orders CSV export"
+$simple-task --rename "OrderService to OrderProcessingService"
+$simple-task "How should we rate-limit the public API?" --research-only
+$simple-task --continue=TASK-0042
 ```
 
 **What happens:**
@@ -182,7 +251,9 @@ Supported stacks come from the registry in [src/workflows/lib/stacks.js](https:/
 
 **Type:**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /write-spec --ticket=PROJ-123 Customers can cancel an order until it ships
 /write-spec --spec=PROJ-123                  # revise an existing spec
 /write-spec --background <description>       # heavier research, runs the create-spec workflow
@@ -191,6 +262,19 @@ Supported stacks come from the registry in [src/workflows/lib/stacks.js](https:/
 /execute-task --spec=PROJ-123 --continue     # resume after a context reset
 /execute-task --spec=PROJ-123 --task=3       # a specific task
 /execute-task --spec=PROJ-123 --verify-only  # re-run verification only
+```
+
+Codex:
+
+```text
+$write-spec --ticket=PROJ-123 Customers can cancel an order until it ships
+$write-spec --spec=PROJ-123                  # revise an existing spec
+$write-spec --background <description>       # heavier research, runs the create-spec workflow
+
+$execute-task --spec=PROJ-123                # next pending task
+$execute-task --spec=PROJ-123 --continue     # resume after a context reset
+$execute-task --spec=PROJ-123 --task=3       # a specific task
+$execute-task --spec=PROJ-123 --verify-only  # re-run verification only
 ```
 
 **What happens:**
@@ -207,18 +291,29 @@ Supported stacks come from the registry in [src/workflows/lib/stacks.js](https:/
 
 **Type:**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /design-api orders --openapi
 /design-schema --entity=Order --migration
 /migrate-db --create=orders
 /migrate-db --status
 ```
 
+Codex:
+
+```text
+$design-api orders --openapi
+$design-schema --entity=Order --migration
+$migrate-db --create=orders
+$migrate-db --status
+```
+
 **What happens:**
 
 - `/design-api` designs resources, endpoints, request/response contracts, and the error format, with optional OpenAPI output.
 - `/design-schema` designs entities, columns, relationships, indexes, and the migration strategy.
-- `/migrate-db` updates the schema doc in `docs/schemas/` first, then generates and runs the migration. It is manual-only (it runs migrations, so it never triggers on its own).
+- `/migrate-db` updates the schema doc in `docs/schemas/` first, then generates and runs the migration. It is manual-only: Claude disables model invocation, and the Codex package disables implicit invocation. Explicitly request the migration and follow its approval requirements.
 
 **You get:** design documents you can review or attach to a spec, then a migration that matches the documented schema.
 
@@ -228,13 +323,26 @@ Supported stacks come from the registry in [src/workflows/lib/stacks.js](https:/
 
 **Type:**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /deep-review --spec=PROJ-123                             # adversarial (default)
 /deep-review --depth=standard                            # current branch vs main
 /deep-review --depth=standard --branch=feature/PROJ-123-order-cancel --base=develop
 /deep-review --depth=standard --focus=security
 /deep-review --depth=standard --format=json              # CI-friendly
 /deep-review --depth=quick --staged                      # fast critical-only pass
+```
+
+Codex:
+
+```text
+$deep-review --spec=PROJ-123                             # adversarial (default)
+$deep-review --depth=standard                            # current branch vs main
+$deep-review --depth=standard --branch=feature/PROJ-123-order-cancel --base=develop
+$deep-review --depth=standard --focus=security
+$deep-review --depth=standard --format=json              # CI-friendly
+$deep-review --depth=quick --staged                      # fast critical-only pass
 ```
 
 **What happens:**
@@ -248,9 +356,18 @@ Supported stacks come from the registry in [src/workflows/lib/stacks.js](https:/
 
 **Then open the PRs:**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /open-pr --spec=PROJ-123 --report=.ai/reports/ship-spec-PROJ-123-order-cancel-20261019-1012.md
 /open-pr --report=.ai/reports/fix-PROJ-130-20261019-1412.md      # bug fixed by fix-bug, no spec
+```
+
+Codex:
+
+```text
+$open-pr --spec=PROJ-123 --report=.ai/reports/ship-spec-PROJ-123-order-cancel-20261019-1012.md
+$open-pr --report=.ai/reports/fix-PROJ-130-20261019-1412.md      # bug fixed by fix-bug, no spec
 ```
 
 - It checks the preconditions (spec status, gates newer than the last commit, review verdict, secrets in the diff), using the saved ship-feature or fix-bug report instead of re-running the gates when the report is fresh.
@@ -258,8 +375,16 @@ Supported stacks come from the registry in [src/workflows/lib/stacks.js](https:/
 
 **Then turn the lesson into a guard:** when a review finding or a fix-bug report names a class of mistake, run `/learn` with it:
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /learn "authorization checked in the UI but not in the Server Action (REVIEW-spec-PROJ-123, finding 2)"
+```
+
+Codex:
+
+```text
+$learn "authorization checked in the UI but not in the Server Action (REVIEW-spec-PROJ-123, finding 2)"
 ```
 
 `/learn` picks the cheapest guard that would have caught the whole class (an architecture test, a static rule, a path-scoped rules line, a CLAUDE.md entry, or a hook proposal), shows the diff, and writes it only on your approval.
@@ -268,12 +393,24 @@ Supported stacks come from the registry in [src/workflows/lib/stacks.js](https:/
 
 **Type:**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /security-scan --quick
 /security-scan --full
 /upgrade-deps --audit-only
 /upgrade-deps --patch
 /upgrade-deps --major=<package>
+```
+
+Codex:
+
+```text
+$security-scan --quick
+$security-scan --full
+$upgrade-deps --audit-only
+$upgrade-deps --patch
+$upgrade-deps --major=<package>
 ```
 
 **What happens:**
@@ -322,9 +459,11 @@ Workflow({
 
 Or run once per frontend with `{ repos: { backend: "be", frontend: "fe" }, url }`.
 
-Layout, the parent-folder `CLAUDE.md`, contract rules, and merge order: [multi-repo.md](multi-repo.md).
+Layout, shared `AGENTS.md` with a Claude entry point, contract rules, and merge order: [multi-repo.md](multi-repo.md).
 
 ## 12. Overnight headless codebase review
+
+**Claude Code only.** The bash review pipeline launches `claude -p` and is intentionally excluded from the native Codex package. In Codex use `$deep-review` for a scoped review; it is not the same unattended pipeline. Do not launch nested Claude or `codex exec` to imitate it.
 
 **When:** you want a full adversarially validated review of an existing codebase without sitting in a session.
 
@@ -336,7 +475,9 @@ These skills ship in optional add-on plugins, not in the core `sdd-kit` (as do s
 
 **Ops (`sdd-kit-ops`):**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /deploy --staging --dry-run
 /deploy --production            # manual-only; confirms before production
 /rollback --production --steps=1
@@ -347,6 +488,19 @@ These skills ship in optional add-on plugins, not in the core `sdd-kit` (as do s
 /incident --resolve
 ```
 
+Codex:
+
+```text
+$deploy --staging --dry-run
+$deploy --production            # manual-only; confirms before production
+$rollback --production --steps=1
+$feature-flag create order-cancel
+$feature-flag rollout order-cancel
+$health-check --quick
+$incident --start
+$incident --resolve
+```
+
 - `/deploy` runs pre-deploy gates (tests, lint, build), asks for confirmation on production, and verifies after.
 - `/rollback` captures current state, picks the known-good target, and reverts code and migrations under maintenance mode.
 - `/health-check` reports pass/warn/fail across the app, database, cache, queues, disk, and external services.
@@ -354,9 +508,18 @@ These skills ship in optional add-on plugins, not in the core `sdd-kit` (as do s
 
 **Design (`sdd-kit-design`):**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /design-ui order-cancel
 /design-ui --page=orders
+```
+
+Codex:
+
+```text
+$design-ui order-cancel
+$design-ui --page=orders
 ```
 
 `/design-ui` produces user flows, component hierarchy, state management, data fetching, and accessibility notes for a feature.
@@ -365,7 +528,7 @@ These skills ship in optional add-on plugins, not in the core `sdd-kit` (as do s
 
 ## 14. Recurring checks with routines
 
-Drift is cheapest to catch on a schedule. Claude Code routines (`/schedule`) run an agent on a cron in the cloud; use them for read-only checks that report back rather than change code:
+Scheduling belongs to the host, not the shared SDD workflow engine. On a Claude host that provides routines, configure its scheduler. In Codex, ask the host to create a recurring automation only when that capability is available. `/schedule` is not a packaged Codex skill. Use report-only prompts and confirm the schedule, target project and available tools before enabling a run:
 
 | Routine | Suggested schedule | Prompt |
 |---|---|---|
@@ -381,10 +544,20 @@ Routines run without you, so keep them report-only; act on findings through `/sd
 
 **Type:**
 
-```
+Claude Code (file-copy shorthand):
+
+```text
 /fix-ci 482                               # the PR's failing checks
 /fix-ci --run=1234567890                  # one Actions run
 /fix-ci local "<types gate command>"
+```
+
+Codex:
+
+```text
+$fix-ci 482                               # the PR's failing checks
+$fix-ci --run=1234567890                  # one Actions run
+$fix-ci local "<types gate command>"
 ```
 
 **What happens:**
@@ -400,7 +573,9 @@ To run the frontend suites on their own: `/run-tests --frontend` or `/run-tests 
 
 ## Running workflows directly
 
-There are three ways to start a background workflow:
+### Claude Code
+
+There are three ways to request a workflow in Claude Code:
 
 1. **`/sdd`** (preferred). It confirms the route, collects inputs, and never builds an unapproved spec.
 2. **Plain English containing the word "workflow"**, e.g. "run the fix-bug workflow for the refund 500". Claude only launches a background workflow when you explicitly opt in like this.
@@ -434,4 +609,17 @@ Workflow({ name: "create-spec", args: { description: "Order cancellation", ticke
 
 To build an existing spec, pass `{ spec: "<ref>" }` (folder name, ticket key, timestamp id, or legacy number). There is no `--spec` flag for workflows; `/ship-feature --spec=...` would be read as a feature description.
 
-Every workflow accepts `args.models` to pin a model per tier (`deep`, `standard`, `light`) for one run. Which tier each phase uses, and when to override it, is in [effort-guidelines.md](effort-guidelines.md).
+### Codex
+
+Use `$sdd` for routing and approval, or explicitly ask the runtime to run a workflow:
+
+```text
+$sdd-runtime Run the fix-bug workflow in this workspace with:
+{"bug":"PROJ-456: refund button returns 500 for top-up orders","mustNotChange":["Card refunds still go through the gateway"],"url":"http://localhost:8000"}
+```
+
+The parent starts the bridge run, claims jobs, delegates fresh native workers, submits their real results and completes the independent final review. A run is not finished merely because it started. `Workflow(...)`, `$ship-feature`, `$fix-bug` and `/workflows` are not interchangeable Codex interfaces. Ask `$progress` for activity; retain the run id for recovery.
+
+To build an existing spec, pass `{ "spec": "<ref>" }` only after explicit approval. Resume an interrupted bridge run with its original run id and workers rather than starting it again. See [Codex recovery](../hosts/codex.md).
+
+`args.models` is host-specific: Claude aliases are not Codex model identifiers. Codex inherits the active model unless the user explicitly supplies supported native models. See [effort and models](effort-guidelines.md).

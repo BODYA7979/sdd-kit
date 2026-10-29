@@ -1,5 +1,28 @@
 # 01 — Workspace and kit install
 
+## Codex setup for this chapter
+
+For Codex, use this path instead of the Claude plugin/file-copy steps below:
+
+1. Create only `~/work/hireboard`; leave `api/` and `web/` missing or empty until chapter 02.
+2. Keep a separate SDD Kit checkout containing Codex support, for example `~/tools/sdd-kit`. The original `v3.1.0` tag is the Claude baseline and does not include this adapter.
+3. From the **kit checkout**, install with Node 20+, the plugin-capable Codex CLI, bash and jq:
+
+```sh
+cd ~/tools/sdd-kit
+npm ci --ignore-scripts
+node cli/sdd-kit.mjs install --host codex --dry-run
+node cli/sdd-kit.mjs install --host codex
+```
+
+4. Open `~/work/hireboard` in a fresh Codex session. Review the exact hooks with `/hooks`, then run `$framework-doctor`. The native package includes the Laravel, Next.js and other first-party skill add-ons.
+5. Write a workspace `AGENTS.md` containing the product invariants, repo map, backend-first contract rules and instructions to read each repo's own `AGENTS.md`. Use the content of the workspace artifact as a reference; Claude's `@api/CLAUDE.md` import syntax is not a Codex loading instruction. Keep this shared `AGENTS.md` when reviewing Claude-generated workspace templates.
+6. Run `$product-brief` with the same Hireboard requirements and save `product-brief.md`. In chapter 02 use `$sdd` with HIRE-1.
+
+Do not run `install.sh --project`, add `.claude/settings.json`, or install selective Claude plugins for this Codex setup. See [the native install guide](../../hosts/codex.md) for Node selection, updates and recovery.
+
+**Reading the original walkthrough:** slash skill names below use Claude file-copy shorthand; Claude plugins add their package namespace. `Workflow(...)`, `/workflows`, `CLAUDE.md` imports and `.claude` settings describe that host. Use the concrete Codex path above. All simulated outputs remain labelled examples.
+
 **Date in the story:** 2026-10-19, morning. **Who:** Alex Rivera (developer). **Route:** none yet. This chapter is setup.
 
 In this chapter Alex creates the parent folder that will hold both Hireboard repos, installs
@@ -133,16 +156,14 @@ Then install for real (`--full` is the default; `--minimal` is the spec-driven c
 
 Besides `.claude/`, a project install merges hooks into `.claude/settings.json`, adds
 `context7` and `playwright` to `.mcp.json`, and creates `AGENTS.md` and `.claude/rules/` when they are missing.
-At the workspace root those last two don't help: the rules' `paths:` globs (`app/Http/Controllers/**`,
-`tests/**`, ...) are relative to a repo root, and the gates live in each repo's `AGENTS.md`.
-Delete the root copies and keep the real ones in `api/` and `web/`:
+At the workspace root, repo-relative rules such as `app/Http/Controllers/**` do not
+apply to `api/` automatically. Keep the shared workspace `AGENTS.md` for the repository map
+and cross-repo rules, and put stack-specific gates and rules in the actual `api/` and `web/`
+repositories after scaffolding. Review any generated root rules and remove only redundant
+installer-owned files you do not use; do not delete a shared `AGENTS.md` used by Codex.
 
-```bash
-rm AGENTS.md && rm -r .claude/rules
-```
-
-Re-running the installer at the root (the update path) creates them again, so repeat this
-cleanup after each update.
+On an update, review the installer's diff for regenerated templates. Preserve existing
+workspace guidance and each repository's deliberate customizations.
 
 After chapter 02, run the same installer once inside each repo, each with its own stack (`cd api && .../install.sh --project --stack=laravel`,
 then `cd ../web && .../install.sh --project --stack=nextjs`). That is the point where per-repo `AGENTS.md` and `.claude/rules/` are created. Never run it

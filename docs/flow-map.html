@@ -9,7 +9,7 @@
 function map(hash) {
   return hash;
 }
-var target = 'index.html' + map(location.hash);
+var target = 'index.html' + location.search + map(location.hash);
 location.replace(target);
 document.addEventListener('DOMContentLoaded', function () {
   var link = document.querySelector('a[href^="index.html"]');

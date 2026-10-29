@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SDD Kit: Interactive Guide</title>
+<title>SDD Kit · Claude Code and Codex</title>
+<meta name="description" content="One spec-driven development kit for Claude Code and Codex. Choose your agent for installation, commands, workflows and troubleshooting.">
 <link rel="icon" href="data:,">
 <script>
   (function () {
@@ -25,6 +26,7 @@
     <span class="badge" id="version"></span>
   </div>
   <div class="header-actions">
+    <label class="host-picker" for="host-select"><span>Agent</span><select id="host-select" aria-label="Agent documentation"><option value="compare">Compare both</option><option value="claude">Claude Code</option><option value="codex">Codex</option></select></label>
     <button type="button" class="btn search-button" id="search-button" aria-label="Search">
       <svg class="icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5 14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="btn-label">Search</span> <kbd id="search-hint">Ctrl K</kbd>
     </button>
@@ -40,19 +42,21 @@
   <main id="content">
     <section id="start" class="hero" aria-labelledby="start-h">
       <img class="hero-logo" src="assets/branding/sdd-kit-logo-v1.png" alt="SDD Kit" width="2048" height="768">
-      <h1 id="start-h">Spec-driven development with Claude Code</h1>
+      <h1 id="start-h">One kit. Two agents.<br>Shared definition of done.</h1>
       <p class="lede" id="tagline">Write down what done means, let the agent build it through gates, and approve the result as a human.</p>
       <p class="stack-note" id="stack-note"></p>
+      <p class="host-context" id="guide-host-context"></p>
+      <div class="host-start-links"><a class="btn primary" href="#install">Install SDD Kit</a><a class="btn" href="hosts/claude.html?host=claude">Claude Code setup</a><a class="btn" href="hosts/codex.html?host=codex">Codex setup</a><a class="btn" href="hosts/compare.html?host=compare">Compare hosts</a></div>
       <ul class="stats" id="stats" aria-label="What the guide covers"></ul>
     </section>
     <section id="primer" aria-labelledby="primer-h">
-      <h2 id="primer-h">New to Claude Code?</h2>
-      <p class="lede">What Claude Code is, how to install it, and your first session.</p>
+      <h2 id="primer-h">Choose your agent</h2>
+      <p class="lede">Get the host ready, then add the kit to your workflow.</p>
       <div class="section-body"></div>
     </section>
     <section id="install" aria-labelledby="install-h">
       <h2 id="install-h">Install</h2>
-      <p class="lede">Add the kit as a plugin, or copy its files into a project.</p>
+      <p class="lede">Follow the recipe for your agent. Each path names its prerequisites and working directory.</p>
       <div class="section-body"></div>
     </section>
     <section id="quickstart" aria-labelledby="quickstart-h">
@@ -67,7 +71,7 @@
     </section>
     <section id="map" aria-labelledby="map-h">
       <h2 id="map-h">One request, six routes</h2>
-      <p class="lede">Every request goes through /sdd, which classifies it and launches one fixed pipeline.</p>
+      <p class="lede">The SDD router classifies a request and launches the matching pipeline.</p>
       <div class="section-body"></div>
     </section>
     <section id="pipeline" aria-labelledby="pipeline-h">
@@ -76,7 +80,7 @@
       <div class="section-body"></div>
     </section>
     <section id="after" aria-labelledby="after-h">
-      <h2 id="after-h">After /sdd</h2>
+      <h2 id="after-h">After the router</h2>
       <p class="lede">Continue, check or finish the work the pipeline started.</p>
       <div class="section-body"></div>
     </section>
@@ -92,7 +96,7 @@
     </section>
     <section id="workflows-direct" aria-labelledby="workflows-direct-h">
       <h2 id="workflows-direct-h">Workflows</h2>
-      <p class="lede">Run a background workflow directly instead of going through /sdd.</p>
+      <p class="lede">Direct execution differs by host. These examples show the supported entry points.</p>
       <div class="section-body"></div>
     </section>
     <section id="everyday" aria-labelledby="everyday-h">
@@ -104,7 +108,7 @@
     </section>
     <section id="example" aria-labelledby="example-h">
       <h2 id="example-h">Hireboard worked example</h2>
-      <p class="lede">A real project taken chapter by chapter through every route.</p>
+      <p class="lede">A worked example taken chapter by chapter through every route, with instructions for following it in either host.</p>
       <div class="section-body"></div>
     </section>
     <section id="board" aria-labelledby="board-h">
@@ -125,7 +129,7 @@
   </main>
 </div>
 <footer class="site-footer">
-  <div>Content comes from <code>guide-data.js</code>, <code>catalog.js</code> and <code>example-data.js</code>; the last two are generated from the kit.</div>
+  <div>Shared concepts, explicit host differences. <a href="maintaining-docs.html">How this documentation is maintained</a>.</div>
   <ul id="links"></ul>
 </footer>
 <div class="drawer-scrim" id="drawer-scrim"></div>
@@ -149,8 +153,10 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="guide-data.js"></script>
+<script src="host-data.js"></script>
 <script src="catalog.js"></script>
 <script src="example-data.js"></script>
+<script src="host.js"></script>
 <script src="guide.js"></script>
 </body>
 </html>

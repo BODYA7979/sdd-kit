@@ -4,133 +4,123 @@
   <img src="assets/branding/sdd-kit-logo-v1-preview.png" alt="SDD Kit" width="480">
 </p>
 
-Spec-driven development for **Claude Code and Codex**, using one shared set of workflows, skills, agents, templates and stack definitions. Host adapters handle installation and native execution; the project remains SDD Kit.
+Spec-driven development for **Claude Code and Codex**. Describe the work, agree on what done means, and run a fixed pipeline with tests, review and acceptance evidence. Both hosts use the same workflows, skills, specialist roles, templates and stack definitions.
 
-This branch extends the public 3.1.0 distribution with shared development entry points. The author's release pipeline still generates its distribution from a separate source repository; integrating this work there is a future upstream step. See [architecture and contribution boundaries](docs/architecture.md).
+**Start here:** [Choose your installation](docs/reference/installation.md) · [First session](docs/reference/getting-started.md) · [Compare the hosts](docs/hosts/compare.md) · [Open the interactive guide](#interactive-guide)
 
-## Codex and shared development
+## Choose your agent
 
-From the repository root, with Node 20+, bash, jq and a Codex CLI that supports plugins:
+| | Claude Code | Codex |
+| --- | --- | --- |
+| Recommended installation | Marketplace plugin; select core and add-ons | Native plugin built from this checkout |
+| Alternative | File copy into project or user `.claude/` | No file-copy installer |
+| Start SDD | `/sdd-kit:sdd` (plugin); `/sdd` (file copy) | `$sdd` |
+| Project instructions | `CLAUDE.md` importing shared `AGENTS.md` | `AGENTS.md` |
+| Execution | Claude workflows and subagents | Local MCP bridge and native Codex subagents |
+| Full instructions | [Claude Code](docs/hosts/claude.md) | [Codex](docs/hosts/codex.md) |
 
-```sh
-npm ci --ignore-scripts
-node cli/sdd-kit.mjs install --host codex
-```
+Installation, host commands, hook trust, model selection and interrupted-run recovery differ. A slash command in a Claude example is not automatically a Codex command. See the [command conventions](docs/hosts/compare.md#commands).
 
-Start a fresh session, review hooks with `/hooks`, and use `$sdd`. This installs `sdd-kit@sdd-kit` with native Codex subagents. [Codex installation, recovery and limitations](docs/hosts/codex.md).
+## Install for Claude Code
 
-`npm test` validates both host packages. `node cli/sdd-kit.mjs build --host all` builds them from `plugins/` and `share/`. Shared behavior is edited once; only host API differences belong in `adapters/`. See [validation results and limits](docs/validation.md). Claude's existing installation methods below continue to work, and the common CLI accepts `install --host claude` explicitly.
+Inside Claude Code, add the original release marketplace and install the stack-neutral core:
 
-- [Interactive guide](https://stasmarkov.github.io/sdd-kit/), also in this repository's `docs/` folder
-- [Worked example: Hireboard](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/docs/examples/job-board/README.md), a Laravel API and a Next.js frontend built ticket by ticket through every `/sdd` route
-
-## Install as a Claude Code plugin
-
-From inside Claude Code:
-
-```
+```text
 /plugin marketplace add stasmarkov/sdd-kit
-/plugin install sdd-kit-laravel-nextjs@sdd-kit
-```
-
-The `sdd-kit-laravel-nextjs` preset installs the core plus the Laravel and Next.js add-ons. For the stack-agnostic core alone, or to pick add-ons one by one:
-
-```
 /plugin install sdd-kit@sdd-kit
 ```
 
-In plugin mode the workflows' browser steps use the plugin's own Playwright server and need no project `.mcp.json` entry: see [Playwright in plugin mode](https://stasmarkov.github.io/sdd-kit/reference/installation.html#playwright-in-plugin-mode).
+For a Laravel API and Next.js frontend, install the preset instead:
 
-To pin this release, add the marketplace at the tag:
-
-```
-/plugin marketplace add stasmarkov/sdd-kit#v3.1.0
+```text
+/plugin install sdd-kit-laravel-nextjs@sdd-kit
 ```
 
-If SSH access to GitHub is not set up, start Claude Code with `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1` so the marketplace is cloned over HTTPS.
+Start a fresh session in your application project. Run `/sdd-kit:framework-doctor`, then `/sdd-kit:sdd <task>`. The preset includes core, Laravel, Next.js and development-environment add-ons. [Installation, updates and file-copy mode](docs/hosts/claude.md).
 
-### Updates
+## Install for Codex
 
-To pick up a new release, run `claude plugin update <name>@sdd-kit` for each installed plugin, then `/reload-plugins` in a running session.
+Use **this host-enabled checkout**. The original upstream `v3.1.0` tag predates the Codex adapter; pin a reviewed revision of this fork containing `adapters/codex/` instead. In a terminal at the kit repository root, with Node 20+, npm, Git, bash, jq and a Codex CLI exposing `codex plugin add`:
 
-Auto-update is off by default for this marketplace. To turn it on, open `/plugin`, choose Marketplaces, select `sdd-kit` and enable auto-update. To update by hand:
-
-```
-claude plugin marketplace update sdd-kit
-claude plugin update sdd-kit@sdd-kit
-```
-
-## Install by copying files
-
-Clone this repository and run the installer from your project root:
-
-```
-bash /path/to/sdd-kit/install.sh --project --dry-run
-bash /path/to/sdd-kit/install.sh --project
+```sh
+npm ci --ignore-scripts
+node cli/sdd-kit.mjs install --host codex --dry-run
+node cli/sdd-kit.mjs install --host codex
 ```
 
-Every flag works (`--minimal`, `--full`, `--stack=<stack>[,<stack>]`, `--with=<addon>`, `--prune`, `--yes`, `--user`). `--stack` stages the add-ons for a stack (for example `--stack=laravel,nextjs`) and `--prune` removes installed add-ons that are not selected on an upgrade. Without cloning, run it through npx:
+This builds a local marketplace in `dist/codex` and installs `sdd-kit@sdd-kit`. Keep the checkout for updates. Open a fresh Codex session in your **application** project, review the hook definitions with `/hooks`, then invoke `$framework-doctor` and `$sdd <task>`.
 
+All first-party skill add-ons are bundled. Installing does not approve hooks or custom stack commands. [Full Codex instructions, updates and recovery](docs/hosts/codex.md).
+
+## Your first task
+
+1. Check the installation with `framework-doctor` using your host's syntax above.
+2. Put project facts, exact test commands and constraints in `AGENTS.md`. Claude imports it from `CLAUDE.md`. See [project context](docs/reference/getting-started.md#project-context).
+3. Use `write-docs --type=all` for an existing application, or `product-brief` for a new product.
+4. Start `sdd` with a ticket or description. Review and approve a feature's spec before implementation.
+5. Read the final evidence and run manual acceptance steps. Missing tools and unrun browser checks remain visible gaps.
+
+Specs and progress live in `.ai/specs/`, so teammates can share the definition of done across hosts. Changing agents does not transfer active workers or workflow execution state.
+
+## Stacks and add-ons
+
+The core is stack-neutral. Manifests supply stack detection, gate commands and specialist roles. Laravel API + Next.js is the primary worked path; Drupal and iOS remain early add-ons.
+
+| Package | Contents | Claude Code | Codex |
+| --- | --- | --- | --- |
+| `sdd-kit` | SDD routing, workflows, core skills, roles and guards | Install core | Included |
+| `sdd-kit-laravel-nextjs` | Core + Laravel + Next.js + devenv dependency preset | Optional preset | No separate preset needed |
+| `sdd-kit-laravel` | Laravel, Pest, Passport, DTOs, migrations, contract-sync | Optional add-on | Skills and resources bundled |
+| `sdd-kit-nextjs` | Next.js, TypeScript, Tailwind, frontend tests | Optional add-on | Skills and resources bundled |
+| `sdd-kit-devenv` | Docker and DDEV guidance | Optional add-on | Skills bundled |
+| `sdd-kit-ops` | Deploy, rollback, flags, health and incidents | Optional add-on | Skills and roles bundled |
+| `sdd-kit-design` | UI design skill and advisor | Optional add-on | Skill and role bundled |
+| `sdd-kit-drupal` | Drupal 11 skill and scaffolding | Optional add-on | Skill and resources bundled |
+| `sdd-kit-ios` | Swift, SwiftUI and testing | Optional add-on | Skills and role bundled |
+
+Bundling a skill does not install its framework, services or external tools. Custom stacks require explicit approval of their commands and manifest hash. See [stack manifests](docs/reference/stack-manifest.md) and [third-party integrations](docs/reference/third-party.md).
+
+## Interactive guide
+
+From this checkout, open the guide in your browser:
+
+```sh
+node cli/sdd-kit.mjs guide
 ```
-npx github:stasmarkov/sdd-kit install --project --dry-run
-npx github:stasmarkov/sdd-kit install --project
+
+The header switches between **Claude Code**, **Codex** and **Compare both**, with installation steps and copyable commands for the selected host. The command opens this checkout's `docs/index.html`; GitHub's file viewer shows that HTML as source. You can also open the file directly in a browser. See the [documentation structure](docs/documentation-structure.md) for how shared and host-specific content is organized.
+
+To rebuild after changing Markdown, run `npm run docs:build`, then `npm run docs:check`. Commit the sources and generated pages together; see [maintenance](docs/maintaining-docs.md).
+
+## Tools without an agent session
+
+The spec board reads `.ai/specs` from your current application directory:
+
+```sh
+node /path/to/sdd-kit/cli/sdd-kit.mjs spec-board --serve
+node /path/to/sdd-kit/cli/sdd-kit.mjs spec-board --out /tmp/spec-board.html
 ```
 
-## Run with npx
+The original released CLI is available via GitHub through npx; the package is not published to npm. With npm 11 use `npx github:stasmarkov/sdd-kit spec-board --serve`; with npm 12 add `--allow-git=root`. These original-release commands do not install the fork's Codex adapter.
 
-These need Node 18+ and git. The package is not published to npm. The commands differ by npm version.
+## Develop and verify the kit
 
-npm 11:
-
-```
-npx github:stasmarkov/sdd-kit spec-board --serve
-npx github:stasmarkov/sdd-kit install --project
-npx github:stasmarkov/sdd-kit guide
+```sh
+npm ci --ignore-scripts
+npm test
+node cli/sdd-kit.mjs build --host all
 ```
 
-npm 12 blocks git dependencies unless you allow them, so add `--allow-git=root`:
+Edit shared behavior under `plugins/` and `share/`; host API differences belong under `adapters/`. `dist/` is generated output. [Architecture and contribution boundaries](docs/architecture.md) explain ownership. [Validation evidence](docs/validation.md) records what was exercised and what remains unverified.
 
-```
-npx --allow-git=root github:stasmarkov/sdd-kit spec-board --serve
-npx --allow-git=root github:stasmarkov/sdd-kit install --project
-npx --allow-git=root github:stasmarkov/sdd-kit guide
-```
+This checkout extends the public 3.1.0 distribution. The original author generates that distribution from a separate source repository; this fork does not change that release pipeline. The upstream release tag and the fork's current revision are different delivery points.
 
-To run the `spec-board` binary by package name, use the `-p` form:
+## Further reading
 
-```
-npx -y -p github:stasmarkov/sdd-kit spec-board
-npx --allow-git=root -y -p github:stasmarkov/sdd-kit spec-board
-```
+- [Shared first-session guide](docs/reference/getting-started.md)
+- [Worked example: Hireboard](docs/examples/job-board/README.md)
+- [Skills](docs/reference/skills.md), [agents](docs/reference/agents.md) and [specification format](docs/reference/specification-system.md)
+- [Team rollout](docs/reference/team-marketplace.md)
+- [Original release history](CHANGELOG.md)
 
-The first line is for npm 11, the second for npm 12.
-
-Supported npm versions: 11 and 12. npm 10 is not supported. Append `#v3.1.0` to the repository name to pin this release.
-
-## Plugins
-
-| Plugin | Description | Install |
-| --- | --- | --- |
-| `sdd-kit` | SDD Kit: spec-driven development for Claude Code. A single /sdd front door, six background multi-agent workflows with stack detection and cross-repo support, specialized agents and skills, and guardrail hooks. Stack-agnostic core; stacks come from add-on plugins. | `/plugin install sdd-kit@sdd-kit` |
-| `sdd-kit-design` | UI design add-on: ui-ux-advisor agent and design-ui skill. Third-party design skills are listed in docs/third-party.md. | `/plugin install sdd-kit-design@sdd-kit` |
-| `sdd-kit-devenv` | Dev-environment add-on: docker and ddev skills, plus an optional DDEV MCP entry. Not tied to a stack. | `/plugin install sdd-kit-devenv@sdd-kit` |
-| `sdd-kit-drupal` | Drupal 11 add-on: drupal-11 skill with module scaffolding. | `/plugin install sdd-kit-drupal@sdd-kit` |
-| `sdd-kit-ios` | iOS/Swift add-on: ios-mobile-dev agent, ios-native (with SwiftUI code templates in its assets) and swift-testing skills. | `/plugin install sdd-kit-ios@sdd-kit` |
-| `sdd-kit-laravel` | Laravel add-on: laravel-backend-dev agent, Laravel, Pest, Passport, DTO, service-repository, event-driven and migration skills, path-scoped rules, the contract-sync template and the Laravel stack manifest. | `/plugin install sdd-kit-laravel@sdd-kit` |
-| `sdd-kit-laravel-nextjs` | The Laravel + Next.js starting set for 3.x: installs the core plugin with the Laravel, Next.js and dev-environment add-ons. Ships no components of its own. | `/plugin install sdd-kit-laravel-nextjs@sdd-kit` |
-| `sdd-kit-nextjs` | Next.js add-on: nextjs-frontend-dev agent, Next.js, TypeScript and Tailwind skills, path-scoped rules and the Next.js and Nuxt stack manifests. | `/plugin install sdd-kit-nextjs@sdd-kit` |
-| `sdd-kit-ops` | Operations add-on: deploy, rollback, feature flags, health checks, incident response, and ops analysis agents. | `/plugin install sdd-kit-ops@sdd-kit` |
-
-Install an add-on with `/plugin install <name>@sdd-kit`.
-
-## Stacks and roadmap
-
-The core is stack-agnostic: each stack is described by a `stack.json` manifest that an add-on ships, and `/new-stack` scaffolds one. This release is built and tested for a Laravel API with a Next.js frontend; the Drupal and iOS add-ons exist but are early. More stacks are on the roadmap. The manifest format is in the [stack manifest reference](https://stasmarkov.github.io/sdd-kit/reference/stack-manifest.html).
-
-## Original release provenance
-
-The following describes the original author releases, not this branch’s development commits. Every release is one commit on `main`, made by the release pipeline through the GitHub API and shown as Verified by GitHub. Its message names the source commit it was built from (`release: v3.1.0 from <source>@<sha>`), and that commit carries a GPG-signed release tag checked against the maintainer's key before anything is built. The tags `v3.1.0` and `<plugin>--v3.1.0` point at the release commit.
-
-## License
-
-MIT. See the LICENSE file in this repository.
+MIT. See [LICENSE](LICENSE).

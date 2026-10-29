@@ -1,5 +1,17 @@
 # 05 — Anatomy of an M spec: company reviews with moderation (HIRE-4)
 
+## Write and build the M spec in Codex
+
+Use `$sdd HIRE-4` with the company-review ticket text below. The spec size, EARS criteria, must-not-change rules, six clarification decisions and AC-to-test traceability are shared between hosts.
+
+```text
+$sdd HIRE-4
+```
+
+Keep the spec in `api/.ai/specs/spec-HIRE-4-company-reviews/` and name both repositories. Resolve the open questions before approving. The native runtime then drives `ship-feature` with that spec and the same repo/URL arguments as the Claude example. `$progress` replaces the story's `/workflows` status view; model aliases such as opus or sonnet in historical examples do not prescribe Codex models. The recorded source behavior and simulated outputs below remain examples to verify, not a passing result for your current run.
+
+**Reading the original walkthrough:** slash skill names below use Claude file-copy shorthand; Claude plugins add their package namespace. `Workflow(...)`, `/workflows`, `CLAUDE.md` imports and `.claude` settings describe that host. Use the concrete Codex path above. All simulated outputs remain labelled examples.
+
 [Chapter 04](04-feature-accounts-and-roles.md) took HIRE-3 through the feature pipeline quickly.
 This chapter slows down and shows a whole M-size spec, one section at a time. HIRE-4 is a good
 example because it has everything an M spec can contain: a new table, six endpoints across three

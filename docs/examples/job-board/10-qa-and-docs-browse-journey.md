@@ -1,5 +1,17 @@
 # 10 — Shipped code: a traceable QA plan and docs for the public browse journey (HIRE-10)
 
+## Document the shipped journey in Codex
+
+Ask for the same shipped-code route, with explicit cross-repo scope:
+
+```text
+$sdd HIRE-10: Create a QA plan and documentation for the shipped Hireboard browse journey in api/ and web/. Use the scope and criteria below; verify claims against current code.
+```
+
+`qa-and-docs` runs through the native bridge and returns traceability, documentation and a grader verdict. Criteria inferred from implementation still need human validation. Put common facts in the same docs/context and API documentation paths, with `AGENTS.md` pointing to them. A QA plan is not proof that its manual scenarios ran; distinguish written steps, automated checks and actual browser observations in the report.
+
+**Reading the original walkthrough:** slash skill names below use Claude file-copy shorthand; Claude plugins add their package namespace. `Workflow(...)`, `/workflows`, `CLAUDE.md` imports and `.claude` settings describe that host. Use the concrete Codex path above. All simulated outputs remain labelled examples.
+
 **Route:** `shipped` → `qa-and-docs` workflow
 **Date in the story:** 2026-11-03
 **Session:** inside `web/`, with `api/` added
@@ -131,7 +143,7 @@ Grade          completeness / helpfulness / truthfulness; coverage + phantom-lin
 Report         coverage matrix + grade + artifact paths
 ```
 
-Workflow log, abridged and simulated. The line formats match the `log()` calls in `src/workflows/qa-and-docs.js`:
+Workflow log, abridged and simulated. The line formats match the `log()` calls in `plugins/sdd-kit/workflows/qa-and-docs.js`:
 
 ```
 [Detect]   Detect: frontend:nextjs, backend:laravel (cross-repo)

@@ -17,7 +17,7 @@ function map(hash) {
   if (chapter) return '#example/' + chapter[1];
   return ALIASES[hash] || hash;
 }
-var target = 'index.html' + map(location.hash);
+var target = 'index.html' + location.search + map(location.hash);
 location.replace(target);
 document.addEventListener('DOMContentLoaded', function () {
   var link = document.querySelector('a[href^="index.html"]');

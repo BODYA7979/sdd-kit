@@ -2,6 +2,22 @@
 
 How specs are named, structured, approved, and executed. The authoring skill is `write-spec`; its templates (`references/spec-lite.template.md`, `references/tasks.template.md`) are the source of truth for file contents.
 
+## Using the same spec in either host
+
+Specs, acceptance criteria, approval fields and task files are shared artifacts. You do not need a second spec when you switch agent hosts.
+
+| Action | Claude Code plugin | Codex |
+| --- | --- | --- |
+| Draft and route a feature | `/sdd-kit:sdd PROJ-123` | `$sdd PROJ-123` |
+| Write a spec directly | `/sdd-kit:write-spec` | `$write-spec` |
+| Build tasks interactively | `/sdd-kit:execute-task --spec=PROJ-123` | `$execute-task --spec=PROJ-123` |
+| Resume direct task execution | `/sdd-kit:execute-task --spec=PROJ-123 --continue` | `$execute-task --spec=PROJ-123 --continue` |
+| Inspect the board | `/sdd-kit:spec-board` | `$spec-board` |
+
+The rest of this page uses bare skill names (`/write-spec`) as Claude file-copy shorthand. Codex runs the corresponding `$write-spec` skill. A workflow name such as `ship-feature` is routed through `$sdd` / `$sdd-runtime`, not a dollar-prefixed workflow skill.
+
+Codex workflow receipts in `.ai/codex-workflows/` are separate from the shared spec and `execute-task` checkpoint. Switching hosts does not migrate an active workflow's ownership or claimed workers; finish or stop that run first. Approval does not transfer trust for host hooks or custom stack manifests.
+
 ## Principles
 
 - **One spec = one ticket = one feature.** Split anything above ~12 tasks.
@@ -152,7 +168,7 @@ When all tasks are checked, `/open-pr --spec=<spec-folder>` opens the pull reque
 
 ## Spec lint
 
-`node tools/spec-lint.mjs [--warn] [--verified] [--root <dir>] <spec-dir>` (installed copy: `skills/write-spec/scripts/spec-lint.mjs`) checks a spec folder with no model or network call. Each finding is `<file>:<line> <error|warning> <problem>. Fix: <fix>`; a clean folder prints `spec-lint: <dir> OK`. Exit 1 when a blocker is found, 0 otherwise, 2 on a usage error, 3 from `--gates` when tasks.md has an unchecked gate task. `/write-spec` runs it before the clarity gate, `/sdd` before asking for approval (the spec stays `draft` while blockers remain), and `verify.sh` runs it with `--warn` over `.ai/specs/*/`.
+`node plugins/sdd-kit/skills/write-spec/scripts/spec-lint.mjs [--warn] [--verified] [--root <dir>] <spec-dir>` (installed copy: `skills/write-spec/scripts/spec-lint.mjs`) checks a spec folder with no model or network call. Each finding is `<file>:<line> <error|warning> <problem>. Fix: <fix>`; a clean folder prints `spec-lint: <dir> OK`. Exit 1 when a blocker is found, 0 otherwise, 2 on a usage error, 3 from `--gates` when tasks.md has an unchecked gate task. `/write-spec` runs it before the clarity gate, `/sdd` before asking for approval (the spec stays `draft` while blockers remain), and the original upstream release checks run it over their example specs. This checkout does not ship that upstream `verify.sh`; use the script path above for local validation.
 
 **Blockers**: missing or empty Acceptance criteria; an AC with no `SHALL` and no `THEN`, or using a vague term; missing Must NOT change when `type` is bug, improvement or refactor; missing or empty Out of scope; empty `stakeholders` together with empty `approved_by`; an AC, MNC or NFR id absent from the Traceability table (all ids when tasks.md or the table is missing); an unchecked Open question when `status: approved`.
 
@@ -161,3 +177,5 @@ When all tasks are checked, `/open-pr --spec=<spec-folder>` opens the pull reque
 **Verified by grammar**: items separated by `;`, each one of `path` (one token, relative to the repo root), `path::exact test title` (no `;` or `::` in the title), `manual-test.md#step-N` (needs a `### Step N:` heading in manual-test.md), or a named check (an item starting with `verify `, or `gen-indexes --check`, `gen-stacks --check`, `gen-guide-example --check`, `gen-retired-hashes --check`). `--verified` turns a missing path, a title not found in its file by fixed-string search, or a missing step heading into a blocker, and skips named checks. `--warn` prints every finding as a warning and exits 0.
 
 **Vague terms**: the closed `VAGUE_TERMS` list exported by the script, matched case-insensitively on word boundaries, skipping backtick spans and double-quoted spans: fast, quick, quickly, robust, scalable, user-friendly, intuitive, appropriate, appropriately, as needed, as appropriate, reasonable, reasonably, properly, efficient, efficiently, seamless, seamlessly, easy, easily, simple, simply, flexible, adequate, sufficient, optimal, graceful, gracefully.
+
+Source: [write-spec](../../plugins/sdd-kit/skills/write-spec/SKILL.md), [execute-task](../../plugins/sdd-kit/skills/execute-task/SKILL.md), [spec lint](../../plugins/sdd-kit/skills/write-spec/scripts/spec-lint.mjs), [native runtime](../../adapters/codex/skill-overlays/sdd-runtime/SKILL.md).

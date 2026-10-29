@@ -1,5 +1,27 @@
 # 02 — New app: greenfield-build scaffolds both repos and ships the first slice (HIRE-1)
 
+## Run the first slice in Codex
+
+Open the parent Hireboard workspace with its `AGENTS.md` and `product-brief.md`; leave both target directories missing or empty. Enter:
+
+```text
+$sdd HIRE-1: New Hireboard app — Laravel API + Next.js frontend; first slice: visitors search open jobs and open one posting. Repositories: api/ and web/. Use the workspace product-brief.md and AGENTS.md.
+```
+
+Confirm the new-app route, the first-slice scope, repo paths and local browser URL. The parent drives `greenfield-build` through the native runtime; the `Workflow(...)` examples below show the shared arguments in Claude syntax, not a Codex command. Use `$progress` to inspect the native run id and phase.
+
+After scaffolding, ensure `api/AGENTS.md` and `web/AGENTS.md` contain their stack conventions and gate commands. Keep detailed context in the shared `docs/context/` files. Codex workers must read applicable `.codex/rules/*.md` explicitly through SDD; the Claude-specific template copying later in this chapter is not a Codex installer step. Run the same application gates and browser journey. Treat the narrated SHIP-SLICE output as a simulated example, not evidence for your run.
+
+## Current workflow contract (both hosts)
+
+The shared workflow carries every architecture decision into scaffolding, CI, implementation and acceptance. CI follows the chosen provider or an explicitly local-only runner; the GitHub Actions files in this story are its example configuration, not a requirement for every project.
+
+Current acceptance requires exactly one passing, evidence-backed check for each architecture decision, successful journey steps and no broken links. A sound plan alone does not establish that the code implements it: the result separates `architecturePlanSound` and `architectureImplemented`. An unverified decision or a failed journey keeps the slice unshippable, even if an agent reports `resolved=true`. Only a shippable result marks the slice shipped in the backlog.
+
+The older simulated logs below illustrate the original story and do not demonstrate these newer checks. For a real run, inspect the current decision evidence and computed recommendation as described in the [new-app workflow reference](../../reference/usage-examples.md#5-new-app).
+
+**Reading the original walkthrough:** slash skill names below use Claude file-copy shorthand; Claude plugins add their package namespace. `Workflow(...)`, `/workflows`, `CLAUDE.md` imports and `.claude` settings describe that host. Use the concrete Codex path above. All simulated outputs remain labelled examples.
+
 **Date in the story:** 2026-10-19. **Who:** Alex Rivera (developer), Maya Chen (product owner,
 validates the business rules at the end). **Route:** `new app` → `greenfield-build`.
 **Ticket:** HIRE-1, "New Hireboard app with first slice: visitor searches open jobs and opens one".
@@ -37,7 +59,7 @@ writes `/sdd`.
 /sdd HIRE-1: New Hireboard app — Laravel API + Next.js frontend; first slice: visitor searches open jobs with filters and opens one
 ```
 
-`/sdd` resolves the input first (Step 1 of `src/skills/sdd/SKILL.md`). `HIRE-1` is a
+`/sdd` resolves the input first (Step 1 of `plugins/sdd-kit/skills/sdd/SKILL.md`). `HIRE-1` is a
 ticket key, so it looks for an existing spec folder and then for a tracker. Neither exists
 (friction F8), so it uses the text you typed as the ticket text and skips link-back. Then it
 classifies.
@@ -104,7 +126,7 @@ Workflow({ name: "greenfield-build", args: {
 } })
 ```
 
-The arguments come from the top of `src/workflows/greenfield-build.js`: `idea`, `stack`,
+The arguments come from the top of `plugins/sdd-kit/workflows/greenfield-build.js`: `idea`, `stack`,
 `repos`, `url`, plus `force` and `models`, which this run doesn't need.
 
 > **Friction F4: `stack` takes one registry key.** The value is a single key from the `STACKS`
@@ -473,15 +495,15 @@ inside `api/` or `web/` (chapters 03, 07, 10) need each repo's own conventions, 
 KIT=~/tools/sdd-kit
 for repo in api web; do
   cd ~/work/hireboard/$repo
-  cp $KIT/src/CLAUDE.template.md CLAUDE.md          # replaces the scaffold's stub
-  cp $KIT/src/templates/AGENTS.template.md AGENTS.md
-  mkdir -p .claude/rules && cp $KIT/src/templates/rules/*.md .claude/rules/
+  cp $KIT/share/CLAUDE.template.md CLAUDE.md          # replaces the scaffold's stub
+  cp $KIT/share/templates/AGENTS.template.md AGENTS.md
+  mkdir -p .claude/rules && cp $KIT/share/templates/rules/*.md .claude/rules/
 done
 ```
 
 Then fill them in. The templates say to keep `CLAUDE.md` under 200 lines, put tool-neutral
 facts in `AGENTS.md` (imported with `@AGENTS.md`), and state each fact once.
-[GETTING-STARTED.md, section 2](../../reference/getting-started.md#2-give-claude-your-project-context)
+[GETTING-STARTED.md, section 2](../../reference/getting-started.md#project-context)
 explains the reasoning.
 
 **`api/AGENTS.md`** ([artifact](artifacts/api/AGENTS.md)): the stack table, the three gate
@@ -525,7 +547,7 @@ lifetime) stays pending: the brief leaves it open until the auth decision (HIRE-
 [`api/docs/context/business-rules.md`](artifacts/api/docs/context/business-rules.md), marked
 with Maya as validator. Each rule has a column for the code that enforces it. Together
 with the architecture doc and the API contract, these form the "Always load" set in
-`api/CLAUDE.md`. The kit's Golden Triangle (`src/templates/context/golden-triangle.md`) is
+`api/CLAUDE.md`. The kit's Golden Triangle (`share/templates/context/golden-triangle.md`) is
 business rules, architecture and workflow; here the workflow leg is the "Process" section of
 the workspace `CLAUDE.md`, and the API contract is an extra file that this project always loads.
 

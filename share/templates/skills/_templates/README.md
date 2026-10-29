@@ -1,135 +1,71 @@
-# Skill Template Guide
+# Skill template guide
 
-This directory contains templates for creating new skills following the [official Claude Code skills spec](https://code.claude.com/docs/en/skills).
+Write reusable task instructions once, then use the host's supported packaging. SDD Kit keeps shared skill sources under `plugins/<plugin>/skills/<name>/`; its Codex adapter generates native metadata and applies narrowly scoped runtime overlays.
 
-## Skill Directory Structure
+## Directory structure
 
-```
-.claude/skills/{skill-name}/
-├── SKILL.md                    # Required: Core instructions (loaded when triggered)
-├── references/                 # Optional: Detailed docs (loaded on demand)
-│   ├── advanced-usage.md
-│   ├── api-reference.md
-│   └── troubleshooting.md
-├── scripts/                    # Optional: Executable code
-│   ├── generate.sh
-│   └── validate.py
-└── assets/                     # Optional: Output files (NOT loaded into context)
-    └── templates/
-        ├── component.tsx
-        └── service.<ext>
+```text
+<skill-name>/
+├── SKILL.md           name, description and core instructions
+├── references/       detailed guidance loaded when needed
+├── scripts/          helpers that actually exist and are tested
+└── assets/           templates or output resources
 ```
 
-## Official Frontmatter Fields
+| Location | Purpose |
+| --- | --- |
+| `plugins/<plugin>/skills/<name>/` | Author a shared SDD Kit skill |
+| `.claude/skills/<name>/` | Claude project file-copy skill |
+| `.agents/skills/<name>/` | Native project skill location used by the Codex stack scaffolder |
+| `dist/` | Generated packages; do not edit these as source |
 
-Only use fields from the official Claude Code spec:
+## Shared content and host metadata
+
+Keep the shared description precise: what the skill does and when it applies. Separate business rules and steps from host-specific invocations. Use references for longer material and keep the main instructions focused.
+
+A portable starting point is:
 
 ```yaml
 ---
-name: skill-name              # Lowercase, hyphens only (max 64 chars)
-description: What it does...  # Include "Use when..." for discovery
-user-invocable: false          # false = background knowledge only
-disable-model-invocation: true # true = manual /invoke only
-allowed-tools: Read, Grep, Glob
-model: sonnet                  # Optional: model override
-context: fork                  # Optional: run in subagent
-agent: Explore                 # Optional: subagent type (with context: fork)
-argument-hint: "[filename]"   # Optional: autocomplete hint
+name: billing-patterns
+description: Apply the project's billing conventions when changing invoices, refunds or payment webhooks.
 ---
 ```
 
-### Invocation Control
+Claude supports additional fields such as `user-invocable`, `disable-model-invocation`, `allowed-tools`, `model`, `context`, `agent` and `argument-hint`. These describe **Claude behavior**, not a cross-host contract. For example, `disable-model-invocation: true` makes a Claude skill manual-only; the SDD Codex build maps it to `policy.allow_implicit_invocation: false` in `agents/openai.yaml`. The reverse visibility control, `user-invocable: false`, has no equivalent mapping in the current adapter.
 
-| Setting | You invoke | Claude invokes | Use for |
-|---------|-----------|----------------|---------|
-| (default) | Yes | Yes | General skills |
-| `disable-model-invocation: true` | Yes | No | Workflows with side effects |
-| `user-invocable: false` | No | Yes | Background knowledge |
+The current Codex adapter emits name, description, optional license and upstream provenance metadata. It adds a provider-mapping preface and translates the kit's instruction paths. It maps the manual-only opt-out as described above but does not copy Claude model aliases or `allowed-tools` as native permission settings. Read [the build adapter](../../../../adapters/codex/build.mjs) before adding behavior that depends on metadata.
 
-### Additional Optional Fields (Anthropic Skills Spec)
+## Create and validate
 
-These fields are valid per the official Anthropic "Complete Guide to Building Skills for Claude":
-- `license` - License identifier for open-source skills (MIT, Apache-2.0)
-- `compatibility` - Environment requirements (1-500 chars)
-- `metadata` - Custom key-value pairs (author, version, mcp-server, category, tags)
+1. Create a directory whose name matches the skill's `name`.
+2. Start from `SKILL.template.md` in this directory for a Claude/shared source, or use the minimal metadata above for a native project skill. Review any template fields for the target host.
+3. Write a specific description and task steps. State required inputs, boundaries, outputs and verification.
+4. Move long references out of the entry file. Add only helpers that the skill calls and explain their inputs.
+5. For shared SDD changes, build both hosts with `node cli/sdd-kit.mjs build --host all` and run `npm test`. Check the generated Codex skill as well as the Claude source.
+6. Test discovery and an actual invocation in each intended host. A build check does not establish that a live host loaded a skill or enforced its permissions.
 
-### Fields NOT in the Official Spec (Do Not Use)
+## Invocation and host primitives
 
-These fields are silently ignored by Claude Code:
-- `dependencies` - Not supported (use `compatibility` instead)
+| Need | Claude Code | Codex through SDD |
+| --- | --- | --- |
+| Invoke a skill | `/plugin:skill` or `/skill` in file-copy mode | `$skill` |
+| Start a workflow | `Workflow({ name, args })` | `$sdd-runtime` drives the native bridge |
+| Delegate a role | `Agent` | Load `agent_instructions`, then create a native subagent |
+| Ask for input | Host question tool | Native question or chat input |
+| Skill directory | `${CLAUDE_SKILL_DIR}` notation | Resolve `SDD_SKILL_DIR` from the installed skill path |
+| Project instructions | `CLAUDE.md` and its imports | `AGENTS.md` and explicitly loaded matching rule files |
 
-## Creating a New Skill
+In Codex the directory notations are not pre-set shell environment variables. The [runtime provider mapping](../../../../adapters/codex/skill-overlays/sdd-runtime/SKILL.md) is authoritative for these translations.
 
-### 1. Create Directory
-```bash
-mkdir -p .claude/skills/{skill-name}
-mkdir -p .claude/skills/{skill-name}/references
-```
+Claude dynamic substitutions such as `$ARGUMENTS`, `${CLAUDE_SESSION_ID}` and shell preprocessing are host features. Do not assume they execute unchanged in Codex; provide equivalent explicit instructions or a host overlay and test it.
 
-### 2. Copy Template
-```bash
-cp .claude/templates/skills/_templates/SKILL.template.md .claude/skills/{skill-name}/SKILL.md
-```
+## Keep instructions economical
 
-### 3. Edit SKILL.md
-- Replace all `{{placeholders}}`
-- Keep description under 1024 characters (include WHAT + WHEN + trigger phrases)
-- Keep body under 500 lines
-- Move detailed content to `references/`
+- Explain project conventions, not basic language syntax.
+- Return concise findings with evidence instead of full transcripts.
+- Read references only when they apply.
+- Keep source facts and generated examples distinct.
+- Put approval requirements in the task instructions as well as any host metadata that supports them.
 
-### 4. Add Resources (if needed)
-- `references/` - Markdown files with detailed documentation
-- `scripts/` - Shell/Python scripts for automation
-- `assets/templates/` - Code templates for scaffolding
-
-## Best Practices
-
-### Description Writing
-```yaml
-# Good (specific trigger + action)
-description: Billing API patterns. Use for services, models, controllers.
-
-# Bad (too long, vague)
-description: This skill provides comprehensive patterns including
-service-repository architecture, ORM best practices, single-action controllers,
-and modern language patterns for building API backends.
-```
-
-### Token Efficiency
-> "The context window is a public good. Only add information Claude doesn't already possess."
-
-- Don't explain basic language syntax
-- Don't repeat framework documentation
-- Focus on YOUR team's specific patterns
-- Keep SKILL.md concise, use references for depth
-
-### Progressive Disclosure
-
-| Level | Location | When Loaded |
-|-------|----------|-------------|
-| 1 | Description in frontmatter | Always (in skill list) |
-| 2 | SKILL.md body | When skill is invoked |
-| 3 | `references/` files | When Claude determines need |
-| 4 | `assets/` files | Never (used for output only) |
-
-### Dynamic Context
-
-Skills support string substitutions:
-- `$ARGUMENTS` - All arguments passed when invoking
-- `$ARGUMENTS[N]` or `$N` - Specific argument by index
-- `${CLAUDE_SESSION_ID}` - Current session ID
-- `` !`command` `` - Shell command output (preprocessing)
-
-## What NOT to Include
-
-Per official guidelines, do NOT create:
-- `README.md` in skill directories (use SKILL.md)
-- Version/date footer metadata
-- Non-standard frontmatter fields
-- Basic syntax Claude already knows
-
-Include only files that directly support skill functionality.
-
----
-
-**Spec**: Official Claude Code Skills (https://code.claude.com/docs/en/skills)
+Official Claude reference: [skills](https://code.claude.com/docs/en/skills). For native packaging, see [Codex support](../../../../docs/hosts/codex.md).

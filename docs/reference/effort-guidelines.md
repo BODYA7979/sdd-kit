@@ -1,274 +1,79 @@
-# Effort Scaling Guidelines
+# Effort, models and recovery
 
-How much model, how many agents, and how many tool calls a task deserves in SDD Kit. This is the one place that covers model tiering, effort scaling, token budgets, and checkpointing; other docs link here instead of repeating it.
+Use enough investigation and independent verification for the risk of the change. SDD Kit shares workflow phases and agent roles across Claude Code and Codex; the host controls model availability, concurrency and usage accounting. Agent counts and time estimates are planning aids, not completion criteria.
 
-Based on Anthropic's multi-agent research system recommendations.
+## Choose the smallest suitable route
 
----
+| Work | Starting point | Verification |
+| --- | --- | --- |
+| A clear, small edit | `simple-task`, or the trivial route in `sdd` | Checks appropriate to the affected behavior |
+| Existing behavior is wrong | `sdd` bug route → `fix-bug` | Reproduction, failing regression test, must-not-change guards, gates, acceptance |
+| New behavior | `sdd` feature route → spec → human approval → `ship-feature` | AC/MNC traceability, implementation gates, independent review and acceptance |
+| A technology choice | `sdd` decision route → `tech-research` | Sources, fit with the repository, adversarial verification, human decision |
+| An approved spec over several sessions | `execute-task` | Task-level tests and gates, saved resume state |
 
-## Effort Levels
+In Claude Code, invoke `/sdd-kit:sdd` in plugin mode or `/sdd` in file-copy mode. In Codex, invoke `$sdd`. Direct skills follow the same convention, for example `/sdd-kit:execute-task` and `$execute-task`.
 
-### Simple Tasks
+Parallelize only independent work. Give every worker a bounded assignment, ownership of files, relevant instructions and a required result. Independent review uses a fresh context. A workflow phase may need several sequential workers even when the host has few concurrent slots; do not remove phases to fit the slot limit.
 
-| Metric | Value |
-|--------|-------|
-| **Agent Count** | 1 |
-| **Tool Calls** | 3-10 |
-| **Context Size** | < 10K tokens |
-| **Typical Duration** | < 1 minute |
+## Model tier selection
 
-**Examples**:
-- Fix a typo in documentation
-- Add a simple field to a model
-- Update a configuration value
-- Write a single unit test
-- Rename a variable
-- Add a simple validation rule
+The shared workflows express three tiers in their `MODEL_TIERS` / `phaseModels` definitions. The shipped definitions are in [the workflow registry](../../plugins/sdd-kit/workflows/lib/stacks.js); the source-authoring generator belongs to the upstream source project, not this distribution checkout.
 
-**Characteristics**:
-- Single file or few files affected
-- Clear, unambiguous requirements
-- No architectural decisions needed
-- Immediate feedback on success/failure
+| Tier | Shared intent | Claude Code default | Codex default |
+| --- | --- | --- | --- |
+| `deep` | Investigation, architecture, specifications, adversarial review, acceptance | `opus`, high effort | Inherit the active Codex model |
+| `standard` | Implementation, fixes, gates and verification votes | `sonnet`, medium effort | Inherit the active Codex model |
+| `light` | Inventory and mechanical work | `haiku`, low effort | Inherit the active Codex model |
 
----
+These are host-specific defaults, not model equivalences. The Codex bridge strips Claude aliases from native job hints. Use only a real Codex model identifier supported by your host when explicitly supplying a model mapping. The host must support the requested effort; its permissions and available concurrency still apply.
 
-### Medium Tasks
+For Claude, a workflow's `args.models` can override one or more tiers:
 
-| Metric | Value |
-|--------|-------|
-| **Agent Count** | 2-4 |
-| **Tool Calls** | 10-25 |
-| **Context Size** | 10K-50K tokens |
-| **Typical Duration** | 1-5 minutes |
-
-**Examples**:
-- Implement a new API endpoint
-- Add a feature with tests
-- Refactor a service class
-- Create a database migration with seeder
-- Build a React component with state
-- Implement form validation
-
-**Characteristics**:
-- Multiple files affected (3-10)
-- Some design decisions required
-- May need to explore existing patterns
-- Tests should be written
-- Code review recommended
-
----
-
-### Complex Tasks
-
-| Metric | Value |
-|--------|-------|
-| **Agent Count** | 5-10+ |
-| **Tool Calls** | 25-50+ |
-| **Context Size** | 50K-200K tokens |
-| **Typical Duration** | 5-30 minutes |
-
-**Examples**:
-- Implement a complete module
-- Major refactoring across codebase
-- Build a multi-step workflow feature
-- Create a new domain with entities
-- Implement authentication system
-- Build real-time features (WebSocket)
-
-**Characteristics**:
-- Many files affected (10+)
-- Architectural decisions required
-- Cross-cutting concerns
-- Multiple subagents with specializations
-- Checkpointing recommended
-- Multi-phase implementation
-
----
-
-## Agent Allocation Guide
-
-### By Task Type
-
-| Task Type | Recommended Agents |
-|-----------|-------------------|
-| **Research/Discovery** | 1 (`code-explorer`) |
-| **Comparison / decision** | the `tech-research` workflow (one research agent per option, then adversarial verification) |
-| **Bug Fix** | 1-2 (`code-explorer` + stack dev) |
-| **New Feature** | 3-4 (`code-explorer` + `api-architect` + stack dev + `test-writer`) |
-| **Refactoring** | 2-3 (`code-explorer` + stack dev + `code-quality`) |
-| **Full Module** | 5+ (full lifecycle, e.g. the `ship-feature` workflow) |
-| **Security Audit** | 2-3 (`security-auditor` + `code-explorer` + `adversarial-reviewer`) |
-| **Performance** | 2-3 (`performance-tester` + `code-explorer` + stack dev) |
-
-"Stack dev" is the specialist the workflow's Detect phase picks from the stack registry, for example `laravel-backend-dev` or `nextjs-frontend-dev`. Schema work goes to `database-designer`; production log and monitoring analysis goes to `ops-analyst` in the `sdd-kit-ops` add-on. The full list is in the [agent index](agents.md).
-
-### Subagent Specialization
-
-For complex tasks, allocate specialized subagents:
-
-```
-Lead Orchestrator (1)
-├── Discovery Subagent (1-2)
-│   └── Explores codebase, finds patterns
-├── Implementation Subagents (2-4)
-│   └── laravel-backend-dev, nextjs-frontend-dev, database-designer
-├── Quality Subagent (1-2)
-│   └── test-writer, adversarial-reviewer, security-auditor
-└── Documentation Subagent (0-1)
-    └── Updates docs (doc-creator)
+```js
+Workflow({
+  name: "ship-feature",
+  args: {
+    spec: "PROJ-123",
+    models: { standard: { model: "<supported Claude model id>", effort: "high" } }
+  }
+})
 ```
 
----
+For Codex, ask `$sdd-runtime` to use the supported Codex model mapping you specify for the run. Do not copy Claude model names into a Codex request. Keep default inheritance unless a measured evaluation justifies an override. Model availability, price and context limits come from the host and provider; the kit does not guarantee them.
 
-## Token Budget Guidelines
+## Budgets and context
 
-### By Complexity
+| Mechanism | Claude Code | Codex |
+| --- | --- | --- |
+| Workflow token accounting | The workflow uses the host budget API when available | Reliable per-job native token counters are unavailable; the adapter preserves the source's no-explicit-budget branch |
+| Execution bounds | Host/runtime limits | Separate `maxActive` and `maxJobs` limits in the bridge, plus native host limits |
+| Read-volume hook | `CLAUDE_CONTEXT_USAGE` and `CLAUDE_BUDGET_THRESHOLD` (default 75%) | Adapter uses `SDD_CONTEXT_USAGE` and `SDD_CONTEXT_THRESHOLD`; without a usage hint it is not an automatic token meter |
+| Model identity in a report | Host-provided evidence | Do not invent identities or usage totals the host did not expose |
 
-| Complexity | Input Budget | Output Budget | Total |
-|------------|-------------|---------------|-------|
-| Simple | 5K | 2K | 7K |
-| Medium | 20K | 10K | 30K |
-| Complex | 80K | 40K | 120K |
+The read-volume guard always rejects `find /`. Threshold-based restrictions depend on the supplied context-usage hint. A hook being packaged is not proof that the host has enabled and trusted it. See [hooks](../../share/hooks/README.md).
 
-### Optimization Strategies
+Reduce avoidable context: return findings and evidence instead of whole logs, load relevant skills and rule files, and keep checkpoints short. There is no universal token multiplier or reliable wall-clock estimate for a multi-agent run. Measure your own usage and compare quality on representative tasks.
 
-1. **Use concise response format** by default
-2. **Preload only relevant skills** through the agent's `skills:` frontmatter
-3. **Return summaries** from subagents, not full transcripts
-4. **Use checkpointing** for tasks exceeding 100K tokens
-5. **Filter tool outputs** before returning to context
+## Checkpoints and recovery
 
-The `token-budget` hook enforces part of this: it always blocks `find` from the filesystem root, and once context usage (hinted via `CLAUDE_CONTEXT_USAGE`) reaches `CLAUDE_BUDGET_THRESHOLD` (default 75%) it also blocks unbounded reads of huge files, unscoped repo-wide greps, open-ended globs, and dumping full logs. See the [hooks reference](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/share/hooks/README.md).
+| State | Location | Use |
+| --- | --- | --- |
+| Shared task progress | `.ai/specs/<spec-folder>/tasks.md` | The human-readable plan and completed tasks |
+| `execute-task` resume state | `.ai/session/<spec-folder>-state.json` | Task cursor and `resume_hint` |
+| Task gate evidence | `.ai/verification/<spec-folder>/` | Actual check results |
+| Codex workflow receipts | `.ai/codex-workflows/` | Run id, ownership, claimed jobs and validated results |
+| Codex project role memory | `.ai/agents/<role>.md` | Validated project context, subject to user memory preferences |
 
----
+Save decisions, changed files, completed checks, unresolved risks and the next action before a context reset. Do not mark work done solely because it appears in a checkpoint.
 
-## Model Tier Selection
+For direct task execution, continue with `/execute-task --spec=PROJ-123 --continue` (Claude file-copy shorthand) or `$execute-task --spec=PROJ-123 --continue` (Codex). For an interrupted **Codex workflow**, retain the original run id and use the runtime's resume/reconnect path. Completed receipts are replayed; uncertain claimed work must reconnect to its original worker or be explicitly stopped. Starting a new workflow is not a safe substitute for reconnecting.
 
-Workflow phases name a **tier**, never a model. The tiers live in one place — `MODEL_TIERS` in `tools/stacks/runtime.template.js`, generated into `src/workflows/lib/stacks.js` and every workflow's registry region by `node tools/gen-stacks.mjs` (`verify.sh` fails if they are stale):
+Finish active Codex runs before rebuilding or updating the plugin. Resume requires the original build, unchanged workflow source and current stack-trust snapshot. Read [Codex recovery](../hosts/codex.md) before changing a running installation.
 
-| Tier | Model | Effort | Use for |
-|------|-------|--------|---------|
-| `deep` | `opus` | `high` | Investigation, specs, adversarial review, acceptance, architecture and technology decisions |
-| `standard` | `sonnet` | `medium` | Implementation, fixes, gate auto-fix, verification votes, test plans |
-| `light` | `haiku` | `low` | Inventory and other mechanical work |
+## Sources and related pages
 
-Each workflow maps its phases to tiers (`const MODELS = phaseModels({ detect: 'standard', review: 'deep', … })`) and every `agent()` call receives **both** `model` and `effort`. Without that, an `agentType` agent inherits its own frontmatter model, and effort falls back to the session default — both change silently between releases.
-
-Agent frontmatter follows the same split: `haiku` + `effort: low` for mechanical agents (`changelog-writer`, `ops-analyst`), `opus` + `effort: high` for architects and reviewers.
-
-### Pinning: aliases vs. full IDs
-
-- **Aliases** (`opus`, `sonnet`, `haiku`) re-point to the newest model of a tier on every release, and default effort can change with them. Fine for personal use — you pick up improvements with no edits.
-- **Full IDs** (`claude-opus-5-5`, `claude-sonnet-5-5`, …) make runs reproducible across a team. Pin them in the plugin version you distribute by editing `MODEL_TIERS`, or per run without editing anything:
-
-  ```js
-  Workflow({ name: 'ship-feature', args: { spec: 'spec-PROJ-123-checkout', models: { deep: 'claude-opus-5-5', standard: { model: 'claude-sonnet-5-5', effort: 'high' } } } })
-  ```
-
-- Re-run your eval set before moving a team to a new pinned ID.
-- Current IDs and prices change monthly — check the [models overview](https://docs.claude.com/en/docs/about-claude/models/overview) and [pricing](https://www.anthropic.com/pricing) pages rather than copying them into docs.
-
-### Premium tiers (Fable) — opt-in only
-
-Do **not** hardcode `fable` in agents, workflows, or `MODEL_TIERS`. It breaks portability:
-
-- **Zero-data-retention (ZDR) orgs get `400` on every Fable request.** EU / regulated organizations commonly run ZDR for GDPR — a hardcoded `fable` stage fails for them. Availability is gated by retention config, not geography.
-- **A premium price over the `opus` tier** (see the pricing page), on stages the framework already fans out in parallel.
-- **Minutes-long turns** can trip workflow timeouts and fan-out assumptions.
-
-If one hardest stage genuinely benefits, opt in per run (`args.models = { deep: 'claude-fable-5-1' }`) and document that ZDR orgs must leave it off.
-
----
-
-## Cost Considerations
-
-Multi-agent systems use approximately **15x more tokens** than single-agent chats, so the extra cost has to be justified. Use multi-agent approaches only when:
-
-1. Task genuinely requires multiple specializations
-2. Parallel exploration provides significant speedup
-3. Quality requirements justify the additional cost
-4. Task complexity warrants coordination overhead
-
-### Cost-Effective Patterns
-
-| Pattern | When to Use | Token Multiplier |
-|---------|-------------|------------------|
-| Single Agent | Simple tasks, clear requirements | 1x |
-| Sequential Agents | Dependent tasks, handoffs | 2-3x |
-| Parallel Agents | Independent exploration | 3-5x |
-| Full Swarm | Complex research, major features | 10-20x |
-
----
-
-## Checkpointing Thresholds
-
-Enable checkpointing when:
-
-- Estimated context exceeds 50K tokens
-- Task has 5+ distinct phases
-- Multiple agents are coordinating
-- Task may take > 10 minutes
-- Recovery from failure is important
-
-### How to checkpoint
-
-1. **Summarize completed work** - keep architectural decisions and bugs found, drop the transcript
-2. **Store it outside the context window** - in a file, not in conversation
-3. **Spawn fresh agents** - start a new context with the checkpoint as input
-4. **Resume without repetition** - build on prior work instead of redoing it
-
-### Checkpoint Content
-
-Save at each major phase:
-1. **Progress summary** - What's been completed
-2. **Key decisions** - Architectural choices made
-3. **Files modified** - List with change descriptions
-4. **Remaining work** - Outstanding tasks
-5. **Context to preserve** - Important findings/constraints
-
-### Where the kit stores checkpoints
-
-| Source | Location |
-|--------|----------|
-| `/execute-task` session state | `.ai/session/<spec-folder>-state.json` (includes a `resume_hint`) |
-| `pre-compact-save` hook | `.ai/session/pre-compact-<timestamp>.json` (active spec, task counts), written for manual recovery only; nothing reads it back. After compaction the `post-compact-context` hook (SessionStart, `compact` matcher) re-injects the top of the `docs/context/` files, the number of specs with pending tasks and the name of the latest `spec-*-state.json` |
-| `fix-bug`, `greenfield-build` workflows | Git commits (failing regression test, scaffold) |
-
-Durable lessons belong in Claude Code auto memory or agent memory (`memory: project`), not in checkpoints.
-
----
-
-## Quick Reference Card
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    EFFORT SCALING                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  SIMPLE (1 agent, 3-10 calls)                               │
-│  → Typos, single field, config changes                      │
-│                                                              │
-│  MEDIUM (2-4 agents, 10-25 calls)                           │
-│  → New endpoint, component, refactor                        │
-│                                                              │
-│  COMPLEX (5-10+ agents, 25-50+ calls)                       │
-│  → Full module, major feature, system redesign              │
-│                                                              │
-├─────────────────────────────────────────────────────────────┤
-│  - Default to SIMPLE, escalate only when needed             │
-│  - Multi-agent = 15x tokens, use wisely                     │
-│  - Checkpoint when > 50K tokens expected                    │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Related Documentation
-
-- Framework Design Rules - Core principles
-- [Agent index](agents.md) - Available agents
-- [Skill index](skills.md) - Available skills
-- [Hooks reference](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/share/hooks/README.md) - `token-budget`, `pre-compact-save`, and the rest
-
-Source: Anthropic Engineering, "How we built our multi-agent research system".
+- [Native runtime: roles, accounting and job hints](../../adapters/codex/runtime/engine.mjs)
+- [Provider mapping and completion review](../../adapters/codex/skill-overlays/sdd-runtime/SKILL.md)
+- [Hook adapter: context-usage mapping](../../adapters/codex/hooks/dispatch.mjs)
+- [Agent index](agents.md), [specification system](specification-system.md), [usage examples](usage-examples.md)

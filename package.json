@@ -25,12 +25,13 @@
     "adapters/",
     "scripts/",
     ".claude-plugin/",
-    "docs/hosts/",
-    "docs/architecture.md"
+    "docs/"
   ],
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs --host all",
+    "docs:build": "node scripts/build-docs.mjs",
+    "docs:check": "node scripts/build-docs.mjs --check",
     "pretest": "node scripts/build.mjs --host all",
     "test": "node --test tests/*.test.mjs tests/codex/*.test.mjs",
     "test:codex": "node --test tests/codex/*.test.mjs"
@@ -39,6 +40,7 @@
     "ajv": "8.20.0"
   },
   "devDependencies": {
+    "markdown-it": "14.3.3",
     "yaml": "2.9.1"
   }
 }

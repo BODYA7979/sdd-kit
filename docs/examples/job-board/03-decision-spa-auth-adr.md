@@ -1,5 +1,17 @@
 # 03 — Decision: SPA auth approach with tech-research (HIRE-2 → ADR-0001)
 
+## Run the decision in Codex
+
+Open the parent workspace and explicitly set `api/` as the ADR owner while including `web/` in the investigation:
+
+```text
+$sdd HIRE-2: Compare SPA authentication for the Next.js frontend and Laravel API using the options and criteria below. Investigate api/ and web/; write the proposed ADR under api/docs/adr/.
+```
+
+Read both repositories' `AGENTS.md` and the workspace invariants. `tech-research` uses the same research/verification/decision phases through the native runtime. A human still signs off on ADR-0001. Record the agreed invariant in shared `AGENTS.md` / context docs so both hosts read it; Claude may import those from `CLAUDE.md`. Do not copy `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD`, `--add-dir` or `/memory` commands into Codex.
+
+**Reading the original walkthrough:** slash skill names below use Claude file-copy shorthand; Claude plugins add their package namespace. `Workflow(...)`, `/workflows`, `CLAUDE.md` imports and `.claude` settings describe that host. Use the concrete Codex path above. All simulated outputs remain labelled examples.
+
 > **Date in the story:** 2026-10-20 · **Route:** `decision` → `tech-research` → ADR
 > **Ticket:** HIRE-2 · **Session:** started inside `api/` with `--add-dir ../web`
 > **Artifact:** [`artifacts/api/docs/adr/0001-spa-auth.md`](artifacts/api/docs/adr/0001-spa-auth.md)
@@ -23,7 +35,7 @@ code in both repos:
 | Auth.js | an Auth.js config, its session strategy, a second session lifetime |
 
 `/sdd` routes "X or Y?" questions like this to `decision`, not `feature` (see the routing table in
-`src/skills/sdd/SKILL.md`, Step 2). The decision route ends with an **ADR**, not code. The
+`plugins/sdd-kit/skills/sdd/SKILL.md`, Step 2). The decision route ends with an **ADR**, not code. The
 code comes in [chapter 04](04-feature-accounts-and-roles.md), where the HIRE-3 spec cites the ADR.
 
 Maya files the decision as its own ticket, HIRE-2, and holds the accounts ticket back. Once the ADR is
@@ -141,7 +153,7 @@ Done when: ADR written, every claim behind the recommendation sourced and verifi
 
 ## What the seven phases do
 
-`src/workflows/tech-research.js` declares `Detect → Frame → Research → Verify → Decide → Document → Report`.
+`plugins/sdd-kit/workflows/tech-research.js` declares `Detect → Frame → Research → Verify → Decide → Document → Report`.
 Each phase is pinned to a model tier (deep for Frame, Research, Decide and Report; standard for Detect,
 Verify and Document). See [docs/effort-guidelines.md](../../reference/effort-guidelines.md). The log lines below
 use the workflow's own formats; the numbers are from this story.
@@ -277,9 +289,9 @@ It also lists the downsides. The most useful one is that `middleware.ts` only ch
 exists, so a revoked token still gets past it. Pages therefore call `requireUser()`, which treats a 401
 from `/api/v1/auth/me` as signed out. That becomes a concrete line in the HIRE-3 spec.
 
-The kit's skills agree with the decision. `nextjs-auth` (`src/skills/nextjs-auth/SKILL.md`)
+The kit's skills agree with the decision. `nextjs-auth` (`plugins/sdd-kit-nextjs/skills/nextjs-auth/SKILL.md`)
 recommends HttpOnly cookies set by Next.js and rates `localStorage` as "NOT recommended".
-`api-security` (`src/skills/api-security/SKILL.md`) reserves the Sanctum CSRF cookie flow for
+`api-security` (`plugins/sdd-kit/skills/api-security/SKILL.md`) reserves the Sanctum CSRF cookie flow for
 SPAs that use cookies and asks for explicit CORS origins when CORS is needed, which option B avoids.
 Both skills load automatically in chapter 04 when the auth code is written: `nextjs-auth` through its
 `paths:` globs (`middleware.ts`, `**/*.tsx`) and `api-security` through its description.
@@ -362,9 +374,9 @@ decision is in context for every future session.
 
 ## Further reading
 
-- [src/docs/USAGE-EXAMPLES.md, "3. Technology decision"](../../reference/usage-examples.md#3-technology-decision)
+- [docs/reference/usage-examples.md, "3. Technology decision"](../../reference/usage-examples.md#3-technology-decision)
   covers the general version of this flow.
-- [src/skills/sdd/references/tech-research.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/plugins/sdd-kit/skills/sdd/references/tech-research.md)
+- [plugins/sdd-kit/skills/sdd/references/tech-research.md](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/plugins/sdd-kit/skills/sdd/references/tech-research.md)
   lists the route's arguments, phases, outputs and done condition.
 - [docs/multi-repo.md](../../reference/multi-repo.md) explains why `--add-dir` needs the environment variable.
 

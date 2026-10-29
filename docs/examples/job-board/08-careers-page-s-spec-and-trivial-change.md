@@ -1,5 +1,18 @@
 # 08 — Proportionality: an S spec for the careers page (HIRE-7) and a no-spec trivial change (HIRE-8)
 
+## Follow the proportional routes in Codex
+
+The decision between an S spec and a trivial edit is shared:
+
+```text
+$sdd HIRE-7
+$sdd HIRE-8
+```
+
+For HIRE-7, scope the approved spec and implementation to `web/`, while reading `api/AGENTS.md` and the API contract to verify that backend changes are unnecessary. Pass the exact spec path and frontend dev URL to the native workflow. For HIRE-8, use `$simple-task` when the route confirms the small display-only change. Required UI/formatting checks still apply. The story's `/workflows` view and Claude additional-directory flags are host-specific; use `$progress` and explicit repository context in Codex.
+
+**Reading the original walkthrough:** slash skill names below use Claude file-copy shorthand; Claude plugins add their package namespace. `Workflow(...)`, `/workflows`, `CLAUDE.md` imports and `.claude` settings describe that host. Use the concrete Codex path above. All simulated outputs remain labelled examples.
+
 Chapters 04 to 07 ran M specs: schema changes, several layers, both repos. Most tickets are
 smaller than that, and the kit is built to scale down. This chapter takes two small tickets:
 

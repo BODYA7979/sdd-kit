@@ -1,5 +1,17 @@
 # 09 — Bug: closed postings reachable by direct link, fixed with fix-bug (HIRE-9)
 
+## Reproduce and fix the bug in Codex
+
+Provide the complete symptom, reproduction steps and must-not-change list below to the same bug route:
+
+```text
+$sdd HIRE-9: A closed job is still visible through its direct link. Follow the reproduction and must-not-change requirements in this chapter, across api/ and web/.
+```
+
+The native `fix-bug` run follows reproduction → root cause → failing regression test → minimal fix → gates → acceptance. Browser checks use available Playwright or the native host browser; a missing browser is reported as not run. Do not turn a simulated FIXED transcript into evidence for your environment. Keep the run id if interrupted and reconnect its existing workers rather than redispatching an uncertain fix.
+
+**Reading the original walkthrough:** slash skill names below use Claude file-copy shorthand; Claude plugins add their package namespace. `Workflow(...)`, `/workflows`, `CLAUDE.md` imports and `.claude` settings describe that host. Use the concrete Codex path above. All simulated outputs remain labelled examples.
+
 Previous: [08 — Proportionality: an S spec and a no-spec trivial change](08-careers-page-s-spec-and-trivial-change.md)
 
 So far every change has started from a spec. This one starts from a defect, and the kit handles it differently: **no spec is written, because the pipeline itself is the spec.** You give `/sdd` the symptom, the repro steps, expected vs actual, and the behavior around the bug that must stay the same. The `fix-bug` workflow then reproduces the bug, verifies a root cause, commits a failing regression test plus a passing guard test for each must-not-change item, applies a minimal fix, runs the gates, and re-walks the original report in the browser.
@@ -8,7 +20,7 @@ Reference pages, so this chapter doesn't repeat them:
 
 - [USAGE-EXAMPLES.md, section 2 "Bug"](../../reference/usage-examples.md#2-bug): the general flow
 - [`/sdd` route reference: fix-bug](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/plugins/sdd-kit/skills/sdd/references/fix-bug.md): args, phases, outputs, done-when
-- [`src/workflows/fix-bug.js`](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/plugins/sdd-kit/workflows/fix-bug.js): the workflow source
+- [`plugins/sdd-kit/workflows/fix-bug.js`](https://github.com/stasmarkov/sdd-kit/blob/v3.1.0/plugins/sdd-kit/workflows/fix-bug.js): the workflow source
 
 | | |
 |---|---|
@@ -143,7 +155,7 @@ Keep `php artisan serve --port=8000` (in `api/`) and `npm run dev` (in `web/`) r
 
 ## 4. The phases, with evidence
 
-The phase list comes from `meta.phases` in `src/workflows/fix-bug.js`:
+The phase list comes from `meta.phases` in `plugins/sdd-kit/workflows/fix-bug.js`:
 
 ```text
 Detect → Reproduce → RootCause → RegressionTest → Fix → Gates → Acceptance → Report

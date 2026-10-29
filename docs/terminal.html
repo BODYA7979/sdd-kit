@@ -53,7 +53,7 @@ function map(hash) {
   if (own(RENAMED, command)) return '#' + RENAMED[command];
   return SECTIONS.indexOf(command) >= 0 ? '#' + command : '';
 }
-var target = 'index.html' + map(location.hash);
+var target = 'index.html' + location.search + map(location.hash);
 location.replace(target);
 document.addEventListener('DOMContentLoaded', function () {
   var link = document.querySelector('a[href^="index.html"]');

@@ -1,5 +1,19 @@
 # 04 — First feature: accounts and roles via write-spec → approval → ship-feature (HIRE-3)
 
+## Build accounts and roles in Codex
+
+Start from the parent workspace and provide the same HIRE-3 ticket and browser URL:
+
+```text
+$sdd HIRE-3
+```
+
+Keep the authoritative spec under `api/.ai/specs/`, list both `api/` and `web/`, and approve its actual contents before building. For a direct runtime request, use `$sdd-runtime` with `ship-feature` and the same `spec`, `repos` and `url` arguments shown below. The native parent delegates workers and completes the final review; `$progress` reports its run id.
+
+Copying a simulated SHIP report is not completion. Verify the generated login/logout flow, backend and frontend gates, must-not-change behavior and manual steps in your own environment. `$open-pr` can prepare the same separate, cross-linked PRs when requested. CLAUDE-specific context imports below become explicit reads of both `AGENTS.md` files in Codex.
+
+**Reading the original walkthrough:** slash skill names below use Claude file-copy shorthand; Claude plugins add their package namespace. `Workflow(...)`, `/workflows`, `CLAUDE.md` imports and `.claude` settings describe that host. Use the concrete Codex path above. All simulated outputs remain labelled examples.
+
 > **Date in the story:** 2026-10-21 · **Route:** `feature` → `write-spec` → approval → `ship-feature`
 > **Ticket:** HIRE-3 · **Session:** started in the workspace root `~/work/hireboard`
 > **Spec:** [`artifacts/api/.ai/specs/spec-HIRE-3-accounts-and-roles/`](artifacts/api/.ai/specs/spec-HIRE-3-accounts-and-roles/spec-lite.md)
@@ -90,7 +104,7 @@ the auth approach is already decided in ADR-0001, so this is not a decision.
 ```
 
 Alex confirms **feature**. `/sdd` then collects the inputs that the background workflow can't ask
-for later (Step 3 of `src/skills/sdd/SKILL.md`):
+for later (Step 3 of `plugins/sdd-kit/skills/sdd/SKILL.md`):
 
 ```
 ? Repos: I see api/ (laravel, own git) and web/ (nextjs, own git) in this workspace.
@@ -111,7 +125,7 @@ Skill("write-spec", "--ticket=HIRE-3 Accounts and roles. Candidates and employer
 ```
 
 `write-spec` runs `SIZE → INVESTIGATE → CLARIFY → CREATE FOLDER → DOCUMENT → CLARITY GATE → HAND OFF`
-(`src/skills/write-spec/SKILL.md`).
+(`plugins/sdd-kit/skills/write-spec/SKILL.md`).
 
 **Size.** *Simulated:*
 
@@ -390,7 +404,7 @@ harmless. The key still shows up in the report because it is part of the spec id
 
 ### What the phases did
 
-`src/workflows/ship-feature.js` declares 12 phases. In spec mode, **Investigate** is skipped because
+`plugins/sdd-kit/workflows/ship-feature.js` declares 12 phases. In spec mode, **Investigate** is skipped because
 the spec already holds the investigation. Each phase is pinned to a model tier: deep reasoning for
 Spec, Converge, Visual, Review, Acceptance, Docs and Report; standard for Detect, Build, Gates, the
 review verification votes and TestPlan ([docs/effort-guidelines.md](../../reference/effort-guidelines.md)). The log lines use the workflow's own

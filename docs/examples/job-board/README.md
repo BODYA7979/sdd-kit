@@ -11,6 +11,19 @@ abridged and labelled as simulated. The commands, flags, workflow arguments and 
 the kit's real ones. The code under [`artifacts/`](artifacts/) is complete, and has been compiled
 and tested (see [Artifacts](#artifacts)).
 
+## Choose a host
+
+The product, tickets, specifications and acceptance criteria are shared. Each chapter has a concrete Codex path before its original Claude Code narrative. Simulated outputs retain their original context; they are not live acceptance evidence for either host.
+
+| Start here | Claude Code | Codex |
+| --- | --- | --- |
+| Install | [Claude guide](../../hosts/claude.md) | [Codex guide](../../hosts/codex.md), from a checkout containing the adapter |
+| Route a ticket | `/sdd-kit:sdd HIRE-3` (plugin), `/sdd HIRE-3` (file-copy) | `$sdd HIRE-3` |
+| Follow a workflow | `/workflows` | `$progress`, retaining the native run id |
+| Project context | `CLAUDE.md` imports shared `AGENTS.md` | Shared `AGENTS.md` plus explicitly read repository rules |
+
+Do not pin `v3.1.0` expecting Codex support: it is the original Claude distribution baseline. Complete a running workflow before changing host or plugin build; a spec can be shared, but live worker ownership and stack/hook trust do not transfer.
+
 ## What Hireboard is
 
 A small job board with a Laravel 12 JSON API (repo `api/`) and a Next.js 15 App Router frontend
@@ -44,10 +57,10 @@ frameworks.
 The full list with a version check is in
 [00 — Prerequisites](00-overview.md#prerequisites). In short:
 
-- Claude Code, git and jq ([INSTALLATION.md#prerequisites](../../reference/installation.md#prerequisites))
+- Claude Code or a plugin-capable Codex host, git and jq ([INSTALLATION.md#prerequisites](../../reference/installation.md#prerequisites))
 - PHP 8.3 with Composer 2, and SQLite
 - Node.js 20 or newer
-- The kit installed in plugin mode, or in file-copy mode **after** chapter 02 has scaffolded the
+- The kit installed for the selected host; Claude file-copy mode is used only **after** chapter 02 has scaffolded the
   repos ([chapter 01](01-workspace-and-install.md) explains why)
 - Optional: `gh` for opening the pull requests
 
@@ -60,7 +73,7 @@ first. For a one-paragraph version of each route, see
 | # | Chapter | In one line |
 |---|---------|-------------|
 | 00 | [Overview and prerequisites](00-overview.md) | What you will build, the route map, toolchain check, how to read `artifacts/`. |
-| 01 | [Workspace and kit install](01-workspace-and-install.md) | Create the git-less workspace, install the kit without touching the not-yet-existing repos, write the root `CLAUDE.md` and the product brief. |
+| 01 | [Workspace and kit install](01-workspace-and-install.md) | Create the git-less workspace, install the kit without touching the not-yet-existing repos, write shared workspace instructions and the product brief. |
 | 02 | [New app: greenfield-build (HIRE-1)](02-greenfield-first-slice.md) | One workflow scaffolds both repos with CI and ships the first slice: search open jobs and open one. |
 | 03 | [Decision: SPA auth ADR (HIRE-2)](03-decision-spa-auth-adr.md) | `tech-research` compares four auth options against weighted criteria and writes ADR-0001, which Maya signs off. |
 | 04 | [Accounts and roles (HIRE-3)](04-feature-accounts-and-roles.md) | The feature pipeline end to end: `write-spec`, approval in `/sdd`, `ship-feature` with split-repo arguments, one PR per repo. |

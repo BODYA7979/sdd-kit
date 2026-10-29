@@ -1,230 +1,80 @@
-# Team marketplace
+# Team rollout for Claude Code and Codex
 
-How a team or organization rolls this framework out through its own plugin marketplace: one catalog repo you control, the core plugin plus the add-ons you approve, each pinned to a reviewed version, enabled per project, and optionally enforced with managed settings.
+Use one reviewed SDD Kit revision and one set of project rules, then distribute the correct package to each host. A marketplace is a catalog, not a guarantee that its commands, hooks or generated work are safe. Keep the source revision, host/client version and validation evidence together.
 
-Why a team marketplace instead of pointing everyone at this repository:
+## Common rollout plan
 
-- **Pinned, reviewed versions.** Everyone runs the release you tested, not whatever was pushed last.
-- **One place to approve add-ons.** The catalog lists only what the team has vetted (core, `ops`, `design`, ...), alongside your own internal plugins.
-- **Policy.** Managed settings can allow only your marketplace and force-enable the core plugin.
+1. Select a reviewed commit. The original upstream `v3.1.0` tag contains the Claude distribution; Codex needs a revision of this fork containing the native adapter.
+2. Build both host packages from that same checkout with `npm ci --ignore-scripts`, `npm test` and `node cli/sdd-kit.mjs build --host all`.
+3. Pilot a small representative project in each host. Verify skill discovery, real hook behavior, gate execution, a browser scenario when applicable and interrupted-run recovery.
+4. Document project commands and constraints once in `AGENTS.md`; Claude's `CLAUDE.md` imports it. Host settings stay in their respective configuration formats.
+5. Publish or share the reviewed artifact through your team's approved channel, with the exact revision and update instructions. Building locally does not publish anything.
+6. Finish active workflows before upgrading, especially Codex runs tied to a specific build.
 
-Key names and source formats below follow the Claude Code docs: [Create a marketplace](https://code.claude.com/docs/en/plugins/create-marketplace), [Marketplace reference](https://code.claude.com/docs/en/plugins/marketplace-reference), and [Manage plugins for your organization](https://code.claude.com/docs/en/plugins/org).
+The [validation record](../validation.md) is evidence from bounded fixtures, not a substitute for your team's project acceptance.
 
-## 1. Create the marketplace repo
+## Claude Code marketplace
 
-```
-your-org/claude-marketplace/
-└── .claude-plugin/
-    └── marketplace.json
-```
+The built `dist/claude` directory is already a marketplace: it contains `.claude-plugin/marketplace.json`, core and add-on plugins, and shared resources. Preserve this layout when distributing it. Test it locally in a terminal:
 
-The catalog points at the kit's public distribution repository, `stasmarkov/sdd-kit`; it does not copy it. Every plugin there lives in `plugins/<name>/` (the core in `plugins/sdd-kit/`, add-ons in `plugins/sdd-kit-<addon>/`), so each entry uses a `git-subdir` source. Pin every entry with `ref` (a release tag) and `sha` (the full 40-character commit of that tag). When both are set, Claude Code checks out `sha`, so a moved or deleted tag cannot change what your team installs.
-
-```json
-{
-  "name": "your-org-claude",
-  "description": "Approved Claude Code plugins for Your Org",
-  "owner": { "name": "Platform Team", "email": "platform@your-org.example" },
-  "plugins": [
-    {
-      "name": "sdd-kit-laravel-nextjs",
-      "description": "Preset: the core plus the Laravel, Next.js and devenv add-ons.",
-      "source": {
-        "source": "git-subdir",
-        "url": "stasmarkov/sdd-kit",
-        "path": "plugins/sdd-kit-laravel-nextjs",
-        "ref": "v3.1.0",
-        "sha": "<40-char commit sha of v3.1.0>"
-      }
-    },
-    {
-      "name": "sdd-kit",
-      "description": "Spec-driven core: /sdd, workflows, agents, skills, hooks.",
-      "source": {
-        "source": "git-subdir",
-        "url": "stasmarkov/sdd-kit",
-        "path": "plugins/sdd-kit",
-        "ref": "v3.1.0",
-        "sha": "<40-char commit sha of v3.1.0>"
-      }
-    },
-    {
-      "name": "sdd-kit-laravel",
-      "description": "Laravel agent, skills, rules and hooks.",
-      "source": {
-        "source": "git-subdir",
-        "url": "stasmarkov/sdd-kit",
-        "path": "plugins/sdd-kit-laravel",
-        "ref": "v3.1.0",
-        "sha": "<40-char commit sha of v3.1.0>"
-      }
-    },
-    {
-      "name": "sdd-kit-nextjs",
-      "description": "Next.js agent, skills, rules and hooks.",
-      "source": {
-        "source": "git-subdir",
-        "url": "stasmarkov/sdd-kit",
-        "path": "plugins/sdd-kit-nextjs",
-        "ref": "v3.1.0",
-        "sha": "<40-char commit sha of v3.1.0>"
-      }
-    },
-    {
-      "name": "sdd-kit-devenv",
-      "description": "docker and ddev skills.",
-      "source": {
-        "source": "git-subdir",
-        "url": "stasmarkov/sdd-kit",
-        "path": "plugins/sdd-kit-devenv",
-        "ref": "v3.1.0",
-        "sha": "<40-char commit sha of v3.1.0>"
-      }
-    },
-    {
-      "name": "sdd-kit-ops",
-      "description": "Deploy, rollback, feature flags, health checks, incident response.",
-      "source": {
-        "source": "git-subdir",
-        "url": "stasmarkov/sdd-kit",
-        "path": "plugins/sdd-kit-ops",
-        "ref": "v3.1.0",
-        "sha": "<40-char commit sha of v3.1.0>"
-      }
-    },
-    {
-      "name": "sdd-kit-design",
-      "description": "UI design add-on: ui-ux-advisor agent and design-ui skill.",
-      "defaultEnabled": false,
-      "source": {
-        "source": "git-subdir",
-        "url": "stasmarkov/sdd-kit",
-        "path": "plugins/sdd-kit-design",
-        "ref": "v3.1.0",
-        "sha": "<40-char commit sha of v3.1.0>"
-      }
-    }
-  ]
-}
+```sh
+claude plugin validate /path/to/sdd-kit/dist/claude
+claude plugin marketplace add /path/to/sdd-kit/dist/claude
+claude plugin install sdd-kit-laravel-nextjs@sdd-kit --scope project
 ```
 
-Notes:
+Run the install from the target application directory when using project scope. For core alone use `sdd-kit@sdd-kit`; select add-ons for the application's stack. The preset references core, Laravel, Next.js and devenv, so a custom catalog must make every dependency available at compatible versions.
 
-- Keep each entry's `name` identical to the `name` in that plugin's own `.claude-plugin/plugin.json`; the entry name is the install id (`<name>@your-org-claude`) and the key written to `enabledPlugins`.
-- Get the commit for a tag with `git ls-remote https://github.com/stasmarkov/sdd-kit refs/tags/v3.1.0` (use the `^{}` line for annotated tags).
-- If you fork the framework, point `repo` / `url` at your fork. A fork is the right choice when you carry local changes; otherwise reference upstream.
-- Stack add-ons are separate entries (`plugins/sdd-kit-laravel`, `plugins/sdd-kit-nextjs`, `plugins/sdd-kit-devenv`) that the preset resolves from your catalog. The preset `sdd-kit-laravel-nextjs` (`plugins/sdd-kit-laravel-nextjs`) is the first entry above: it only declares dependencies on the core and those three add-ons, so list all of them in your catalog too, pinned like the preset.
-- List only the add-ons you approve. `ios` and `drupal` can be added the same way (`path: plugins/sdd-kit-ios`, `plugins/sdd-kit-drupal`).
-- `defaultEnabled: false` makes an add-on opt-in even after install.
+To distribute a team-owned catalog, publish the reviewed marketplace directory in a repository contributors can read. Keep plugin names and relative source paths consistent. If your team changes the marketplace name, update the `plugin@marketplace` installation ids accordingly. See the [official marketplace guide](https://code.claude.com/docs/en/plugin-marketplaces) for the catalog format and [organization controls](https://code.claude.com/docs/en/plugins/org) for managed policy.
 
-Validate before pushing:
+A catalog may instead reference reviewed upstream plugin sources pinned to a commit. Use the original upstream only when you want the original Claude release; use your fork/artifact when you need local changes. Do not point a Codex user at an unbuilt Claude plugin directory.
 
-```bash
-claude plugin validate ./claude-marketplace
+### Updates and policy
+
+Update through a reviewed change to the team catalog/artifact. Keep core and add-ons aligned. Teammates refresh the marketplace and update each installed plugin:
+
+```sh
+claude plugin marketplace update sdd-kit
+claude plugin update sdd-kit@sdd-kit
 ```
 
-Then test the full loop on your machine:
+Then reload or start a fresh session. Substitute your actual marketplace name and repeat for installed add-ons. Organization allowlists, forced enablement and auto-update controls belong to Claude's managed settings; do not copy those JSON keys into Codex configuration.
 
-```bash
-claude plugin marketplace add ./claude-marketplace
-claude plugin install sdd-kit-laravel-nextjs@your-org-claude
-claude plugin details sdd-kit-laravel-nextjs
+## Codex marketplace
+
+The native build writes `dist/codex/.agents/plugins/marketplace.json` and `dist/codex/plugins/sdd-kit/`. Its source paths are relative to **`dist/codex`**, so distribute that entire directory, including hidden metadata and bundled runtime dependencies.
+
+For a source checkout, each teammate uses the [Codex installation guide](../hosts/codex.md). To test an already built artifact, register its marketplace root and install it in a terminal:
+
+```sh
+codex plugin marketplace add /path/to/reviewed-codex-marketplace
+codex plugin add sdd-kit@sdd-kit
 ```
 
-Push the repo. Teammates register it with `claude plugin marketplace add your-org/claude-marketplace`. For a private repo, each user needs read access through their git credentials; CI needs a token (on GitHub Actions: export `GH_TOKEN` and run `gh auth setup-git`).
+The package includes all first-party skills. There is no native `sdd-kit-laravel-nextjs` install step or Claude-style `--stack` selection. Retain the reviewed artifact for updates and run recovery.
 
-## 2. Enable plugins per project
+The current installer uses the local Codex CLI's `plugin add` interface. Clients differ in marketplace/plugin UI availability; use the [official Codex plugin guide](https://developers.openai.com/plugins/build/plugins) and the installed host's help to check the supported route. A team catalog does not itself approve hook definitions or custom stack commands.
 
-Commit this to each application repo's `.claude/settings.json`. Contributors get the marketplace registered after they accept the workspace trust dialog, and the listed plugins enabled for that project only:
+### Updates and policy
 
-```json
-{
-  "extraKnownMarketplaces": {
-    "your-org-claude": {
-      "source": { "source": "github", "repo": "your-org/claude-marketplace" }
-    }
-  },
-  "enabledPlugins": {
-    "sdd-kit-laravel-nextjs@your-org-claude": true,
-    "sdd-kit-ops@your-org-claude": true
-  }
-}
-```
+Finish or stop active workflows, build the reviewed revision, reinstall it, then start a fresh session and run `$framework-doctor`. Inspect changed hooks. `codex plugin marketplace upgrade` refreshes Git sources; it does not build a source checkout's native package.
 
-Because the plugin entries point at an external source (this framework's repo), each contributor installs once per project:
+Codex project enablement uses Codex configuration, not Claude's `enabledPlugins`. Apply organization policy through the supported controls of the exact client being deployed. Keep any host-specific configuration small and separately documented; do not present identical settings across hosts as interchangeable.
 
-```bash
-claude plugin install sdd-kit-laravel-nextjs@your-org-claude --scope project
-```
+## Shared project setup
 
-Until then Claude Code reports `Plugin "<name>" is enabled in project settings but isn't installed`.
+Commit shared business rules, architecture, API contracts, specs and the applicable `AGENTS.md` instructions. Record host setup separately:
 
-Choose add-ons per project: a backend-only service might enable only the core plugin; a project with a production on-call rotation adds `-ops`; a design-heavy frontend adds `-design`. To switch a plugin off for one project when it is on elsewhere, set it to `false`.
+| Shared | Claude-specific | Codex-specific |
+| --- | --- | --- |
+| `AGENTS.md`, `.ai/specs/`, `docs/` | `CLAUDE.md`, `.claude/rules/`, Claude project settings | `.codex/rules/`, Codex project settings, local run receipts |
 
-In headless runs (`claude -p`, CI), `extraKnownMarketplaces` from a repo's settings applies only in a folder whose trust was accepted. Installs run in the background, so set `CLAUDE_CODE_SYNC_PLUGIN_INSTALL=1` if the first turn needs the plugin. For containers that cannot clone at runtime, pre-build a seed with `CLAUDE_CODE_PLUGIN_CACHE_DIR` and point `CLAUDE_CODE_PLUGIN_SEED_DIR` at it.
+Area-rule paths and approval stores differ. A reviewed stack manifest still needs the explicit trust flow required by the host; do not distribute a trust-store file as a shortcut. Keep `.ai/codex-workflows/` runtime records local and preserve them for recovery.
 
-## 3. Enforce with managed settings (organization rollout)
+## Acceptance before promotion
 
-Managed settings apply to every machine and cannot be overridden by users. Deliver them from the claude.ai admin console (server-managed settings), MDM, or a `managed-settings.json` at the platform's system path.
+Record which client and source revision you tested. Check installation and uninstallation, a normal workflow, a deliberately blocked gate, relevant stack rules, actual browser access and recovery after interruption. State untested areas separately.
 
-This policy allows only the official marketplace and your org's repositories, registers your marketplace, force-enables the core plugin, and blocks sideloading:
+Model changes can alter behavior without any kit source change, so representative application acceptance matters after a host/model update too. Keep the previous reviewed artifact available until all its runs are finished. Promotion is a team decision based on evidence, not the package build's exit code.
 
-```json
-{
-  "strictKnownMarketplaces": [
-    { "source": "github", "repo": "anthropics/claude-plugins-official" },
-    { "source": "github", "repo": "your-org/*" },
-    { "source": "skills-dir" }
-  ],
-  "extraKnownMarketplaces": {
-    "your-org-claude": {
-      "source": { "source": "github", "repo": "your-org/claude-marketplace" },
-      "autoUpdate": true
-    }
-  },
-  "enabledPlugins": {
-    "sdd-kit@your-org-claude": true
-  },
-  "disableSideloadFlags": true
-}
-```
-
-What each key does:
-
-| Key | Effect |
-|-----|--------|
-| `strictKnownMarketplaces` | Allowlist of marketplace **sources**. Anything else fails with `is blocked by enterprise policy`. `[]` blocks every source, including the official one. It does not register anything by itself. Entries match exactly on `repo`, `ref`, and `path`; `your-org/*` matches every repo under that owner; `hostPattern` covers a GitHub Enterprise or GitLab host |
-| `{ "source": "skills-dir" }` | Keeps plugins under `~/.claude/skills/` and `.claude/skills/` loading while an allowlist is set. Drop it to block them |
-| `extraKnownMarketplaces` | Registers the marketplace on every machine. Its source must pass the allowlist. `autoUpdate` set here overrides the user's toggle |
-| `enabledPlugins` | `true` force-enables (users cannot disable it), `false` blocks the plugin at every scope and hides it. Use `false` to block one plugin inside an allowed marketplace |
-| `disableSideloadFlags` | Rejects `--plugin-dir`, `--plugin-url`, and similar flags, which the allowlist does not cover |
-
-The allowlist matches the **marketplace** source (`your-org/claude-marketplace`), not the plugin sources inside it, so the catalog may reference this framework's public repository while users can only add your org's marketplaces.
-
-To roll out to a single repository's contributors instead of the whole fleet, use the project settings from section 2.
-
-## 4. Update and pinning policy
-
-Recommended policy:
-
-1. **Pin every entry** to a release tag plus its commit `sha`. Never point entries at a branch (`main`) in the team catalog.
-2. **Upgrade through a pull request to the marketplace repo.** The PR bumps `ref` and `sha` for the plugins being upgraded and links the framework's CHANGELOG for that range.
-3. **Gate the PR on evidence.** Before merging, run the framework's eval suite at the new version (see evals.md): median of at least 5 runs per case, compared against the current pinned version and the no-plugin baseline. A lower median blocks the upgrade until explained.
-4. **Pilot first.** For larger upgrades, run two marketplaces — e.g. `your-org-claude-latest` (new ref) for a pilot group and `your-org-claude` (current ref) for everyone else — and assign them per group with separate endpoint-managed settings. Promote by moving the stable catalog to the new ref.
-5. **Upgrade core and add-ons together.** The add-ons are released from the same repository and version; keep their `ref` equal to the core's.
-6. **Rerun evals on every model release**, not only framework releases: a model change can regress behavior under an unchanged pin.
-7. **Review quarterly.** Remove add-ons nobody enabled in the last two months.
-
-How users receive an upgrade once the catalog changes:
-
-- With `autoUpdate: true` on the marketplace, Claude Code refreshes it in the background and installs the new pinned version; a restart applies it.
-- Manually: `claude plugin marketplace update your-org-claude`, then `claude plugin update sdd-kit@your-org-claude`, then restart.
-- Turning off all auto-updates for a fleet: set `"env": { "DISABLE_AUTOUPDATER": "1" }` in managed settings (add `"FORCE_AUTOUPDATE_PLUGINS": "1"` to keep plugin updates while freezing Claude Code itself).
-
-The plugin's own `version` in `plugin.json` also pins: users stay on a version until it changes, so every framework release must bump it (the tag and `version` should agree; `claude plugin tag` creates a `{name}--v{version}` tag and checks that `plugin.json` and the marketplace entry match).
-
-## Verify the rollout
-
-- Interactive: run `/plugin`; your marketplace and the enabled plugins are listed.
-- CI: `claude -p "ok" --output-format stream-json --verbose` and check the `plugins` list in the `init` event.
-- Policy problems: `/status` should list `Enterprise managed settings` under setting sources; blocked sources show `is not in the allowed marketplace list` or `is blocked by enterprise policy`.
+Implementation: [root build](../../scripts/build.mjs#L10), [Claude artifact](../../adapters/claude/build.mjs#L5), [native artifact and marketplace](../../adapters/codex/build.mjs#L29), [native installation](../../scripts/install-host.mjs#L7).

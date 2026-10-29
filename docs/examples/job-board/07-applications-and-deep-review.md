@@ -1,5 +1,19 @@
 # 07 — Job applications with ship-feature, then /deep-review before merge (HIRE-6)
 
+## Build and review applications in Codex
+
+Route HIRE-6 through `$sdd`, approve the actual split-repo spec and let the native `ship-feature` run finish. Then review from the API repo with the frontend in scope:
+
+```text
+$sdd HIRE-6
+$deep-review --spec=spec-HIRE-6-job-applications
+$deep-review --staged
+```
+
+Carry the project-specific PHPStan level and other gate conventions into `api/AGENTS.md` so Codex reads them; leaving them only in `CLAUDE.md` is insufficient. Use `$simple-task` for the bounded race-condition fix when appropriate, preserving the failing regression test and re-reviewing the changed result. Native review uses fresh subagents; it does not launch the Claude `claude -p` pipeline. Follow the same API-first merge order and actual authorization/duplicate-application acceptance checks.
+
+**Reading the original walkthrough:** slash skill names below use Claude file-copy shorthand; Claude plugins add their package namespace. `Workflow(...)`, `/workflows`, `CLAUDE.md` imports and `.claude` settings describe that host. Use the concrete Codex path above. All simulated outputs remain labelled examples.
+
 Previous: [06 — Build task by task and resume: candidate profiles with /execute-task](06-execute-task-candidate-profiles.md)
 
 HIRE-6 is the first feature that moves personal data between two kinds of users. A candidate's
