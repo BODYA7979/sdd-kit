@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Launcher for running SDD Kit tools straight from GitHub with npx, without
-// cloning the repo or opening Claude Code. Each subcommand runs the same
+// cloning the repo or opening an agent host. Each subcommand runs the same
 // script a checkout would run; this file only resolves paths and forwards
 // arguments, exit codes and signals.
 import fs from 'node:fs';
@@ -30,13 +30,19 @@ Commands:
                  Kanban board of the specs under .ai/specs (default: live
                  server on http://127.0.0.1:4477). Example:
                    ${NPX} spec-board api/.ai/specs web/.ai/specs --serve
-  install [install.sh flags]
-                 Run the kit's install.sh (file-copy mode); --project installs
+  build [--host all|claude|codex] [--node /absolute/path/to/node]
+                 Build host packages from the shared sources.
+  install [--host claude|codex] [options]
+                 Defaults to Claude's existing install.sh (file-copy mode); --project installs
                  into the current directory. Needs bash, git, jq and Node 18+.
                  Flags include --stack=<list|none>, --with=<add-ons> and --prune.
                  Examples:
                    ${NPX} install --project --dry-run
                    ${NPX} install --project --stack=laravel,nextjs
+                 Codex native plugin from this checkout (Node 20+, Codex CLI and jq):
+                   node cli/sdd-kit.mjs install --host codex
+                   node cli/sdd-kit.mjs install --host codex --dry-run
+                 Until upstream release, use a revision containing host support.
   guide [board]  Open the interactive guide (or the worked example's spec
                  board) in your browser and print its path. Example:
                    ${NPX} guide
@@ -110,8 +116,23 @@ export function runSpecBoard(args) {
   return run(process.execPath, [script, ...args]);
 }
 
+export function installRoute(args) {
+  let host = 'claude';
+  const rest = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--host') host = args[++i];
+    else if (args[i].startsWith('--host=')) host = args[i].slice(7);
+    else rest.push(args[i]);
+  }
+  if (!['claude', 'codex'].includes(host)) throw new Error('Choose --host claude or codex');
+  return host === 'codex'
+    ? { command: process.execPath, args: [path.join(ROOT, 'scripts/install-host.mjs'), ...rest] }
+    : { command: 'bash', args: [INSTALLER, ...rest] };
+}
+
 function runInstall(args) {
-  return run('bash', [INSTALLER, ...args], {
+  const route = installRoute(args);
+  return run(route.command, route.args, {
     onMissing: 'install needs bash (on Windows use Git Bash or WSL); or use the plugin: /plugin install sdd-kit@sdd-kit',
   });
 }
@@ -166,11 +187,13 @@ export async function main(argv = process.argv.slice(2)) {
       return runSpecBoard(args);
     case 'install':
       return runInstall(args);
+    case 'build':
+      return run(process.execPath, [path.join(ROOT, 'scripts/build.mjs'), ...args]);
     case 'guide':
       return runGuide(args);
     default:
       process.stderr.write(
-        `Unknown command "${command}". Commands: spec-board, install, guide, help.\n` +
+        `Unknown command "${command}". Commands: spec-board, build, install, guide, help.\n` +
           `Example: ${NPX} spec-board --serve (run "${NPX} help" for all commands)\n`,
       );
       return 2;

@@ -1,0 +1,32 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { scaffold } from '../../adapters/codex/runtime/new-stack.mjs';
+import { WorkflowEngine } from '../../adapters/codex/runtime/engine.mjs';
+const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+test('custom stack scaffolds native files without approving commands or overwriting work', async t => {
+  const workspace = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-scaffold-')));
+  t.after(() => fs.rmSync(workspace, { recursive: true, force: true }));
+  const answers = {name:'acme',role:'backend',detect:'acme.config.json exists',paths:['src/**/*.js'],gates:[{name:'Tests',command:'npm test',kind:'test'}],order:0};
+  const result = await scaffold({sourceRoot,workspace,answers});
+  assert.equal(result.trusted,false);
+  assert.equal(result.written.length,4);
+  assert.equal(fs.existsSync(path.join(workspace,'.claude')),false);
+  const manifest=JSON.parse(fs.readFileSync(path.join(workspace,'.codex/stacks/acme.json'),'utf8'));
+  assert.equal(manifest.order,0);
+  const role=new WorkflowEngine({sourceRoot}).role('acme-dev',workspace);
+  assert.equal(role.name,'acme-dev');
+  assert.match(role.instructions,/approved stack gates/);
+  await assert.rejects(scaffold({sourceRoot,workspace,answers}),/already exists/);
+});
+test('a non-directory ancestor is rejected before any scaffold files are written', async t => {
+  const workspace=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'sdd-scaffold-conflict-')));
+  t.after(()=>fs.rmSync(workspace,{recursive:true,force:true}));
+  fs.writeFileSync(path.join(workspace,'.agents'),'keep me');
+  await assert.rejects(scaffold({sourceRoot,workspace,answers:{name:'acme',role:'backend',detect:'marker exists',paths:['src/*.js'],gates:[{name:'Tests',command:'npm test'}]}}),/Invalid scaffold directory/);
+  assert.equal(fs.existsSync(path.join(workspace,'.codex')),false);
+  assert.equal(fs.readFileSync(path.join(workspace,'.agents'),'utf8'),'keep me');
+});
