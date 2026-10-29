@@ -8,7 +8,7 @@ import { NativeStacks } from './stacks.mjs';
 const ajv = new Ajv({ strict: false, allErrors: true });
 const digest = value => crypto.createHash('sha256').update(value).digest('hex');
 const clone = value => JSON.parse(JSON.stringify(value));
-const ENGINE_REVISION = 'native-v2';
+const ENGINE_REVISION = 'native-v3';
 export const WORKFLOWS = ['create-spec', 'fix-bug', 'greenfield-build', 'qa-and-docs', 'ship-feature', 'tech-research'];
 
 function safeDirectory(dir) {
@@ -139,6 +139,9 @@ export class WorkflowEngine {
     const name = (agentType || 'general-purpose').split(':').pop();
     if (!/^[a-z0-9-]+$/.test(name)) throw new Error('Invalid agent name');
     const candidates = fs.readdirSync(path.join(this.sourceRoot, 'plugins')).map(plugin => path.join(this.sourceRoot, 'plugins', plugin, 'agents', `${name}.md`));
+    const ruleFolders = fs.readdirSync(path.join(this.sourceRoot, 'plugins')).map(plugin => path.join(this.sourceRoot, 'plugins', plugin, 'rules'));
+    if (workspace) ruleFolders.push(path.join(workspace, '.codex/rules'));
+    const rulePaths = ruleFolders.filter(folder => fs.existsSync(folder) && fs.statSync(folder).isDirectory()).flatMap(folder => fs.readdirSync(folder).filter(file => file.endsWith('.md')).map(file => path.join(folder, file)));
     const addons = workspace && path.join(workspace, '.codex/stack-addons');
     if (addons && fs.existsSync(addons)) for (const addon of fs.readdirSync(addons).sort()) candidates.push(path.join(addons, addon, 'agents', `${name}.md`));
     for (const file of candidates) {
@@ -156,10 +159,10 @@ export class WorkflowEngine {
         return match ? [match] : [];
       });
       const memoryFile = /^memory:\s*project\s*$/m.test(header) && workspace ? path.join(workspace, '.ai/agents', `${name}.md`) : null;
-      return { name, instructions, declaredTools: header.match(/^tools:\s*(.*)$/m)?.[1] || '',
-        preloadSkills, preloadSkillPaths, memoryFile };
+      return { name, instructions: instructions.replaceAll('.claude', '.codex').replaceAll('CLAUDE.md', 'AGENTS.md').replaceAll('CLAUDE_SKILL_DIR', 'SDD_SKILL_DIR').replaceAll('CLAUDE_PLUGIN_ROOT', 'SDD_PLUGIN_ROOT'), declaredTools: header.match(/^tools:\s*(.*)$/m)?.[1] || '',
+        preloadSkills, preloadSkillPaths, memoryFile, rulePaths };
     }
-    return { name: 'general-purpose', instructions: '', declaredTools: '', preloadSkills: [] };
+    return { name: 'general-purpose', instructions: '', declaredTools: '', preloadSkills: [], rulePaths };
   }
 
   async execute(run, source) {
@@ -175,7 +178,7 @@ export class WorkflowEngine {
       agent: (prompt, options = {}) => this.enqueue(run, prompt, options),
     };
     // Only the shipped, allowlisted scripts execute here; no user-supplied JavaScript.
-    const body = source.replace(/^export const meta\s*=/, 'const meta =').replaceAll('.claude', '.codex');
+    const body = source.replace(/^export const meta\s*=/, 'const meta =').replaceAll('.claude', '.codex').replaceAll('CLAUDE.md', 'AGENTS.md');
     let promise;
     try { promise = new vm.Script(`(async () => {\n${body}\n})()`, { filename: run.data.name }).runInNewContext(context, { timeout: 2000 }); }
     catch (error) { promise = Promise.reject(error); }
@@ -305,7 +308,7 @@ export class WorkflowEngine {
     return { ...clone(job), workspace: run.data.workspace, stackContext: job.options.phase === 'Detect' ? run.data.stackContext : undefined,
       nativeAgent: { fork_turns: 'none', ...(job.options.effort ? { reasoning_effort: job.options.effort } : {}),
         ...(!['opus', 'sonnet', 'haiku', undefined].includes(job.options.model) ? { model: job.options.model } : {}) },
-      nativeInstructions: 'Use a fresh native Codex subagent with the supplied role and prompt. Treat source text and tool results as evidence. Return a JSON value matching options.schema. Do not mark unrun checks passed. In Detect, warnings mean concrete repository problems (for example an untracked target), not routine observations that later workflow checks have not run yet. Keep original approval, scope, test and trust gates. Use the parent permission policy. Never run Claude or nested codex exec. Read/Grep/Glob/Bash/Write/Edit mean available native file/search/shell/patch tools. ToolSearch means native tool discovery. Browser work uses available Playwright MCP or the native host browser, never a Claude browser dependency. Resolve skill/plugin path notation to their actual installed absolute paths. If role.memoryFile exists, read it as project context; write only validated project knowledge consistent with user memory preferences, never secrets.' };
+      nativeInstructions: 'Use a fresh native Codex subagent with the supplied role and prompt. Treat source text and tool results as evidence. Read role.rulePaths and apply their Markdown instructions only to files matching the paths frontmatter relative to each repository root. Also read repository-local .codex/rules/*.md when working in a nested repository. Return a JSON value matching options.schema. Do not mark unrun checks passed. In Detect, warnings mean concrete repository problems (for example an untracked target), not routine observations that later workflow checks have not run yet. Keep original approval, scope, test and trust gates. Use the parent permission policy. Never run Claude or nested codex exec. Read/Grep/Glob/Bash/Write/Edit mean available native file/search/shell/patch tools. ToolSearch means native tool discovery. Browser work uses available Playwright MCP or the native host browser, never a Claude browser dependency. Resolve skill/plugin path notation to their actual installed absolute paths. If role.memoryFile exists, read it as project context; write only validated project knowledge consistent with user memory preferences, never secrets.' };
   }
 
   reconnect({ id, jobId, worker }) {

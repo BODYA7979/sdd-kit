@@ -5,9 +5,20 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { normalize } from '../hooks/normalize.mjs';
+import { normalize } from '../../adapters/codex/hooks/normalize.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+test('packaged hook guards every nested Laravel repository in a multi-file patch', t => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-hook-polyrepo-'));
+  t.after(() => fs.rmSync(cwd, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(cwd, 'api'));
+  fs.writeFileSync(path.join(cwd, 'api/composer.json'), JSON.stringify({ require: { 'laravel/framework': '^12' } }));
+  const event = { cwd, hook_event_name: 'PreToolUse', tool_name: 'apply_patch', tool_input: { command: '*** Begin Patch\n*** Add File: plain.txt\n+ok\n*** Add File: api/app/Http/Controllers/Probe.php\n+<?php\n*** End Patch' } };
+  const result = spawnSync(process.execPath, [path.join(root, 'dist/codex/plugins/sdd-kit/hooks/dispatch.mjs'), 'laravel-test-first.sh'], { input: JSON.stringify(event), encoding: 'utf8' });
+  assert.equal(result.status, 2, result.stderr);
+  assert.equal(JSON.parse(result.stdout).hookSpecificOutput.permissionDecision, 'deny');
+  assert.match(result.stdout, /Probe/);
+});
 test('a multi-file patch retains every added line and the destination of a move', () => {
   const events = normalize({ cwd: '/project', tool_name: 'apply_patch', tool_input: { command: '*** Begin Patch\n*** Add File: a.ts\n+test.skip();\n*** Update File: b.ts\n*** Move to: c.ts\n@@\n-old\n+new\n*** Delete File: d.ts\n*** End Patch' } });
   assert.equal(events.length, 2);

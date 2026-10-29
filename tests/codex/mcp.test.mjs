@@ -8,10 +8,10 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 test('built plugin exposes MCP tools and hands off a native job', { timeout: 15000 }, async t => {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-mcp-'));
-  const child = spawn(process.execPath, [path.join(root, 'dist/sdd-kit-codex/runtime/server.mjs')], { stdio: ['pipe', 'pipe', 'pipe'] });
+  const child = spawn(process.execPath, [path.join(root, 'dist/codex/plugins/sdd-kit/runtime/server.mjs')], { stdio: ['pipe', 'pipe', 'pipe'] });
   t.after(async () => {
     const exited = once(child, 'exit'); child.kill(); await exited;
     fs.rmSync(workspace, { recursive: true, force: true });
@@ -27,7 +27,14 @@ test('built plugin exposes MCP tools and hands off a native job', { timeout: 150
   const init = await call('initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'test', version: '1' } });
   assert.equal(init.result.protocolVersion, '2025-03-26');
   const list = await call('tools/list', {});
-  assert.equal(list.result.tools.length, 10);
+  assert.equal(list.result.tools.length, 11);
+  const role = await call('tools/call', { name: 'agent_instructions', arguments: { name: 'code-explorer', workspace } });
+  const instructions = JSON.parse(role.result.content[0].text);
+  assert.equal(instructions.name, 'code-explorer');
+  assert.ok(instructions.instructions.includes('Native stack discovery'));
+  for (const file of instructions.preloadSkillPaths) assert.ok(fs.existsSync(file));
+  assert.equal(instructions.rulePaths.length, 6);
+  for (const file of instructions.rulePaths) assert.ok(fs.existsSync(file));
   const start = await call('tools/call', { name: 'workflow_start', arguments: { name: 'tech-research', workspace, args: { question: 'Compare local file formats' } } });
   const run = JSON.parse(start.result.content[0].text);
   assert.equal(run.status, 'running');

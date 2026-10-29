@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { handleLifecycle, transcriptMessages } from '../hooks/lifecycle.mjs';
+import { handleLifecycle, transcriptMessages } from '../../adapters/codex/hooks/lifecycle.mjs';
 function fixture(t) { const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-life-'))); t.after(() => fs.rmSync(dir, {recursive:true,force:true})); return dir; }
 test('native transcript parser ignores injected tool text and records actual user corrections once', t => {
   const cwd = fixture(t), file = path.join(cwd, 'transcript.jsonl');

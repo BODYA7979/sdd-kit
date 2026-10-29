@@ -16,18 +16,26 @@ try {
   const event = JSON.parse(fs.readFileSync(0, 'utf8'));
   const cwd = event.cwd || process.cwd();
   const lifecycle = ['SessionStart', 'SessionEnd', 'PreCompact', 'UserPromptSubmit'].includes(event.hook_event_name);
-  // Stack add-on hooks only apply when that stack is actually installed in this repo.
-  if (plugin !== 'sdd-kit') {
-    let manifest = {};
-    try { manifest = JSON.parse(fs.readFileSync(path.join(cwd, plugin === 'sdd-kit-laravel' ? 'composer.json' : 'package.json'), 'utf8')); } catch {}
-    const dependencies = { ...manifest.require, ...manifest['require-dev'], ...manifest.dependencies, ...manifest.devDependencies };
-    if (!(plugin === 'sdd-kit-laravel' ? dependencies['laravel/framework'] : dependencies.next)) process.exit(0);
-  }
   const outputs = []; let blocked = false;
   for (const input of normalize(event)) {
+    let project = cwd;
+    if (plugin !== 'sdd-kit') {
+      // Each edited file may belong to a different repository in a polyrepo workspace.
+      let at = path.dirname(input.tool_input.file_path), found = false;
+      while (true) {
+        let manifest = {};
+        try { manifest = JSON.parse(fs.readFileSync(path.join(at, plugin === 'sdd-kit-laravel' ? 'composer.json' : 'package.json'), 'utf8')); } catch {}
+        const deps = { ...manifest.require, ...manifest['require-dev'], ...manifest.dependencies, ...manifest.devDependencies };
+        if (plugin === 'sdd-kit-laravel' ? deps['laravel/framework'] : deps.next) { project = at; found = true; break; }
+        const parent = path.dirname(at);
+        if (parent === at) break;
+        at = parent;
+      }
+      if (!found) continue;
+    }
     const result = spawnSync('bash', [path.join(root, 'plugins', plugin, 'scripts', name)], {
-      input: JSON.stringify(input), encoding: 'utf8', cwd: event.cwd || process.cwd(), timeout: 10000,
-      env: { ...process.env, CLAUDE_PROJECT_DIR: event.cwd || process.cwd(),
+      input: JSON.stringify(input), encoding: 'utf8', cwd: project, timeout: 10000,
+      env: { ...process.env, CLAUDE_PROJECT_DIR: project,
         CLAUDE_CONTEXT_USAGE: process.env.SDD_CONTEXT_USAGE || '0', CLAUDE_BUDGET_THRESHOLD: process.env.SDD_CONTEXT_THRESHOLD || '75' }, maxBuffer: 1024 * 1024,
     });
     if (result.stderr) process.stderr.write(result.stderr);

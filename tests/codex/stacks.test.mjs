@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { NativeStacks } from '../runtime/stacks.mjs';
+import { NativeStacks } from '../../adapters/codex/runtime/stacks.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 function setup(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-stacks-'));

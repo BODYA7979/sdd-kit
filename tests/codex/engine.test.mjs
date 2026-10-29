@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
-import { WorkflowEngine, WORKFLOWS } from '../runtime/engine.mjs';
+import { WorkflowEngine, WORKFLOWS } from '../../adapters/codex/runtime/engine.mjs';
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 function fixture(t) {
@@ -14,6 +14,20 @@ function fixture(t) {
   return dir;
 }
 const args = { description: 'Probe', feature: 'Probe', bug: 'Probe', question: 'Probe', idea: 'Probe', paths: ['src'] };
+
+test('workflow jobs use native project instructions while canonical source stays unchanged', async t => {
+  const source = fixture(t), workspace = fixture(t);
+  fs.mkdirSync(path.join(source, 'plugins/sdd-kit/workflows'), { recursive: true });
+  const file = path.join(source, 'plugins/sdd-kit/workflows/greenfield-build.js');
+  const script = "export const meta = {}; return await agent('Read CLAUDE.md and .claude/stacks before scaffolding');";
+  fs.writeFileSync(file, script);
+  const engine = new WorkflowEngine({ sourceRoot: source });
+  const { id } = await engine.start({ name: 'greenfield-build', workspace });
+  assert.equal(engine.claim({ id }).prompt, 'Read AGENTS.md and .codex/stacks before scaffolding');
+  assert.equal(fs.readFileSync(file, 'utf8'), script);
+  engine.stop({ id, reason: 'Test complete', cancelled: true });
+  engine.close();
+});
 
 for (const name of WORKFLOWS) test(`${name}: original workflow starts with a native Detect job`, async t => {
   const engine = new WorkflowEngine({ sourceRoot });

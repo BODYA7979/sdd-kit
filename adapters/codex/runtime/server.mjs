@@ -11,6 +11,7 @@ const { version } = JSON.parse(fs.readFileSync(path.join(here, '../package.json'
 const engine = new WorkflowEngine({ sourceRoot: path.resolve(here, '../source') });
 const field = description => ({ type: 'string', description });
 const tools = [
+  { name: 'agent_instructions', description: 'Read the shared SDD agent role and preload skill paths for direct skill delegation. Pass the returned instructions to a fresh native Codex subagent; this does not launch a model.', inputSchema: { type: 'object', properties: { name: field('SDD agent name or plugin:name'), workspace: field('Absolute workspace root') }, required: ['name', 'workspace'], additionalProperties: false } },
   { name: 'workflow_start', description: 'Start one SDD pipeline after its required human approvals. Returns jobs for native Codex subagents; does not run a model or shell.', inputSchema: { type: 'object', properties: { name: { type: 'string', enum: WORKFLOWS }, workspace: field('Absolute repository or polyrepo workspace root'), args: { description: 'Original workflow arguments', anyOf: [{ type: 'object' }, { type: 'string' }] }, maxActive: { type: 'integer', minimum: 1, maximum: 16 } }, required: ['name', 'workspace'], additionalProperties: false } },
   { name: 'workflow_resume', description: 'Reconnect to persisted workflow state. Claimed work is never repeated automatically.', inputSchema: { type: 'object', properties: { id: field('Run UUID'), workspace: field('Original absolute workspace') }, required: ['id', 'workspace'], additionalProperties: false } },
   { name: 'workflow_status', description: 'Read workflow phase, job states and final result.', inputSchema: { type: 'object', properties: { id: field('Run UUID') }, required: ['id'], additionalProperties: false } },
@@ -24,7 +25,7 @@ const tools = [
 ];
 const validator = new Ajv({ strict: false, allErrors: true });
 const inputs = new Map(tools.map(tool => [tool.name, validator.compile(tool.inputSchema)]));
-for (const tool of tools) tool.annotations = { readOnlyHint: ['workflow_status', 'stack_list'].includes(tool.name), destructiveHint: false, openWorldHint: false };
+for (const tool of tools) tool.annotations = { readOnlyHint: ['workflow_status', 'stack_list', 'agent_instructions'].includes(tool.name), destructiveHint: false, openWorldHint: false };
 
 const send = response => process.stdout.write(`${JSON.stringify(response)}\n`);
 async function handle(message) {
@@ -34,7 +35,7 @@ async function handle(message) {
   if (!Object.hasOwn(message, 'id')) return;
   const response = { jsonrpc: '2.0', id: message.id };
   try {
-    if (message.method === 'initialize') response.result = { protocolVersion: ['2024-11-05', '2025-03-26', '2025-06-18'].includes(message.params?.protocolVersion) ? message.params.protocolVersion : '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'sdd-kit-codex', version } };
+    if (message.method === 'initialize') response.result = { protocolVersion: ['2024-11-05', '2025-03-26', '2025-06-18'].includes(message.params?.protocolVersion) ? message.params.protocolVersion : '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'sdd-kit', version } };
     else if (message.method === 'ping') response.result = {};
     else if (message.method === 'tools/list') response.result = { tools };
     else if (message.method === 'tools/call') {
@@ -43,6 +44,12 @@ async function handle(message) {
       if (!validate || !validate(args)) throw new Error(validate ? `Invalid tool arguments: ${validator.errorsText(validate.errors)}` : 'Unknown tool');
       let result;
       switch (name) {
+        case 'agent_instructions': {
+          if (!path.isAbsolute(args.workspace) || !fs.statSync(args.workspace).isDirectory()) throw new Error('workspace must be an absolute directory');
+          result = engine.role(args.name, fs.realpathSync(args.workspace));
+          if (result.name === 'general-purpose' && args.name !== 'general-purpose') throw new Error('Unknown SDD agent role');
+          break;
+        }
         case 'workflow_start': result = await engine.start(args); break;
         case 'workflow_resume': result = await engine.resume(args); break;
         case 'workflow_status': result = engine.status(args.id); break;

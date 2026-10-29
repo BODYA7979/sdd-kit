@@ -4,8 +4,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scaffold } from '../runtime/new-stack.mjs';
-import { WorkflowEngine } from '../runtime/engine.mjs';
+import { scaffold } from '../../adapters/codex/runtime/new-stack.mjs';
+import { WorkflowEngine } from '../../adapters/codex/runtime/engine.mjs';
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 test('custom stack scaffolds native files without approving commands or overwriting work', async t => {
   const workspace = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-scaffold-')));
