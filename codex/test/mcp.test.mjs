@@ -27,7 +27,7 @@ test('built plugin exposes MCP tools and hands off a native job', { timeout: 150
   const init = await call('initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'test', version: '1' } });
   assert.equal(init.result.protocolVersion, '2025-03-26');
   const list = await call('tools/list', {});
-  assert.equal(list.result.tools.length, 6);
+  assert.equal(list.result.tools.length, 10);
   const start = await call('tools/call', { name: 'workflow_start', arguments: { name: 'tech-research', workspace, args: { question: 'Compare local file formats' } } });
   const run = JSON.parse(start.result.content[0].text);
   assert.equal(run.status, 'running');

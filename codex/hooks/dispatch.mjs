@@ -8,7 +8,7 @@ import { normalize } from './normalize.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../source');
 const allowed = new Set(['block-dangerous.sh', 'check-commit-msg.sh', 'scan-secrets.sh', 'gate-guard.sh',
   'laravel-test-first.sh', 'nextjs-test-first.sh', 'laravel-lint.sh', 'nextjs-lint.sh',
-  'session-start.sh', 'post-compact-context.sh', 'prompt-preflight.sh', 'pre-compact-save.sh', 'session-end.sh']);
+  'session-start.sh', 'post-compact-context.sh', 'prompt-preflight.sh', 'pre-compact-save.sh', 'session-end.sh', 'scan-injection.sh', 'token-budget.sh']);
 const name = process.argv[2];
 if (!allowed.has(name)) throw new Error('Unknown hook');
 const plugin = name.startsWith('laravel-') ? 'sdd-kit-laravel' : name.startsWith('nextjs-') ? 'sdd-kit-nextjs' : 'sdd-kit';
@@ -27,7 +27,8 @@ try {
   for (const input of normalize(event)) {
     const result = spawnSync('bash', [path.join(root, 'plugins', plugin, 'scripts', name)], {
       input: JSON.stringify(input), encoding: 'utf8', cwd: event.cwd || process.cwd(), timeout: 10000,
-      env: { ...process.env, CLAUDE_PROJECT_DIR: event.cwd || process.cwd() }, maxBuffer: 1024 * 1024,
+      env: { ...process.env, CLAUDE_PROJECT_DIR: event.cwd || process.cwd(),
+        CLAUDE_CONTEXT_USAGE: process.env.SDD_CONTEXT_USAGE || '0', CLAUDE_BUDGET_THRESHOLD: process.env.SDD_CONTEXT_THRESHOLD || '75' }, maxBuffer: 1024 * 1024,
     });
     if (result.stderr) process.stderr.write(result.stderr);
     if (result.error || (result.status !== 0 && result.status !== 2)) {

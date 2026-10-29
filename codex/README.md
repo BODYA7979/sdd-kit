@@ -33,6 +33,6 @@ Verified locally: all six original workflows reach their first native job; inval
 
 `npm test` runs dependency-free Node test runner tests; Ajv validates the original JSON Schemas. Synthetic cases do not establish implementation quality, live browser acceptance or production safety.
 
-## CI template
+## Continuous integration
 
-`ci-template.yml` is ready to place at `.github/workflows/codex-compatibility.yml`. It is not active in this fork yet: the publishing GitHub OAuth token lacks the workflow scope required to add Actions workflows. Local tests remain runnable with `npm test`.
+`.github/workflows/codex-compatibility.yml` builds the native package and runs the compatibility suite on pushes and pull requests.
