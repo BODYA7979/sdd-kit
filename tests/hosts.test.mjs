@@ -50,7 +50,9 @@ test('both hosts consume the same canonical plugins and shared resources', () =>
 });
 test('native package retains SDD Kit identity and resolves every shipped skill', () => {
   const native = path.join(ROOT, 'dist/codex/plugins/sdd-kit');
-  const manifest = JSON.parse(fs.readFileSync(path.join(native, '.codex-plugin/plugin.json')));
+  const manifest = JSON.parse(fs.readFileSync(path.join(native, 'plugin.json')));
+  assert.equal(manifest.$schema, 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json');
+  assert.equal(manifest.extensions['com.openai'].hooks, './hooks/hooks.json');
   assert.equal(manifest.name, 'sdd-kit');
   assert.equal(manifest.version, JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'))).version);
   for (const plugin of fs.readdirSync(path.join(ROOT, 'plugins'))) {
@@ -63,8 +65,10 @@ test('native package retains SDD Kit identity and resolves every shipped skill',
       assert.ok(!text.includes('sdd-codex'));
     }
   }
-  const mcp = JSON.parse(fs.readFileSync(path.join(native, '.mcp.json')));
+  const mcp = JSON.parse(fs.readFileSync(path.join(native, 'mcp.json')));
+  assert.equal(mcp.$schema, 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json');
   assert.deepEqual(Object.keys(mcp.mcpServers).sort(), ['context7', 'playwright', 'sdd-workflows']);
+  for (const server of Object.values(mcp.mcpServers)) assert.equal(server.type, 'stdio');
 });
 test('shared installer preserves every legacy Claude flag and routes Codex explicitly', () => {
   const flags = ['--project', '--stack=laravel,nextjs', '--dry-run', '--prune'];

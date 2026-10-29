@@ -9,13 +9,29 @@ import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-test('built plugin exposes MCP tools and hands off a native job', { timeout: 15000 }, async t => {
-  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-mcp-'));
-  const child = spawn(process.execPath, [path.join(root, 'dist/codex/plugins/sdd-kit/runtime/server.mjs')], { stdio: ['pipe', 'pipe', 'pipe'] });
+test('built plugin launches through its MCP configuration and hands off a native job', { timeout: 15000 }, async t => {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd mcp workspace '));
+  let child;
   t.after(async () => {
-    const exited = once(child, 'exit'); child.kill(); await exited;
-    fs.rmSync(workspace, { recursive: true, force: true });
+    try {
+      if (child?.pid && child.exitCode === null && child.signalCode === null) {
+        const exited = once(child, 'exit'); child.kill(); await exited;
+      }
+    } finally {
+      fs.rmSync(workspace, { recursive: true, force: true });
+    }
   });
+  const pluginRoot = path.join(root, 'dist/codex/plugins/sdd-kit');
+  const manifest = JSON.parse(fs.readFileSync(path.join(pluginRoot, 'plugin.json'), 'utf8'));
+  assert.equal(manifest.$schema, 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json');
+  const config = JSON.parse(fs.readFileSync(path.join(pluginRoot, 'mcp.json'), 'utf8'));
+  assert.equal(config.$schema, 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json');
+  const server = config.mcpServers['sdd-workflows'];
+  assert.equal(server.type, 'stdio');
+  // Codex expands this built-in placeholder, without a shell or Claude aliases.
+  const args = server.args.map(arg => arg.replaceAll('${PLUGIN_ROOT}', pluginRoot));
+  for (const arg of args) assert.doesNotMatch(arg, /\$\{[^}]+\}/, 'MCP arguments must resolve using Codex placeholders');
+  child = spawn(server.command, args, { cwd: workspace, env: { ...process.env, ...server.env }, stdio: ['pipe', 'pipe', 'pipe'] });
   const waiting = new Map(); let seq = 0;
   readline.createInterface({ input: child.stdout }).on('line', line => {
     const result = JSON.parse(line); waiting.get(result.id)?.(result); waiting.delete(result.id);

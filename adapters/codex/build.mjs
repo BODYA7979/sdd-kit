@@ -96,15 +96,16 @@ const newHash = crypto.createHash('sha256').update(fs.readFileSync(trustFile)).d
 const gates = path.join(out, 'skills/verification-gates/SKILL.md');
 fs.writeFileSync(gates, fs.readFileSync(gates, 'utf8').replaceAll(oldHash, newHash));
 fs.appendFileSync(path.join(out, 'skills/progress/SKILL.md'), '\n## Native workflow activity\n\nInclude the run id, name, phase and status from `.ai/codex-workflows/*.json` when present. Read these files without taking ownership or deleting locks. For a run already connected to this session, `workflow_status` provides current activity. Recover work only on request with `workflow_resume` and `workflow_reconnect`; never redispatch an uncertain claimed job.\n');
-fs.mkdirSync(path.join(out, '.codex-plugin'), { recursive: true });
-fs.writeFileSync(path.join(out, '.codex-plugin/plugin.json'), JSON.stringify({ name: 'sdd-kit', version, description: 'SDD Kit workflows, skills and safeguards for native Codex subagents.', skills: './skills/', mcpServers: './.mcp.json', hooks: './hooks/hooks.json' }, null, 2));
-const mcp = JSON.parse(fs.readFileSync(path.join(upstream, 'plugins/sdd-kit/.mcp.json'), 'utf8'));
-mcp.mcpServers['sdd-workflows'] = { command: 'node', args: ['${CLAUDE_PLUGIN_ROOT}/runtime/server.mjs'] };
+// Codex expands plugin paths for portable MCP configs; legacy .mcp.json leaves them literal.
+fs.writeFileSync(path.join(out, 'plugin.json'), JSON.stringify({ $schema: 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json', name: 'sdd-kit', version, description: 'SDD Kit workflows, skills and safeguards for native Codex subagents.', extensions: { 'com.openai': { hooks: './hooks/hooks.json' } } }, null, 2));
+const mcp = { $schema: 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json', ...JSON.parse(fs.readFileSync(path.join(upstream, 'plugins/sdd-kit/.mcp.json'), 'utf8')) };
+mcp.mcpServers['sdd-workflows'] = { command: 'node', args: ['${PLUGIN_ROOT}/runtime/server.mjs'] };
+for (const server of Object.values(mcp.mcpServers)) server.type = 'stdio';
 if (nodeBinary) for (const server of Object.values(mcp.mcpServers)) {
   server.env = { ...(server.env || {}), PATH: path.dirname(nodeBinary) + path.delimiter + (process.env.PATH || '/usr/bin:/bin') };
   if (server.command === 'node') server.command = nodeBinary;
 }
-fs.writeFileSync(path.join(out, '.mcp.json'), JSON.stringify(mcp, null, 2));
+fs.writeFileSync(path.join(out, 'mcp.json'), JSON.stringify(mcp, null, 2));
 const nodeCommand = nodeBinary ? "'" + nodeBinary.replaceAll("'", "'\\''") + "'" : 'node';
 const hook = (script, matcher) => ({ matcher, hooks: [{ type: 'command', command: `${nodeCommand} "${'${CLAUDE_PLUGIN_ROOT}'}/hooks/dispatch.mjs" ${script}`, timeout: 15 }] });
 const lifecycle = matcher => ({ ...(matcher ? { matcher } : {}), hooks: [{ type: 'command', command: `${nodeCommand} "${'${PLUGIN_ROOT}'}/hooks/lifecycle.mjs"`, timeout: 10 }] });
